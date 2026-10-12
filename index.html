@@ -443,19 +443,28 @@ footer { color: var(--muted); font-size: 13px }
     <text class="hint" x="1650" y="316" text-anchor="end">макет ›</text>
     </g>
 
+    <g class="hot" data-role="loaderchief" role="button" tabindex="0" aria-label="Открыть макет: шеф или бригадир грузчиков">
     <rect class="node" x="1360" y="480" width="300" height="56" rx="10"/>
     <text class="nt" x="1374" y="503">Шеф или бригадир грузчиков</text>
     <text class="ns" x="1374" y="524">берёт одобренную отгрузку</text>
+    <text class="hint" x="1650" y="524" text-anchor="end">макет ›</text>
+    </g>
 
+    <g class="hot" data-role="loaders" role="button" tabindex="0" aria-label="Грузчики: доступ к системе">
     <rect class="node" x="1360" y="556" width="300" height="56" rx="10"/>
     <text class="nt" x="1374" y="579">Грузчики <tspan class="cnt">· ~10</tspan></text>
     <text class="ns" x="1374" y="600">грузят вместе с кладовщиками</text>
+    <text class="hint" x="1650" y="579" text-anchor="end">уточнить ›</text>
+    </g>
 
+    <g class="hot" data-role="checker" role="button" tabindex="0" aria-label="Открыть макет: проверяющий отгрузку">
     <rect class="node" x="1360" y="634" width="300" height="98" rx="10"/>
     <text class="nt" x="1374" y="658">Проверяющий отгрузку</text>
     <text class="ns" x="1374" y="680">считает все листы в машине,</text>
     <text class="ns" x="1374" y="699">сверяет с отгрузочным листом</text>
     <text class="ns" x="1374" y="718">и заявкой, отмечает в системе</text>
+    <text class="hint" x="1650" y="658" text-anchor="end">макет ›</text>
+    </g>
 
     <rect class="node okn" x="1360" y="752" width="300" height="38" rx="10"/>
     <text class="okt" x="1510" y="777" text-anchor="middle">Отгрузка подтверждена</text>
@@ -650,9 +659,99 @@ ROLES.cheflog = { label: "Шеф логистов", grp: 1, user: ["Шеф ло�
     ships: ["Заявки на отгрузку", "Одобряю — дальше берут грузчики и кладовщики"], keepers: ["Кладовщики", ""],
     stock: ["Остатки готовой продукции", ""], chat: ["Сообщения", ""], dicts: ["Справочник", ""] } };
 const MK = { role: "manager", view: "orders", order: null, filter: "all", seg: "active", modal: null, pre: null,
-  marks: {}, sent: {}, approved: {}, area: "mono", acc: {}, loaded: {}, lgFilter: "all", ppFilter: "all", clFilter: "all" };
+  marks: {}, sent: {}, approved: {}, area: "mono", acc: {}, taken: { "ЗО-2026-003": true }, loadedA: { "ЗО-2026-003|mono": true }, confirmed: {}, counted: {}, sheetOk: {}, chkDiff: {}, lgFilter: "all", ppFilter: "all", clFilter: "all" };
 // статус заявки на отгрузку с учётом одобрения в макете шефа логистов (общий для всех макетов)
-const zSt = (z) => (z.st === "wait" && MK.approved[z.no] ? "approved" : z.st);
+const zSt = (z) => {
+  const s = z.st === "wait" && MK.approved[z.no] ? "approved" : z.st;
+  return s === "approved" && MK.confirmed[z.no] ? "done" : s;
+};
+// участки, которые грузят машину (позиции без участка — термошайбы — не учитываем: кто их грузит, не обсуждали)
+const zOrder = (z) => ORDERS.find((o) => o.no === z.order);
+const zAreas = (z) => [...new Set(zOrder(z).items.map((x) => areaOf(x.prod)).filter(Boolean))];
+const isLoaded = (z) => zAreas(z).every((a) => MK.loadedA[z.no + "|" + a]);
+
+/* --- шеф/бригадир грузчиков, грузчики, проверяющий отгрузку --- */
+const NAV_CHAT = { items: [["chat", "Сообщения", "message-square"]] };
+ROLES.loaderchief = { label: "Шеф или бригадир грузчиков", user: ["Шеф грузчиков (пример)", "Шеф или бригадир грузчиков", "ШГ"], start: "lships", back: "lships",
+  nav: [NAV_CHAT, { title: "Склад", items: [["lships", "Отгрузки", "truck"]] }].concat(NAV_END),
+  titles: { lships: ["Отгрузки", "Одобренные заявки — погрузка"], chat: ["Сообщения", ""], dicts: ["Справочник", ""] } };
+ROLES.loaders = { label: "Грузчики", user: ["Грузчик (пример)", "Грузчик", "Г"], start: "noaccess", back: "noaccess",
+  nav: [{ title: "Склад", items: [["noaccess", "Грузчики", "users"]] }], titles: { noaccess: ["Грузчики", ""] } };
+ROLES.checker = { label: "Проверяющий отгрузку", user: ["Проверяющий (пример)", "Проверяющий отгрузку", "П"], start: "check", back: "check",
+  nav: [NAV_CHAT, { title: "Склад", items: [["check", "Проверка машин", "clipboard-check"]] }].concat(NAV_END),
+  titles: { check: ["Проверка машин", "Погруженные машины — пересчёт и сверка"], chat: ["Сообщения", ""], dicts: ["Справочник", ""] } };
+// состояние машины глазами склада
+const LD_ST = { wait: ["Ждёт взятия в работу", "b-slate"], loading: ["В погрузке", "b-warning"], loaded: ["Погружено — ждёт проверки", "b-primary"], done: ["Отгрузка подтверждена", "b-danger"] };
+const ldSt = (z) => zSt(z) === "done" ? "done" : isLoaded(z) ? "loaded" : MK.taken[z.no] ? "loading" : "wait";
+function pgLShips() {
+  const all = SHIPS.filter((z) => ["approved", "done"].includes(zSt(z)));
+  const list = all.filter((z) => MK.seg === "all" || (MK.seg === "active" ? ldSt(z) !== "done" : ldSt(z) === "done"));
+  const cnt = (k) => all.filter((z) => ldSt(z) === k).length;
+  const cards = list.map((z) => {
+    const st = ldSt(z), o = zOrder(z), noArea = o.items.filter((x) => !areaOf(x.prod)).length;
+    const areas = zAreas(z).map((a) => `<div class="mk-row"><span>${AREAS[a].split(" ")[0]}</span>${MK.loadedA[z.no + "|" + a] || st === "done"
+      ? badge(["кладовщики: погружено", "b-success"]) : badge(["кладовщики: ждём", "b-slate"])}</div>`).join("");
+    const foot = st === "wait" ? `<button class="mk-btn p sm" data-mk-take="${z.no}">${ico("hand")}Взять в работу</button>` : `<button class="mk-btn sm">${ico("printer")}Печать</button>`;
+    return `<article class="mk-card mk-deal ${st === "done" ? "done" : st === "wait" ? "" : "approved"}"><div class="mk-deal-b">
+      <div class="mk-deal-h"><div><b>ЗО № ${z.n}</b><small>${z.no} · по ${z.order}</small></div>${badge(LD_ST[st])}</div>
+      <div style="font-weight:600">${z.client} · отгрузка ${z.date}</div>
+      <div class="mk-mini"><div><span>Позиций</span><b>${z.pos}</b></div><div><span>Листов</span><b>${z.sheets}</b></div><div><span>Кг</span><b>${z.kg}</b></div><div><span>Отгрузка</span><b>${z.date}</b></div></div>
+      ${areas}${noArea ? `<div class="mk-row"><span>Ещё</span>термошайбы — кто грузит, не обсуждали</div>` : ""}</div>
+      <div class="mk-deal-f">${foot}</div></article>`;
+  }).join("");
+  return `<div class="mk-kpis">
+      <div class="mk-card mk-kpi"><span>Ждут взятия</span><b>${cnt("wait")}</b></div>
+      <div class="mk-card mk-kpi"><span>В погрузке</span><b>${cnt("loading")}</b></div>
+      <div class="mk-card mk-kpi"><span>Ждут проверки</span><b>${cnt("loaded")}</b></div>
+      <div class="mk-card mk-kpi"><span>Подтверждены</span><b>${cnt("done")}</b></div></div>
+    <div class="mk-sec"><h3>Отгрузки <small>· ${all.length}</small></h3>
+      <div class="mk-tools">${TODO("«Взять в работу» и статусы")}<div class="mk-seg">${[["active", "Активные"], ["done", "Завершённые"], ["all", "Все"]].map(([k, l]) =>
+        `<button class="${MK.seg === k ? "on" : ""}" data-mk-seg="${k}">${l}</button>`).join("")}</div></div></div>
+    <p class="mk-note">Здесь заявки, которые одобрил шеф логистов. Возьмите в работу — грузчики и кладовщики грузят; когда все участки отметят «Погружено», машина уходит проверяющему.</p>
+    ${cnt("wait") ? "" : `<p class="mk-note mk-muted">В примере: одобрите ЗО-2026-004 в макете шефа логистов — она появится здесь с кнопкой «Взять в работу».</p>`}
+    ${list.length ? `<div class="mk-deals${list.length >= 3 ? " compact" : ""}" style="grid-template-columns:repeat(${list.length}, minmax(0, 1fr))">${cards}</div>`
+      : `<div class="mk-card mk-stub">${ico("truck")}<b>Здесь пусто</b></div>`}`;
+}
+function pgNoAccess() {
+  return `<div class="mk-card mk-stub">${ico("users")}<b>Грузчики</b>
+    <p class="mk-note">Предложение: грузчики в системе не работают. Задания им даёт шеф или бригадир грузчиков, отметку «Погружено» ставят кладовщики.</p>
+    ${TODO("нужен ли грузчикам доступ")}</div>`;
+}
+function pgCheck() {
+  const ready = SHIPS.filter((z) => ldSt(z) === "loaded"), done = SHIPS.filter((z) => ldSt(z) === "done");
+  const show = MK.filter === "done" ? done : ready;
+  const card = (z) => {
+    const o = zOrder(z), st = ldSt(z), fin = st === "done";
+    const rows = o.items.map((x, i) => {
+      const need = parseInt(x.qty, 10), k = z.no + ":" + i, got = MK.counted[k];
+      const ok = got === undefined || got === "" ? null : Number(got) === need;
+      return `<tr><td>${i + 1}</td><td>${x.prod}</td><td>${x.th}</td><td>${x.size}</td><td>${x.color}</td><td><b>${x.qty}</b></td>
+        <td>${fin ? `<b>${got ?? need}</b>` : `<input type="number" min="0" inputmode="numeric" id="cnt-${z.n}-${i}" data-mk-count="${k}" value="${got ?? ""}" style="width:90px;padding:5px 8px;border:1px solid var(--border-default);border-radius:6px;background:var(--bg-surface);color:var(--fg-primary);font:inherit">`}</td>
+        <td>${fin || ok === true ? badge(["совпадает", "b-success"]) : ok === false ? badge(["не совпадает", "b-danger"]) : `<span class="mk-muted">—</span>`}</td></tr>`;
+    }).join("");
+    const allOk = o.items.every((x, i) => Number(MK.counted[z.no + ":" + i]) === parseInt(x.qty, 10) && MK.counted[z.no + ":" + i] !== "");
+    const canConfirm = allOk && MK.sheetOk[z.no];
+    const foot = fin ? badge(LD_ST.done)
+      : `<label style="display:inline-flex;align-items:center;gap:8px;margin-right:auto;font-size:.875rem;cursor:pointer"><input type="checkbox" id="sheet-${z.n}" data-mk-sheet="${z.no}" ${MK.sheetOk[z.no] ? "checked" : ""}>Сверено с отгрузочным листом</label>
+        ${MK.chkDiff[z.no] ? `${badge(["Расхождение", "b-danger"])} ${TODO("что дальше")}` : `<button class="mk-btn sm" data-mk-cdiff="${z.no}">Расхождение</button>`}
+        <button class="mk-btn g sm" data-mk-confirm="${z.no}" ${canConfirm ? "" : "disabled"}>${ico("check")}Подтвердить отгрузку</button>`;
+    return `<article class="mk-card mk-deal ${fin ? "done" : "approved"}"><div class="mk-deal-b">
+      <div class="mk-deal-h"><div><b>ЗО № ${z.n}</b><small>${z.no} · по ${z.order}</small></div>${badge(LD_ST[st])}</div>
+      <div style="font-weight:600">${z.client} · отгрузка ${z.date}</div>
+      <div class="mk-card mk-tbl dense" style="box-shadow:none"><table><thead><tr><th>№</th><th>Продукция</th><th>Толщ.</th><th>Размер</th><th>Цвет</th><th>По заявке</th><th>Посчитано</th><th>Сверка</th></tr></thead>
+        <tbody>${rows}</tbody></table></div></div>
+      <div class="mk-deal-f" style="align-items:center">${foot}</div></article>`;
+  };
+  return `<div class="mk-kpis k3">
+      <div class="mk-card mk-kpi"><span>Ждут проверки</span><b>${ready.length}</b></div>
+      <div class="mk-card mk-kpi"><span>Подтверждены</span><b>${done.length}</b></div>
+      <div class="mk-card mk-kpi"><span>Расхождения</span><b>${Object.keys(MK.chkDiff).length}</b></div></div>
+    <div class="mk-chips"><button class="mk-chip${MK.filter !== "done" ? " on" : ""}" data-mk-filter="all">Ждут проверки<em>${ready.length}</em></button>
+      <button class="mk-chip${MK.filter === "done" ? " on" : ""}" data-mk-filter="done">Подтверждены<em>${done.length}</em></button>${TODO("что при расхождении")}</div>
+    <p class="mk-note">Посчитайте всё в машине, впишите количество, сверьте с отгрузочным листом и заявкой — и подтвердите. После этого отгрузку видят все, а менеджеры делают инвойс по машине.</p>
+    ${show.length ? `<div style="display:grid;gap:14px">${show.map(card).join("")}</div>` : `<div class="mk-card mk-stub">${ico("clipboard-check")}<b>Нет машин</b>
+      <p class="mk-note">Машина появится здесь, когда кладовщики отметят «Погружено» по всем участкам.</p></div>`}`;
+}
 
 /* --- кладовщики: три участка (со слов юзера: 2 человека на каждый) --- */
 const AREAS = { mono: "Монолит и трапеция", sot: "Сотовый и профиль", raw: "Первичное и вторичное сырьё" };
@@ -711,7 +810,7 @@ function pgLoading() {
   const cards = list.map((z) => {
     const o = ORDERS.find((x) => x.no === z.order);
     const mine = o.items.filter((x) => areaOf(x.prod) === MK.area), other = o.items.length - mine.length;
-    const done = MK.loaded[z.no];
+    const done = MK.loadedA[z.no + "|" + MK.area];
     return `<article class="mk-card mk-deal ${done ? "" : "approved"}"><div class="mk-deal-b">
       <div class="mk-deal-h"><div><b>ЗО № ${z.n}</b><small>${z.no} · по ${z.order}</small></div>${done ? badge(["Погружено", "b-success"]) : badge(Z_ST.approved)}</div>
       <div style="font-weight:600">${z.client} · отгрузка ${z.date}</div>
@@ -719,7 +818,7 @@ function pgLoading() {
         ${mine.map((x) => `<tr><td>${x.prod}</td><td>${x.th}</td><td>${x.size}</td><td>${x.color}</td><td><b>${x.qty}</b></td></tr>`).join("")}</tbody></table></div>`
         : `<p class="mk-note">Позиций вашего участка в этой машине нет.</p>`}
       ${other ? `<div class="mk-row"><span>Ещё в машине</span>${other} поз. — другой участок${o.items.some((x) => !areaOf(x.prod)) ? " и термошайбы (кто их грузит — не обсуждали)" : ""}</div>` : ""}</div>
-      <div class="mk-deal-f">${done ? `<button class="mk-btn sm">${ico("printer")}Печать</button>` : `<button class="mk-btn g sm" data-mk-load="${z.no}">${ico("check")}Погружено</button>`}</div></article>`;
+      <div class="mk-deal-f">${done ? `<button class="mk-btn sm">${ico("printer")}Печать</button>` : `<button class="mk-btn g sm" data-mk-load="${z.no}|${MK.area}">${ico("check")}Погружено</button>`}</div></article>`;
   }).join("");
   return `${areaSwitch()}
     <div class="mk-sec"><h3>Одобренные отгрузки <small>· ${list.length}</small></h3>${TODO("кто нажимает «Погружено»")}</div>
@@ -981,13 +1080,13 @@ function pgShips() {
         <div style="font-weight:600">${z.client}</div>
         <div class="mk-mini"><div><span>Позиций</span><b>${z.pos}</b></div><div><span>Листов</span><b>${z.sheets}</b></div><div><span>Кг</span><b>${z.kg}</b></div><div><span>Отгрузка</span><b>${z.date}</b></div></div>
         <div class="mk-row"><span>По заявке</span><span class="mk-tag">${z.order}</span></div>
-        <div class="mk-flow">${step(st !== "wait", "Шеф логистов одобрил")}${step(st === "done" || MK.loaded[z.no], "Погружено")}${step(st === "done", "Машина проверена")}</div>
+        <div class="mk-flow">${step(st !== "wait", "Шеф логистов одобрил")}${step(st === "done" || isLoaded(z), "Погружено")}${step(st === "done", "Машина проверена")}</div>
         <div class="mk-row"><span>Инвойсы</span>${inv}</div></div>
         <div class="mk-deal-f">${foot}</div></article>`;
     }).join("")}</div>`;
 }
 function pgInvoices() {
-  const waiting = SHIPS.filter((z) => z.st === "done" && !z.inv);
+  const waiting = SHIPS.filter((z) => zSt(z) === "done" && !z.inv);
   return `<div class="mk-sec"><div><h1 class="mk-h1">Инвойсы</h1><p class="mk-h1-sub">Создаются по машине — после того, как проверяющий подтвердил отгрузку.</p></div>
       <button class="mk-btn p" data-mk-modal="inv">${ico("plus")}Создать</button></div>
     ${waiting.map((z) => `<div class="mk-wait"><span>Ждёт инвойса · <b>${z.no}</b> · ${z.client} · отгрузка подтверждена ${z.date}.2026</span>
@@ -1039,6 +1138,7 @@ function mkModal() {
 function mkRender() {
   const pages = MK.role === "manager" ? { orders: pgOrders, order: pgOrder, ships: pgShips, invoices: pgInvoices }
     : MK.role === "cheflog" ? { fromL1: pgFromL1, corder: pgCOrder, plan: pgPlan, ships: pgShips }
+    : MK.role === "loaderchief" ? { lships: pgLShips } : MK.role === "loaders" ? { noaccess: pgNoAccess } : MK.role === "checker" ? { check: pgCheck }
     : MK.role === "keepers" ? (MK.area === "raw" ? { accept: pgRaw, loading: pgRaw, stock: pgRaw } : { accept: pgAccept, loading: pgLoading, stock: pgKStock })
     : { inbox: pgInbox, lorder: pgLOrder, plan: pgPlan };
   const page = pages[MK.view] || pgStub;
@@ -1073,7 +1173,7 @@ document.querySelectorAll(".hot[data-role]").forEach((g) => {
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-nav],[data-mk-order],[data-mk-lorder],[data-mk-corder],[data-mk-clfilter],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-back],[data-mk-filter],[data-mk-lgfilter],[data-mk-ppfilter],[data-mk-seg],[data-mk-mark],[data-mk-send],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-nav],[data-mk-order],[data-mk-lorder],[data-mk-corder],[data-mk-clfilter],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-back],[data-mk-filter],[data-mk-lgfilter],[data-mk-ppfilter],[data-mk-seg],[data-mk-mark],[data-mk-send],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
@@ -1089,7 +1189,11 @@ overlay.addEventListener("click", (e) => {
   else if (d.mkApprove) MK.approved[d.mkApprove] = true;
   else if (d.mkArea) MK.area = d.mkArea;
   else if (d.mkAcc) { const [k, v] = d.mkAcc.split("|"); MK.acc[k] = v; }
-  else if (d.mkLoad) MK.loaded[d.mkLoad] = true;
+  else if (d.mkLoad) MK.loadedA[d.mkLoad] = true;
+  else if (d.mkTake) MK.taken[d.mkTake] = true;
+  else if (d.mkSheet) MK.sheetOk[d.mkSheet] = !MK.sheetOk[d.mkSheet];
+  else if (d.mkConfirm) { MK.confirmed[d.mkConfirm] = true; delete MK.chkDiff[d.mkConfirm]; }
+  else if (d.mkCdiff) MK.chkDiff[d.mkCdiff] = true;
   else if (t.hasAttribute("data-mk-back")) { MK.view = R().back; MK.order = null; }
   else if (d.mkFilter) MK.filter = d.mkFilter;
   else if (d.mkLgfilter) MK.lgFilter = d.mkLgfilter;
@@ -1098,6 +1202,15 @@ overlay.addEventListener("click", (e) => {
   else if (d.mkMark) { const [k, v] = d.mkMark.split("|"); MK.marks[k] = MK.marks[k] === v ? undefined : v; }
   else if (d.mkSend) MK.sent[d.mkSend] = true;
   mkRender();
+});
+// пересчёт в машине: значение сохраняется при выходе из поля; фокус возвращаем туда, куда перешёл человек
+overlay.addEventListener("change", (e) => {
+  const k = e.target.dataset && e.target.dataset.mkCount;
+  if (!k) return;
+  MK.counted[k] = e.target.value;
+  const keep = document.activeElement && document.activeElement.id;
+  mkRender();
+  if (keep && document.getElementById(keep)) document.getElementById(keep).focus();
 });
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape" || overlay.hidden) return;
