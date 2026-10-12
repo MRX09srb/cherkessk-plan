@@ -253,6 +253,63 @@ footer { color: var(--muted); font-size: 13px }
 .mk-combo svg.lucide { width: 14px; height: 14px; color: var(--fg-tertiary) }
 .mk-modal-f { padding: 18px 22px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end; gap: 10px }
 .mk-btn.ghost { background: transparent; border-color: transparent; box-shadow: none; color: var(--fg-secondary) }
+/* киоск цеха: крупные элементы под палец */
+.mk-shiftbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 16px; background: var(--bg-sunken); border-radius: 8px }
+.mk-shiftbar .lbl { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--fg-secondary) }
+.mk-who { background: var(--primary-50); color: var(--primary-800); border: 1px solid var(--primary-200); border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 600 }
+.mk-shiftbar .mk-btn { margin-left: auto }
+.mk-pick { border: 1px solid color-mix(in oklab, var(--danger-500) 45%, transparent); background: color-mix(in oklab, var(--danger-500) 6%, var(--bg-surface)); border-radius: 12px; padding: 18px 22px; display: grid; gap: 22px }
+.mk-pick-h { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; color: var(--danger-700) }
+.mk-pick-h svg.lucide { width: 20px; height: 20px }
+.mk-pick-g { display: grid; gap: 10px }
+.mk-pick-g > b { text-align: center; font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--primary-700) }
+.mk-pick-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px }
+.mk-person { padding: 16px 14px; border: 2px solid var(--primary-300); border-radius: 8px; background: var(--bg-surface); text-align: center; display: grid; gap: 4px }
+.mk-person:hover { background: var(--bg-sunken); box-shadow: var(--shadow-md); transform: translateY(-1px) }
+.mk-person span { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--fg-tertiary) }
+.mk-person b { font-size: 18px; font-weight: 700; color: var(--primary-800) }
+.mk-pin { width: 100%; text-align: center; font: 700 28px var(--font-mono); letter-spacing: .5em; padding: 14px 16px; border: 2px solid var(--primary-300); border-radius: 8px; background: var(--bg-surface); color: var(--fg-primary) }
+.mk-pin.err { border-color: var(--danger-500) }
+.mk-err { color: var(--danger-700); font-size: 13px; font-weight: 600 }
+.mk-oph { padding: 20px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px 32px }
+.mk-oph small { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--fg-tertiary) }
+.mk-oph .no { font-size: 32px; font-weight: 700; color: var(--primary-800); font-family: var(--font-mono); display: flex; align-items: center; gap: 12px }
+.mk-oph .facts2 { display: flex; gap: 28px }
+.mk-oph .facts2 span { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--fg-tertiary) }
+.mk-oph .facts2 b { font-size: 18px; font-weight: 600 }
+.mk-oprow { padding: 18px 22px; display: grid; grid-template-columns: auto 60px 0.8fr 1.1fr auto auto; gap: 24px; align-items: center }
+.mk-oprow.fin { border: 2px solid var(--success-500); background: color-mix(in oklab, var(--success-500) 6%, var(--bg-surface)) }
+.mk-opdone { display: grid; gap: 4px; justify-items: start }
+.mk-opdone button.go { padding: 14px 22px; font-size: 15px; font-weight: 700; background: var(--primary-600); color: #fff; border: 0; border-radius: 8px }
+.mk-opdone small { font-size: 10px; color: var(--fg-tertiary) }
+.mk-opdone i { font-size: 10px; color: var(--fg-tertiary) }
+.mk-opdone .ok { padding: 12px 18px; border-radius: 8px; background: var(--success-100); color: var(--success-700); font-weight: 700 }
+.mk-opdone .undo { border: 0; background: transparent; font-size: 11px; color: var(--fg-secondary); padding: 2px 0 }
+.mk-opno span { font-size: 12px; color: var(--fg-tertiary) }
+.mk-opno b { display: block; font-size: 28px; font-weight: 700 }
+.mk-opc span, .mk-opplan span { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--fg-tertiary) }
+.mk-opc b, .mk-opplan b { display: block; font-size: 18px; font-weight: 600 }
+.mk-opc small { font-size: 13px; color: var(--fg-secondary) }
+.mk-opin { display: grid; gap: 6px; justify-items: start }
+.mk-opin .rowin { display: flex; gap: 8px; align-items: center }
+.mk-opin input { width: 90px; font: 700 20px var(--font-sans); padding: 8px 10px; border: 2px solid var(--primary-300); border-radius: 8px; background: var(--bg-surface); color: var(--fg-primary) }
+.mk-opin .conf { padding: 9px 22px; font-size: 14px; font-weight: 700; border-radius: 8px; border: 1px solid var(--primary-300); color: var(--primary-800); background: linear-gradient(var(--primary-50), var(--primary-100)) }
+.mk-opin small { font-size: 11px; color: var(--fg-secondary) }
+.mk-amber { display: inline-block; padding: 3px 10px; border-radius: 9999px; background: var(--warning-100); color: var(--warning-700); font-size: 12px; font-weight: 600 }
+.mk-progress { height: 6px; border-radius: 3px; background: var(--bg-sunken); overflow: hidden }
+.mk-progress i { display: block; height: 100%; background: var(--primary-600) }
+.mk-blockt { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em }
+.mk-blockt::before { content: ""; width: 4px; height: 18px; border-radius: 2px; background: var(--primary-600) }
+.mk-team { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px }
+.mk-team label { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border: 1px solid var(--border-default); border-radius: 8px; font-size: 14px; cursor: pointer }
+.mk-team label.on { background: var(--bg-sunken) }
+.mk-team input[type="checkbox"] { width: 18px; height: 18px }
+.mk-team input[type="number"] { width: 56px; margin-left: auto; padding: 4px 6px; border: 1px solid var(--border-default); border-radius: 6px; background: var(--bg-surface); color: var(--fg-primary); font: inherit }
+.mk-blocks { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px }
+.mk-blk { background: var(--bg-sunken); border-radius: 8px; padding: 12px 14px; display: grid; gap: 6px }
+.mk-blk label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--fg-tertiary) }
+.mk-blk input { width: 100%; padding: 6px 8px; font: 600 15px var(--font-sans); border: 1px solid var(--border-default); border-radius: 6px; background: var(--bg-surface); color: var(--fg-primary) }
+.mk-save { height: 42px; padding: 0 22px; font-size: 15px; font-weight: 600 }
 .mk-btn:disabled { opacity: .45; cursor: not-allowed }
 .mk-kpis.k3 { grid-template-columns: repeat(3, 1fr) }
 .mk-ro { margin-left: auto; display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px; border-radius: 9999px; background: var(--slate-100); color: var(--fg-tertiary); font-size: 7px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em }
@@ -379,13 +436,17 @@ footer { color: var(--muted); font-size: 13px }
     <text class="ns" x="1054" y="258">переработка</text>
 
     <!-- ряд 1: плёнка и переработка -->
+    <g class="hot" data-role="kiosk" data-shop="film" role="button" tabindex="0" aria-label="Открыть киоск: плёночный цех">
     <rect class="node" x="500" y="290" width="243" height="165" rx="12"/>
     <text class="ct" x="514" y="316">Плёночный</text>
     <text class="cl" x="514" y="342">Линия 1</text>
     <text class="cl" x="514" y="364">Флекса (покраска) 1</text>
     <text class="cl" x="514" y="386">Гранулятор 1</text>
     <text class="cf" x="514" y="442">1 киоск · вносит бригадир</text>
+    <text class="hint" x="733" y="316" text-anchor="end">киоск ›</text>
+    </g>
 
+    <g class="hot" data-role="kiosk" data-shop="rec1" role="button" tabindex="0" aria-label="Открыть киоск: переработка 1">
     <rect class="node" x="768" y="290" width="243" height="165" rx="12"/>
     <text class="ct" x="782" y="316">Переработка 1</text>
     <text class="cm" x="782" y="338">Киоск дробилок и шредеров</text>
@@ -394,41 +455,58 @@ footer { color: var(--muted); font-size: 13px }
     <text class="cm" x="782" y="400">Киоск грануляции и мойки</text>
     <text class="cl" x="782" y="420">Грануляторы 3, мойка 1</text>
     <text class="cf" x="782" y="442">2 киоска · вносят операторы</text>
+    <text class="hint" x="1001" y="316" text-anchor="end">киоск ›</text>
+    </g>
 
+    <g class="hot" data-role="kiosk" data-shop="rec2" role="button" tabindex="0" aria-label="Открыть киоск: переработка 2">
     <rect class="node" x="1036" y="290" width="243" height="165" rx="12"/>
     <text class="ct" x="1050" y="316">Переработка 2</text>
     <text class="cl" x="1050" y="342">Шредер 1</text>
     <text class="cl" x="1050" y="364">Дробилка (сота) 1</text>
     <text class="cl" x="1050" y="386">Гранулятор 1</text>
     <text class="cf" x="1050" y="442">1 киоск · вносят операторы</text>
+    <text class="hint" x="1269" y="316" text-anchor="end">киоск ›</text>
+    </g>
 
     <!-- ряд 2: лист -->
+    <g class="hot" data-role="kiosk" data-shop="sot" role="button" tabindex="0" aria-label="Открыть киоск: сотовый цех">
     <rect class="node" x="500" y="510" width="378" height="150" rx="12"/>
     <text class="ct" x="514" y="536">Сотовый</text>
     <text class="cl" x="514" y="562">Старый цех: линии 1, 2, 3, 4</text>
     <text class="cl" x="514" y="584">Новый цех: линии 2, 6, 7</text>
     <text class="cm" x="514" y="606">«2» есть в обоих цехах — линию узнаём по цеху</text>
     <text class="cf" x="514" y="644">1 киоск на оба цеха · вносит бригадир</text>
+    <text class="hint" x="868" y="536" text-anchor="end">киоск ›</text>
+    </g>
 
+    <g class="hot" data-role="kiosk" data-shop="monolit" role="button" tabindex="0" aria-label="Открыть киоск: монолитный цех">
     <rect class="node" x="902" y="510" width="378" height="150" rx="12"/>
     <text class="ct" x="916" y="536">Монолитный</text>
     <text class="cl" x="916" y="562">Монолитные линии 2: масляная, синяя</text>
     <text class="cl" x="916" y="584">Трапеции 2: старая, новая</text>
     <text class="cm" x="916" y="606">лист — от шефа логистов, трапеция — от логиста №2</text>
     <text class="cf" x="916" y="644">1 киоск · вносит бригадир</text>
+    <text class="hint" x="1270" y="536" text-anchor="end">киоск ›</text>
+    </g>
 
     <!-- ряд 3: операторы -->
+    <g class="hot" data-role="kiosk" data-shop="profile" role="button" tabindex="0" aria-label="Открыть киоск: профильный цех">
     <rect class="node" x="500" y="704" width="378" height="130" rx="12"/>
     <text class="ct" x="514" y="730">Профильный</text>
     <text class="cl" x="514" y="756">Линии 5: 1, 2, 3, 4, 5</text>
     <text class="cl" x="514" y="778">Грануляторы 2, агломератор 1</text>
     <text class="cf" x="514" y="818">1 киоск · вносят операторы</text>
+    <text class="hint" x="868" y="730" text-anchor="end">киоск ›</text>
+    </g>
 
+    <g class="hot" data-role="kiosk" data-shop="thermo" role="button" tabindex="0" aria-label="Открыть киоск: термошайбы">
     <rect class="node" x="902" y="704" width="378" height="130" rx="12"/>
     <text class="ct" x="916" y="730">Термошайбы</text>
     <text class="cl" x="916" y="756">Линии 2</text>
     <text class="cl" x="916" y="778">Порезка прокладок для термошайб 1</text>
     <text class="cf" x="916" y="818">1 киоск · вносят операторы</text>
+    <text class="hint" x="1270" y="730" text-anchor="end">киоск ›</text>
+    </g>
 
     <!-- СКЛАД И ОТГРУЗКА -->
     <g class="hot" data-role="keepers" role="button" tabindex="0" aria-label="Открыть макет: кладовщики">
@@ -617,12 +695,21 @@ const SHIPS = [
 ];
 // заявки на производство (пример): лист создаёт шеф логистов, профиль/термошайбы/трапецию — логист №2
 const PP = [
-  { no: "ПП-2026-014", grp: 1, line: "Монолитный цех", sub: "синяя линия", name: "Клиент 3", created: "10.10.2026", plan: "17.10.2026", pos: 1, st: "issued", author: "Шеф логистов", order: "З-2026-006" },
-  { no: "ПП-2026-009", grp: 1, line: "Сотовый, старый цех", sub: "линия 2", name: "Клиент 1", created: "03.10.2026", plan: "05.10.2026", pos: 2, st: "done", author: "Шеф логистов", order: "З-2026-004" },
-  { no: "ПП-2026-013", grp: 2, line: "Трапеция", sub: "новая", name: "Клиент 4", created: "08.10.2026", plan: "16.10.2026", pos: 1, st: "issued", author: "Логист №2", order: "З-2026-005" },
-  { no: "ПП-2026-012", grp: 2, line: "Профильный цех", sub: "линия 3", name: "Клиент 4", created: "08.10.2026", plan: "15.10.2026", pos: 1, st: "inprog", author: "Логист №2", order: "З-2026-005" },
-  { no: "ПП-2026-010", grp: 2, line: "Термошайбы", sub: "линия 1", name: "Клиент 6", created: "01.10.2026", plan: "03.10.2026", pos: 1, st: "done", author: "Логист №2", order: "З-2026-003" }
+  { no: "ПП-2026-014", grp: 1, shop: "monolit", line: "Монолитный цех", sub: "синяя линия", name: "Клиент 3", created: "10.10.2026", plan: "17.10.2026", pos: 1, st: "inprog", author: "Шеф логистов", order: "З-2026-006" },
+  { no: "ПП-2026-009", grp: 1, shop: "sot", line: "Сотовый, старый цех", sub: "линия 2", name: "Клиент 1", created: "03.10.2026", plan: "05.10.2026", pos: 2, st: "done", author: "Шеф логистов", order: "З-2026-004" },
+  { no: "ПП-2026-013", grp: 2, shop: "monolit", line: "Трапеция", sub: "новая", name: "Клиент 4", created: "08.10.2026", plan: "16.10.2026", pos: 1, st: "inprog", author: "Логист №2", order: "З-2026-005" },
+  { no: "ПП-2026-012", grp: 2, shop: "profile", line: "Профильный цех", sub: "линия 3", name: "Клиент 4", created: "08.10.2026", plan: "15.10.2026", pos: 1, st: "inprog", author: "Логист №2", order: "З-2026-005" },
+  { no: "ПП-2026-010", grp: 2, shop: "thermo", line: "Термошайбы", sub: "линия 1", name: "Клиент 6", created: "01.10.2026", plan: "03.10.2026", pos: 1, st: "done", author: "Логист №2", order: "З-2026-003" },
+  // плёнка: заявку даёт шеф производства (пример; бывают ли у плёнки заявки — уточнить)
+  { no: "ПП-2026-015", grp: 0, shop: "film", line: "Плёночный цех", sub: "линия 1", name: "Плёнка (пример)", created: "11.10.2026", plan: "14.10.2026", pos: 1, st: "issued", author: "Шеф производства", order: "—" }
 ];
+// позиции заявок на производство для киоска: other — уже сделано в прошлых сменах (ночная 11.10 — то, что принимают кладовщики)
+const PPI = {
+  "ПП-2026-014": [{ client: "Клиент 3", date: "17.10.2026", prod: "Монолитный лист", th: "3", size: "2050×3050", plan: 15, unit: "листов", other: 15 }],
+  "ПП-2026-013": [{ client: "Клиент 4", date: "16.10.2026", prod: "Трапеция", th: "1", size: "1150×6000", plan: 80, unit: "листов", other: 40 }],
+  "ПП-2026-012": [{ client: "Клиент 4", date: "15.10.2026", prod: "Профиль", th: "—", size: "длина 6000", plan: 50, unit: "шт", other: 50 }],
+  "ПП-2026-015": [{ client: "—", date: "14.10.2026", prod: "Плёнка", th: "—", size: "—", plan: 500, unit: "кг", other: 0 }]
+};
 // статусы заявок на производство
 const PP_ST = { draft: ["Черновик", "b-slate"], issued: ["Выдано на производство", "b-warning"], inprog: ["В процессе", "b-success"], done: ["Завершён", "b-danger"] };
 const PP_LINES = { 1: ["Сотовый", "Монолитный цех"], 2: ["Профильный цех", "Термошайбы", "Трапеция"] };
@@ -659,7 +746,7 @@ ROLES.cheflog = { label: "Шеф логистов", grp: 1, user: ["Шеф ло�
     ships: ["Заявки на отгрузку", "Одобряю — дальше берут грузчики и кладовщики"], keepers: ["Кладовщики", ""],
     stock: ["Остатки готовой продукции", ""], chat: ["Сообщения", ""], dicts: ["Справочник", ""] } };
 const MK = { role: "manager", view: "orders", order: null, filter: "all", seg: "active", modal: null, pre: null,
-  marks: {}, sent: {}, approved: {}, area: "mono", acc: {}, taken: { "ЗО-2026-003": true }, loadedA: { "ЗО-2026-003|mono": true }, confirmed: {}, counted: {}, sheetOk: {}, chkDiff: {}, lgFilter: "all", ppFilter: "all", clFilter: "all" };
+  marks: {}, sent: {}, approved: {}, area: "mono", acc: {}, shop: "monolit", kPart: "a", kSess: {}, kSaved: {}, kDone: {}, vals: {}, team: {}, kLineSaved: {}, taken: { "ЗО-2026-003": true }, loadedA: { "ЗО-2026-003|mono": true }, confirmed: {}, counted: {}, sheetOk: {}, chkDiff: {}, lgFilter: "all", ppFilter: "all", clFilter: "all" };
 // статус заявки на отгрузку с учётом одобрения в макете шефа логистов (общий для всех макетов)
 const zSt = (z) => {
   const s = z.st === "wait" && MK.approved[z.no] ? "approved" : z.st;
@@ -839,7 +926,7 @@ function pgRaw() {
 }
 const R = () => ROLES[MK.role];
 const TITLE = () => {
-  const v = MK.view === "order" ? "orders" : MK.view === "lorder" ? "inbox" : MK.view === "corder" ? "fromL1" : MK.view;
+  const v = MK.view === "order" ? "orders" : MK.view === "lorder" ? "inbox" : MK.view === "corder" ? "fromL1" : MK.view === "kOrder" ? "kOrders" : MK.view;
   const T = typeof R().titles === "function" ? R().titles() : R().titles;
   return T[v] || [R().label, ""];
 };
@@ -852,13 +939,13 @@ const logists = (o) => {
 const TODO = (t) => `<span class="mk-todo">уточнить: ${t}</span>`;
 
 function mkSide() {
-  const act = MK.view === "order" ? "orders" : MK.view === "lorder" ? "inbox" : MK.view === "corder" ? "fromL1" : MK.view;
+  const act = MK.view === "order" ? "orders" : MK.view === "lorder" ? "inbox" : MK.view === "corder" ? "fromL1" : MK.view === "kOrder" ? "kOrders" : MK.view;
   return `<aside class="mk-side">
     <div class="mk-logo"><div class="mk-cube">Ч</div><div class="mk-logo-t"><b>Завод Черкесск</b><span>ERP</span></div>
       <span class="mk-collapse">${ico("chevrons-left")}</span></div>
     <nav class="mk-nav">${R().nav.map((g) => `${g.title ? `<div class="mk-grp">${g.title}</div>` : ""}${g.items.map(([id, l, ic, ro]) =>
       `<button class="mk-item${act === id ? " on" : ""}" data-mk-nav="${id}"><span class="ic">${ico(ic)}</span>${l}${ro ? `<span class="mk-ro">${ico("eye")}Чтение</span>` : ""}</button>`).join("")}`).join("")}</nav>
-    <button class="mk-exit" type="button">${ico("log-out")}Выход</button>
+    ${MK.role === "kiosk" ? "" : `<button class="mk-exit" type="button">${ico("log-out")}Выход</button>`}
   </aside>`;
 }
 function mkTop() {
@@ -998,6 +1085,120 @@ function pgOrder() {
     <div class="mk-card mk-tbl dense"><table><thead><tr><th>№</th><th>Продукция</th><th>Толщ., мм</th><th>Размер, мм</th><th>Цвет</th><th>Кол-во</th><th>Примечание</th><th>Что с позицией</th></tr></thead>
       <tbody>${body}</tbody></table></div>`;
 }
+/* --- киоски цехов (8 киосков; бригадиры — монолит, сотовый, плёнка; операторы — профиль, термошайбы, переработка) --- */
+const KSHIFT = { label: "день 12.10", time: "08:00–20:00", till: "20:00" };
+const nums = (pre, a) => a.map((n) => pre + n);
+const KSHOPS = {
+  monolit: { name: "Монолитный цех", who: "Бригадир", orders: true, lines: ["Монолитная · масляная", "Монолитная · синяя", "Трапеция · старая", "Трапеция · новая"] },
+  sot: { name: "Сотовый цех", who: "Бригадир", orders: true, lines: nums("Старый цех · линия ", [1, 2, 3, 4]).concat(nums("Новый цех · линия ", [2, 6, 7])) },
+  profile: { name: "Профильный цех", who: "Оператор", orders: true, lines: nums("Линия ", [1, 2, 3, 4, 5]).concat(["Гранулятор 1", "Гранулятор 2", "Агломератор"]) },
+  thermo: { name: "Термошайбы", who: "Оператор", orders: true, lines: ["Линия 1", "Линия 2", "Порезка прокладок"] },
+  film: { name: "Плёночный цех", who: "Бригадир", orders: true, lines: ["Линия 1", "Флекса (покраска)", "Гранулятор"] },
+  rec1: { name: "Переработка 1", who: "Оператор", parts: {
+    a: ["Дробилки и шредеры", nums("Дробилка сота ", [1, 2, 3]).concat(nums("Дробилка монолит ", [1, 2, 3]), ["Шредер 1", "Шредер 2"])],
+    b: ["Грануляция и мойка", ["Гранулятор 1", "Гранулятор 2", "Гранулятор 3", "Мойка"]] } },
+  rec2: { name: "Переработка 2", who: "Оператор", lines: ["Шредер", "Дробилка (сота)", "Гранулятор"] }
+};
+const KS = () => KSHOPS[MK.shop];
+const kLines = () => KS().parts ? KS().parts[MK.kPart][1] : KS().lines;
+const kName = () => KS().name + (KS().parts ? " · " + KS().parts[MK.kPart][0].toLowerCase() : "");
+const kSessKey = () => MK.shop + (KS().parts ? ":" + MK.kPart : "");
+const kWho = () => MK.kSess[kSessKey()];
+const isLine = (l) => /^(Линия|Монолитная|Трапеция|Старый цех|Новый цех)/.test(l);
+ROLES.kiosk = { label: "Киоск", start: "kOrders", back: "kOrders",
+  user: () => kWho() ? [kWho(), KS().who + " · " + kName().toLowerCase(), KS().who === "Бригадир" ? "Б" : "О"] : ["Киоск", kName() + " · вход не выполнен", "К"],
+  nav: [], titles: () => ({ kOrders: ["Заявки на производство", kName()], kShift: ["Моя смена", kName()], kSettings: ["Настройки", ""] }) };
+Object.defineProperty(ROLES.kiosk, "nav", { get: () => [{ title: "Киоск", items: (KS().orders ? [["kOrders", "Заявки на производство", "factory"]] : [])
+  .concat([["kShift", "Моя смена", "notebook-pen"], ["kSettings", "Настройки", "settings"]]) }] });
+const kPartSwitch = () => KS().parts ? `<div class="mk-tools"><span class="mk-muted">Киоск:</span><div class="mk-seg">${Object.entries(KS().parts).map(([k, p]) =>
+  `<button class="${MK.kPart === k ? "on" : ""}" data-mk-kpart="${k}">${p[0]}</button>`).join("")}</div></div>` : "";
+const kBar = () => `<div class="mk-shiftbar"><span class="lbl">Идёт смена</span><span class="mk-who">${kWho()}</span>
+  <span>${KSHIFT.label} · ${KSHIFT.time}</span><span class="mk-muted">до ${KSHIFT.till}</span>
+  <button class="mk-btn sm" data-mk-kchange>${ico("log-out")}Сменить</button></div>`;
+function kPicker() {
+  return `${kPartSwitch()}<div class="mk-pick"><div class="mk-pick-h">${ico("alert-triangle")}Смена не выбрана. Подтвердите вход — нажмите свою и введите PIN.</div>
+    <div class="mk-pick-g"><b>${kName()}</b><div class="mk-pick-row">${[1, 2, 3].map((n) => {
+      const nm = `${KS().who} ${n} (пример)`;
+      return `<button class="mk-person" data-mk-pick="${nm}"><span>Вход в смену</span><b>${nm}</b></button>`; }).join("")}</div></div></div>
+    <p class="mk-note">Три смены по 12 часов — у каждой свой ${KS().who.toLowerCase()}. ${TODO("кто входит: бригадир или оператор, кто ещё")}</p>`;
+}
+const kItems = (p) => PPI[p.no] || [];
+const kMade = (p, i) => kItems(p)[i].other + (MK.kSaved[p.no + ":" + i] || 0);
+const kAllDone = (p) => kItems(p).length && kItems(p).every((_, i) => MK.kDone[p.no + ":" + i]);
+const kOrderSt = (p) => kAllDone(p) ? ["Готово, ждёт подтверждения", "b-primary"] : PP_ST[p.st];
+function pgKOrders() {
+  if (!kWho()) return kPicker();
+  const list = PP.filter((p) => p.shop === MK.shop && ["issued", "inprog"].includes(p.st));
+  const cards = list.map((p) => {
+    const its = kItems(p), done = its.filter((_, i) => MK.kDone[p.no + ":" + i]).length, pct = its.length ? Math.round(done / its.length * 100) : 0;
+    const plan = its.reduce((s, x) => s + x.plan, 0), unit = its[0] ? its[0].unit : "";
+    return `<article class="mk-card mk-deal ${p.st === "inprog" ? "approved" : ""}"><div class="mk-deal-b">
+      <div class="mk-deal-h"><div><b>ПП № ${parseInt(p.no.slice(-3), 10)}</b><small>${p.no}</small></div>${badge(kOrderSt(p))}</div>
+      <div><b>${p.line}</b> · ${p.sub}</div><div style="font-weight:600">${p.name}</div>
+      <div class="mk-mini" style="grid-template-columns:repeat(3,1fr)"><div><span>Позиций</span><b>${its.length}</b></div><div><span>План</span><b>${plan} ${unit}</b></div><div><span>Производство</span><b>${p.plan.slice(0, 5)}</b></div></div>
+      <div class="mk-row"><span>Готово</span>${done}/${its.length} · ${pct}%</div><div class="mk-progress"><i style="width:${pct}%"></i></div></div>
+      <div class="mk-deal-f"><button class="mk-btn sm" data-mk-korder="${p.no}">Открыть</button><button class="mk-btn p sm">${ico("printer")}Печать</button></div></article>`;
+  }).join("");
+  return `${kBar()}
+    <div class="mk-kpis k3">
+      <div class="mk-card mk-kpi"><span>Всего заявок</span><b>${list.length}</b></div>
+      <div class="mk-card mk-kpi"><span>Выдано на производство</span><b>${list.filter((p) => p.st === "issued").length}</b></div>
+      <div class="mk-card mk-kpi"><span>В процессе</span><b>${list.filter((p) => p.st === "inprog").length}</b></div></div>
+    <div class="mk-sec"><h3>Заявки на производство <small>· ${list.length}</small></h3>${MK.shop === "film" ? TODO("бывают ли заявки у плёнки") : ""}</div>
+    ${list.length ? `<div class="mk-deals${list.length >= 3 ? " compact" : ""}" style="grid-template-columns:repeat(${list.length}, minmax(0, 1fr))">${cards}</div>`
+      : `<div class="mk-card mk-stub">${ico("factory")}<b>Заявок в этом списке нет</b></div>`}`;
+}
+function pgKOrder() {
+  if (!kWho()) return kPicker();
+  const p = PP.find((x) => x.no === MK.order), its = kItems(p), done = its.filter((_, i) => MK.kDone[p.no + ":" + i]).length;
+  const rows = its.map((x, i) => {
+    const k = p.no + ":" + i, made = kMade(p, i), left = Math.max(0, x.plan - made), fin = MK.kDone[k];
+    const draft = MK.vals["q|" + k] ?? "";
+    const left1 = fin ? `<div class="mk-opdone"><span class="ok">✓ Готово</span><button class="undo" data-mk-kundo="${k}">↺ Вернуть в работу</button></div>`
+      : `<div class="mk-opdone"><button class="go" data-mk-kdone="${k}">✓ Готово</button><small>${KSHIFT.label.toUpperCase()} · ${kWho()}</small><i>когда всё по позиции произведено</i>
+         ${made >= x.plan ? `<span class="mk-amber">План набран — жми «Готово»</span>` : ""}</div>`;
+    const right = fin ? `<div class="mk-opplan"><span>Фактически произведено</span><b style="font-size:22px">${made} ${x.unit}</b></div>`
+      : `<div class="mk-opin"><div class="rowin"><input type="number" min="0" inputmode="numeric" id="kq-${i}" data-mk-val="q|${k}" value="${draft}" placeholder="${left}">
+          <button class="conf" data-mk-kconfirm="${k}">Подтвердить</button>${MK.kSaved[k] ? `<span class="mk-badge b-success">✓ Сохранено</span>` : ""}</div>
+          <small>За эту смену: ${MK.kSaved[k] || 0} ${x.unit} · Другие смены: ${x.other} ${x.unit}</small><small>Осталось: ${left} ${x.unit}</small></div>`;
+    return `<div class="mk-card mk-oprow${fin ? " fin" : ""}">${left1}
+      <div class="mk-opno"><span>№</span><b>${i + 1}</b></div>
+      <div class="mk-opc"><span>Клиент</span><b>${x.client}</b><small>${x.date}</small></div>
+      <div class="mk-opc"><span>${x.prod} · размер · толщина</span><b>${x.size}${x.th !== "—" ? ` · ${x.th} мм` : ""}</b></div>
+      <div class="mk-opplan"><span>План</span><b>${x.plan} ${x.unit}</b></div>${right}</div>`;
+  }).join("");
+  return `<div class="mk-tools"><button class="mk-btn" data-mk-back>${ico("arrow-left")}Назад</button><span style="margin-left:auto"></span><button class="mk-btn">${ico("printer")}Печать</button></div>
+    <div class="mk-card mk-oph"><div><small>Заявка на производство</small><div class="no">${p.no} ${badge(kOrderSt(p))}</div><div>${p.name}</div></div>
+      <div class="facts2"><div><span>Линия</span><b>${p.line} · ${p.sub}</b></div><div><span>Производство</span><b>${p.plan}</b></div><div><span>Готово</span><b>${done}/${its.length}</b></div></div></div>
+    ${kBar()}
+    <div class="mk-info"><div class="mk-info-h"><span class="i">i</span>Как работать с заявкой</div><div class="mk-steps">
+      <div class="mk-step"><b>1</b>В конце смены впишите, сколько сделано за смену, и нажмите «Подтвердить»</div>
+      <div class="mk-step"><b>2</b>Когда по позиции сделано всё — нажмите «✓ Готово»</div>
+      <div class="mk-step"><b>3</b>Готовую продукцию принимают кладовщики; ночную — утром</div></div></div>
+    <div style="display:grid;gap:10px">${rows}</div>`;
+}
+function pgKShift() {
+  if (!kWho()) return kPicker();
+  const brig = KS().who === "Бригадир", sk = kSessKey();
+  const team = (brig ? [1, 2, 3, 4, 5, 6].map((n) => `Работник ${n} (пример)`) : [kWho()]).map((nm, i) => {
+    const k = sk + "|" + i, on = MK.team[k] !== false;
+    return `<label class="${on ? "on" : ""}"><input type="checkbox" id="tm-${i}" data-mk-team="${k}" ${on ? "checked" : ""}>${nm}
+      <input type="number" min="0" max="24" id="tmh-${i}" data-mk-val="h|${k}" value="${MK.vals["h|" + k] ?? 12}" aria-label="Часы"><span class="mk-muted">ч</span></label>`;
+  }).join("");
+  const cards = kLines().map((l, li) => {
+    const k = sk + "|" + li, f = isLine(l) ? ["Брак", "Краситель", "Первичное сырьё", "Вторичное сырьё", "Отходы"] : ["За смену"];
+    return `<div class="mk-card" style="padding:16px;display:grid;gap:12px"><div class="mk-sec"><h3>${l}</h3>${MK.kLineSaved[k] ? `<span class="mk-badge b-success">сохранено</span>` : ""}</div>
+      <div class="mk-blocks">${f.map((n, fi) => `<div class="mk-blk"><label for="kf-${li}-${fi}">${n}, кг</label><input type="number" min="0" id="kf-${li}-${fi}" data-mk-val="f|${k}|${fi}" value="${MK.vals["f|" + k + "|" + fi] ?? ""}" placeholder="кг"></div>`).join("")}</div>
+      <div><button class="mk-btn p mk-save" data-mk-ksave="${k}">Сохранить</button></div></div>`;
+  }).join("");
+  return `${kPartSwitch()}${kBar()}
+    <div class="mk-card" style="padding:14px 18px"><div style="font-size:20px;font-weight:700">Моя смена</div><div class="mk-muted">Смена: ${KSHIFT.label} · ${KSHIFT.time} · ${kWho()}</div></div>
+    <p class="mk-note">Заполните по своим линиям в конце смены. Всё в килограммах. ${TODO(MK.shop.startsWith("rec") ? "что вносят в переработке" : "набор полей")}</p>
+    <div class="mk-card" style="padding:16px;display:grid;gap:12px"><div class="mk-blockt">${brig ? "Кто работал в смене" : "Оператор"}</div>
+      <div class="mk-team">${team}</div><div><button class="mk-btn p mk-save">Сохранить</button></div></div>
+    ${cards}`;
+}
+
 /* --- шеф логистов: заявки, переданные логистом №1 --- */
 function clInfo(o) {
   const mine = mineIdx(o, 1);
@@ -1128,31 +1329,46 @@ function mkModal() {
       ${f("mkfLine", "Линия", combo("mkfLine", "", "Выберите линию…"))}
       ${f("mkfPpName", "Название заявки", combo("mkfPpName", MK.pre ? ORDERS.find((o) => o.no === MK.pre).client : "", "Клиент или свой текст"))}
       ${f("mkfPpDate", "Плановая дата производства", `<input type="date" id="mkfPpDate" value="2026-10-17">`)}
-      <div class="mk-hint">Заявка будет создана как <b>черновик</b>. Позиции добавьте в карточке заявки.</div>`, "+ Создать"]
+      <div class="mk-hint">Заявка будет создана как <b>черновик</b>. Позиции добавьте в карточке заявки.</div>`, "+ Создать"],
+    pin: ["Вход в смену", `<div style="text-align:center"><div class="mk-muted" style="font-size:13px;text-transform:uppercase;letter-spacing:.06em">Вход в смену</div>
+      <div style="font-size:22px;font-weight:700;color:var(--primary-800)">${MK.pinFor || ""}</div></div>
+      <input type="password" inputmode="numeric" maxlength="4" id="mkPin" class="mk-pin${MK.pinErr ? " err" : ""}" placeholder="••••" autocomplete="off" aria-label="PIN">
+      ${MK.pinErr ? `<div class="mk-err">${MK.pinErr}</div>` : ""}<div class="mk-hint">В макете подойдёт любой PIN из 4 цифр.</div>`, "Войти", 'data-mk-pinok="1"'],
+    kdone: (() => {
+      if (MK.modal !== "kdone") return null;
+      const [no, i] = MK.kdoneKey.split(":"), p = PP.find((x) => x.no === no), x = kItems(p)[+i], made = kMade(p, +i), d = made - x.plan;
+      const msg = d === 0 ? `<div class="mk-hint">Произведено ${made} из ${x.plan} ${x.unit} — соответствует плану.</div>`
+        : d < 0 ? `<div class="mk-wait" style="background:var(--danger-50);color:var(--danger-700)">Недопроизводство на ${-d} ${x.unit}: произведено ${made} из ${x.plan}.</div>`
+        : `<div class="mk-wait">Перепроизводство на ${d} ${x.unit}: произведено ${made} из ${x.plan}.</div>`;
+      return ["Подтверждение завершения", `${msg}<div>Подтвердить позицию как «Готово»? После подтверждения изменить нельзя.</div>`, "✓ Да, подтвердить", 'data-mk-kdoneok="1"'];
+    })()
   }[MK.modal];
   return `<div class="mk-back" data-mk-close-modal><div class="mk-modal" role="dialog" aria-modal="true" aria-label="${M[0]}">
     <div class="mk-modal-h"><h4>${M[0]}</h4><button class="mk-modal-x" data-mk-close-modal aria-label="Закрыть">${ico("x")}</button></div>
     <div class="mk-modal-b">${M[1]}</div>
-    <div class="mk-modal-f"><button class="mk-btn" data-mk-close-modal>Отмена</button><button class="mk-btn p" data-mk-close-modal>${M[2]}</button></div></div></div>`;
+    <div class="mk-modal-f"><button class="mk-btn" data-mk-close-modal>Отмена</button><button class="mk-btn p" ${M[3] || "data-mk-close-modal"}>${M[2]}</button></div></div></div>`;
 }
 function mkRender() {
   const pages = MK.role === "manager" ? { orders: pgOrders, order: pgOrder, ships: pgShips, invoices: pgInvoices }
     : MK.role === "cheflog" ? { fromL1: pgFromL1, corder: pgCOrder, plan: pgPlan, ships: pgShips }
+    : MK.role === "kiosk" ? { kOrders: pgKOrders, kOrder: pgKOrder, kShift: pgKShift }
     : MK.role === "loaderchief" ? { lships: pgLShips } : MK.role === "loaders" ? { noaccess: pgNoAccess } : MK.role === "checker" ? { check: pgCheck }
     : MK.role === "keepers" ? (MK.area === "raw" ? { accept: pgRaw, loading: pgRaw, stock: pgRaw } : { accept: pgAccept, loading: pgLoading, stock: pgKStock })
     : { inbox: pgInbox, lorder: pgLOrder, plan: pgPlan };
   const page = pages[MK.view] || pgStub;
   document.getElementById("mkApp").innerHTML = mkSide() + `<div class="mk-col">${mkTop()}<main class="mk-main"><div class="mk-page">${page()}</div></main></div>`;
   document.getElementById("mkModalHost").innerHTML = mkModal();
+  if (MK.modal === "pin" && document.getElementById("mkPin")) document.getElementById("mkPin").focus();
   try { if (window.lucide) window.lucide.createIcons(); } catch (e) {}
 }
 const overlay = document.getElementById("mkOverlay");
 let lastHot = null;
-function mkOpen(role, from) {
+function mkOpen(role, from, shop) {
   lastHot = from;
-  MK.role = role; MK.view = ROLES[role].start; MK.order = null; MK.modal = null; MK.pre = null;
+  if (shop) { MK.shop = shop; MK.kPart = "a"; }
+  MK.role = role; MK.view = role === "kiosk" && !KSHOPS[MK.shop].orders ? "kShift" : ROLES[role].start; MK.order = null; MK.modal = null; MK.pre = null;
   MK.filter = MK.lgFilter = MK.ppFilter = MK.clFilter = "all";
-  document.getElementById("mkTitle").textContent = "Макет · " + ROLES[role].label;
+  document.getElementById("mkTitle").textContent = "Макет · " + (role === "kiosk" ? "Киоск · " + KSHOPS[MK.shop].name : ROLES[role].label);
   overlay.setAttribute("aria-label", "Макет рабочего места: " + ROLES[role].label);
   overlay.hidden = false; document.body.style.overflow = "hidden"; mkRender(); fitMk(); document.getElementById("mkClose").focus();
 }
@@ -1168,12 +1384,12 @@ function fitMk() {
 }
 window.addEventListener("resize", fitMk);
 document.querySelectorAll(".hot[data-role]").forEach((g) => {
-  g.addEventListener("click", () => mkOpen(g.dataset.role, g));
-  g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); mkOpen(g.dataset.role, g); } });
+  g.addEventListener("click", () => mkOpen(g.dataset.role, g, g.dataset.shop));
+  g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); mkOpen(g.dataset.role, g, g.dataset.shop); } });
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-nav],[data-mk-order],[data-mk-lorder],[data-mk-corder],[data-mk-clfilter],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-back],[data-mk-filter],[data-mk-lgfilter],[data-mk-ppfilter],[data-mk-seg],[data-mk-mark],[data-mk-send],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-nav],[data-mk-order],[data-mk-lorder],[data-mk-corder],[data-mk-clfilter],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-back],[data-mk-filter],[data-mk-lgfilter],[data-mk-ppfilter],[data-mk-seg],[data-mk-mark],[data-mk-send],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
@@ -1194,6 +1410,23 @@ overlay.addEventListener("click", (e) => {
   else if (d.mkSheet) MK.sheetOk[d.mkSheet] = !MK.sheetOk[d.mkSheet];
   else if (d.mkConfirm) { MK.confirmed[d.mkConfirm] = true; delete MK.chkDiff[d.mkConfirm]; }
   else if (d.mkCdiff) MK.chkDiff[d.mkCdiff] = true;
+  else if (d.mkPick) { MK.modal = "pin"; MK.pinFor = d.mkPick; MK.pinErr = ""; }
+  else if (t.hasAttribute("data-mk-pinok")) {
+    const v = (document.getElementById("mkPin") || {}).value || "";
+    if (/^\d{4}$/.test(v)) { MK.kSess[kSessKey()] = MK.pinFor; MK.modal = null; } else MK.pinErr = "PIN должен быть 4 цифры";
+  }
+  else if (t.hasAttribute("data-mk-kchange")) { delete MK.kSess[kSessKey()]; MK.view = KS().orders ? "kOrders" : "kShift"; }
+  else if (d.mkKorder) { MK.view = "kOrder"; MK.order = d.mkKorder; }
+  else if (d.mkKconfirm) {
+    const inp = t.parentElement.querySelector("input"), v = inp ? inp.value : "";
+    if (v !== "") { MK.kSaved[d.mkKconfirm] = Number(v); delete MK.vals["q|" + d.mkKconfirm]; }
+  }
+  else if (d.mkKdone) { MK.modal = "kdone"; MK.kdoneKey = d.mkKdone; }
+  else if (t.hasAttribute("data-mk-kdoneok")) { MK.kDone[MK.kdoneKey] = true; MK.modal = null; }
+  else if (d.mkKundo) delete MK.kDone[d.mkKundo];
+  else if (d.mkTeam) MK.team[d.mkTeam] = MK.team[d.mkTeam] === false;
+  else if (d.mkKsave) MK.kLineSaved[d.mkKsave] = true;
+  else if (d.mkKpart) MK.kPart = d.mkKpart;
   else if (t.hasAttribute("data-mk-back")) { MK.view = R().back; MK.order = null; }
   else if (d.mkFilter) MK.filter = d.mkFilter;
   else if (d.mkLgfilter) MK.lgFilter = d.mkLgfilter;
@@ -1205,6 +1438,8 @@ overlay.addEventListener("click", (e) => {
 });
 // пересчёт в машине: значение сохраняется при выходе из поля; фокус возвращаем туда, куда перешёл человек
 overlay.addEventListener("change", (e) => {
+  const v = e.target.dataset && e.target.dataset.mkVal;
+  if (v) { MK.vals[v] = e.target.value; return; } // поля киоска: только запоминаем, без перерисовки (иначе не сработает нажатие «Подтвердить»)
   const k = e.target.dataset && e.target.dataset.mkCount;
   if (!k) return;
   MK.counted[k] = e.target.value;
