@@ -91,6 +91,9 @@ footer { color: var(--muted); font-size: 13px }
   --success-50: #f0fdf4; --success-100: #dcfce7; --success-500: #22c55e; --success-600: #16a34a; --success-700: #15803d;
   --warning-50: #fffbeb; --warning-100: #fef3c7; --warning-500: #f59e0b; --warning-700: #b45309;
   --danger-50: #fef2f2; --danger-100: #fee2e2; --danger-500: #ef4444; --danger-700: #b91c1c;
+  --warning-600: #d97706; --danger-600: #dc2626;
+  --cell-danger-bg: #fef2f2; --cell-danger-fg: #b91c1c; --cell-purple-bg: color-mix(in oklab, #7c3aed 8%, #fff); --cell-purple-fg: #7c3aed;
+  --ost-ok-bg: color-mix(in oklab, var(--success-500) 8%, #fff); --ost-bad-bg: color-mix(in oklab, var(--danger-500) 6%, #fff);
   --bg-canvas: #f8fafc; --bg-surface: #ffffff; --bg-sunken: #f1f5f9;
   --fg-primary: #0f172a; --fg-secondary: #475569; --fg-tertiary: #94a3b8;
   --border-default: #cbd5e1; --border-subtle: #f1f5f9;
@@ -107,6 +110,9 @@ footer { color: var(--muted); font-size: 13px }
   --success-50: rgba(34,197,94,0.14); --success-100: rgba(34,197,94,0.22); --success-500: #4ade80; --success-700: #86efac;
   --warning-50: rgba(245,158,11,0.14); --warning-100: rgba(245,158,11,0.22); --warning-500: #fbbf24; --warning-700: #fbbf24;
   --danger-50: rgba(239,68,68,0.14); --danger-100: rgba(239,68,68,0.22); --danger-500: #f87171; --danger-700: #fca5a5;
+  --warning-600: #fcd34d;
+  --cell-danger-bg: rgba(239,68,68,0.14); --cell-danger-fg: #fca5a5; --cell-purple-bg: rgba(124,58,237,0.20); --cell-purple-fg: #c4b5fd;
+  --ost-ok-bg: rgba(34,197,94,0.18); --ost-bad-bg: rgba(239,68,68,0.18);
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.3); --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.4); --shadow-panel: 0 8px 24px rgba(0,0,0,0.55); --shadow-btn: 0 8px 24px rgba(0,0,0,0.28); color-scheme: dark }
 .mk *, .mk *::before, .mk *::after { box-sizing: border-box; margin: 0 }
 .mk button { font-family: inherit; color: inherit; cursor: pointer }
@@ -369,6 +375,95 @@ footer { color: var(--muted); font-size: 13px }
 .mk-dfoot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 16px }
 .mk-dfoot .mk-note { margin-right: auto }
 .mk-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block }
+/* открытая сменная сводка: блоки по видам в шапке, линии полосами, таблица позиций, сырьё по предприятию */
+.mk-step > div { line-height: 1.45 }
+.mk-step > div > i { display: block; font-style: normal; font-weight: 600; color: var(--fg-primary); margin-bottom: 2px }
+.mk-dcats { padding: 6px 20px 16px; display: flex; flex-wrap: wrap; gap: 12px }
+.mk-dcat { flex: 1 1 260px; padding: 10px 14px; border-radius: 8px; background: var(--bg-sunken); border: 1px solid var(--border-subtle) }
+.mk-dcat > b { display: block; font-size: 11px; font-weight: 700; color: var(--primary-700); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px }
+.mk-dcat > div { display: flex; flex-wrap: wrap; gap: 10px 16px }
+.mk-dcat span { min-width: 66px; font-size: 9px; color: var(--fg-tertiary); text-transform: uppercase; letter-spacing: .03em; font-weight: 600; white-space: nowrap }
+.mk-dcat em { display: block; margin-top: 2px; font-style: normal; font-size: 16px; font-weight: 600; letter-spacing: 0; color: var(--fg-primary); font-variant-numeric: tabular-nums }
+.mk-dcat em.dng { color: var(--danger-600) }
+.mk-dcat em.mut { color: var(--fg-secondary) }
+.mk-lgrp { display: flex; flex-direction: column; gap: 8px }
+.mk-lstrip { display: flex; align-items: center; gap: 10px; padding-right: 16px; overflow: hidden }
+.mk-lstrip.col { background: var(--bg-sunken) }
+.mk-lstrip > button { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 12px 16px; border: 0; background: transparent; text-align: left }
+.mk .mk-lstrip > button:active { transform: none }
+.mk-lstrip svg.lucide { width: 16px; height: 16px; color: var(--fg-secondary) }
+.mk-lstrip .nm, .mk-lb-h .nm { font-size: 1rem; font-weight: 600; color: var(--fg-primary) }
+.mk-lb-h .nm { font-weight: 700 }
+.mk-lstrip .ds, .mk-lb-h .ds { font-size: .75rem; color: var(--fg-tertiary) }
+.mk-lb-h .ds { margin-left: 12px }
+.mk-lstrip .cnt { padding: 2px 8px; border-radius: 9999px; background: var(--primary-100); color: var(--primary-700); font-size: 11px; font-weight: 600 }
+.mk-lstrip .unused { font-size: 11px; color: var(--fg-tertiary); font-style: italic }
+.mk-waste { display: flex; align-items: center; gap: 6px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--warning-700); white-space: nowrap }
+.mk-lb-h { padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--border-subtle) }
+.mk-lb-r { display: flex; align-items: center; gap: 16px; font-size: .75rem; color: var(--fg-secondary) }
+.mk-lb-r strong { color: var(--fg-primary) }
+.mk-lb-r .dfk { color: var(--warning-700) }
+.mk-btn.dfc { color: var(--cell-danger-fg) }
+.mk-btn.dfc:hover { border-color: var(--cell-danger-fg); color: var(--cell-danger-fg) }
+.mk-empty { padding: 30px; text-align: center; color: var(--fg-tertiary); font-size: .875rem; display: grid; justify-items: center; gap: 8px }
+.mk-empty svg.lucide { width: 28px; height: 28px; opacity: .5 }
+.mk input.mk-n { width: 54px; padding: 2px 4px; text-align: center; border: 1px solid var(--border-default); border-radius: 4px; background: var(--bg-surface); color: var(--fg-primary); font: 400 .75rem var(--font-mono); font-variant-numeric: tabular-nums; -moz-appearance: textfield }
+.mk input.mk-n.auto { color: var(--fg-tertiary); font-style: italic }
+.mk input.mk-n:disabled { background: transparent; border-color: transparent; color: var(--fg-secondary) }
+.mk-srt { overflow-x: auto; border-radius: 0 0 12px 12px }
+.mk-srt table { width: 100%; border-collapse: collapse; font-size: .75rem }
+.mk-srt th { padding: 8px 10px; font-size: 10px; font-weight: 600; color: var(--fg-tertiary); letter-spacing: .04em; text-transform: uppercase; text-align: left; white-space: nowrap; background: var(--bg-sunken) }
+.mk-srt thead tr:last-child th { border-bottom: 2px solid var(--border-default) }
+.mk-srt th.g { padding: 6px 10px; font-weight: 700; letter-spacing: .06em; text-align: center; border-bottom: 1px solid var(--border-subtle) }
+.mk-srt td { padding: 8px 10px; white-space: nowrap; border-top: 1px solid var(--border-subtle); color: var(--fg-primary) }
+.mk-srt .r { text-align: right; font-variant-numeric: tabular-nums }
+.mk-srt .c, .mk-srt td.cell { text-align: center }
+.mk-srt td.cell { padding: 3px 4px }
+.mk-srt .g-q { background: var(--primary-50); color: var(--primary-700) }
+.mk-srt .g-b { background: var(--cell-danger-bg); color: var(--cell-danger-fg) }
+.mk-srt .g-c { background: var(--cell-purple-bg); color: var(--cell-purple-fg) }
+.mk-srt .g-v { background: var(--success-50); color: var(--success-700) }
+.mk-srt .zp { font-family: var(--font-mono); font-weight: 700; color: var(--primary-700) }
+.mk-srt .pl { font-weight: 600; color: var(--fg-secondary) }
+.mk-srt .cl { font-weight: 500 }
+.mk-srt .dfr { color: var(--cell-danger-fg); font-weight: 600 }
+.mk-srt td.ost { font-weight: 700 }
+.mk-srt td.ost.ok { color: var(--success-700); background: var(--ost-ok-bg) }
+.mk-srt td.ost.bad { color: var(--danger-500); background: var(--ost-bad-bg) }
+.mk-srt td.ost.none { color: var(--fg-tertiary); background: var(--bg-sunken) }
+.mk-srt tfoot td { border-top: 2px solid var(--border-default); font-weight: 700; font-variant-numeric: tabular-nums }
+.mk-sver { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border-subtle); font-size: 11px; font-weight: 500; color: var(--fg-secondary); cursor: pointer }
+.mk-sver:hover { border-color: var(--success-500); color: var(--success-700) }
+.mk-sver.on { background: var(--success-50); border-color: var(--success-500); color: var(--success-700) }
+.mk-sver input { margin: 0; accent-color: var(--success-600) }
+.mk-del, .mk-x0 { border: 0; background: transparent; color: var(--fg-tertiary); padding: 4px; vertical-align: middle }
+.mk-del { margin-left: 30px }
+.mk-del svg.lucide, .mk-x0 svg.lucide { width: 14px; height: 14px }
+.mk-ent { overflow: hidden }
+.mk-ent-h { padding: 14px 20px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-sunken); display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; flex-wrap: wrap }
+.mk-ent-h b { display: block; font-size: 1rem; font-weight: 600 }
+.mk-ent-h small { display: block; font-size: .75rem; color: var(--fg-tertiary); margin: 2px 0 6px }
+.mk-ent-h .how { font-size: .75rem; color: var(--fg-tertiary); line-height: 1.5; max-width: 560px }
+.mk-ent-h .how strong { color: var(--fg-secondary) }
+.mk-bal { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; padding: 20px 18px 24px; background: var(--bg-sunken) }
+.mk-balc { padding: 14px; border-radius: 8px; border: 1px solid var(--border-default); background: var(--bg-surface); display: flex; flex-direction: column; gap: 6px }
+.mk-balc > span { font-size: 10px; color: var(--fg-tertiary); text-transform: uppercase; letter-spacing: .04em; font-weight: 600 }
+.mk-balc > b { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums }
+.mk-balc > b small { font-size: 12px; font-weight: 500; color: var(--fg-tertiary) }
+.mk-balc > i { font-style: normal; font-size: 11px; color: var(--fg-tertiary) }
+.mk-ent-t { padding: 0 20px 20px; background: var(--bg-sunken) }
+.mk-ent-t .fr { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border-subtle); background: var(--bg-surface) }
+.mk-ent-t table { width: 100%; border-collapse: collapse; font-size: .875rem }
+.mk-ent-t th { padding: 10px 12px; font-size: .75rem; font-weight: 600; color: var(--fg-tertiary); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; text-align: center; background: var(--bg-sunken) }
+.mk-ent-t th.l, .mk-ent-t td.l { text-align: left }
+.mk-ent-t th.ttl { padding: 14px 18px; font-size: 14px; font-weight: 700; color: var(--fg-primary); text-transform: none; letter-spacing: 0; border-bottom: 2px solid var(--border-default) }
+.mk-ent-t td { padding: 4px 8px; text-align: center; vertical-align: middle; border-top: 1px solid var(--border-subtle) }
+.mk-ent-t td.l { padding: 8px 12px; font-weight: 500 }
+.mk-ent-t tfoot td { border-top: 2px solid var(--border-default); background: var(--bg-sunken); font-weight: 700; padding: 8px 12px; font-variant-numeric: tabular-nums }
+.mk-vbox { display: inline-block; min-width: 100px; padding: 5px 8px; border: 1px solid transparent; border-radius: 4px; font-size: .875rem; text-align: center; font-variant-numeric: tabular-nums }
+.mk input.mk-vbox { width: 100px; border-color: var(--border-default); background: var(--bg-surface); color: var(--fg-primary); font: inherit; font-size: .875rem; outline: none; -moz-appearance: textfield }
+.mk input.mk-vbox:disabled { background: transparent; border-color: transparent; color: var(--fg-secondary) }
+.mk-addt { margin-top: 8px; width: 100%; max-width: 320px; padding: 5px 8px; border: 1px dashed var(--border-default); border-radius: 4px; background: transparent; color: var(--fg-tertiary); font-size: 11px }
 .mk-arcf { padding: 12px 16px; display: grid; gap: 8px }
 .mk-search { margin-left: auto; width: 220px; padding: 6px 10px; border: 1px solid var(--border-default); border-radius: 8px; background: var(--bg-surface); color: var(--fg-primary); font: inherit; font-size: .875rem }
 /* телефон: окна компактные и у верхнего края, чтобы клавиатура не закрывала поле ввода */
@@ -1274,7 +1369,6 @@ const SS_LINES = {
     .concat([2, 6, 7].map((n, i) => ["Сотовый, новый цех", "линия " + n, "sot", 4 + i, "Сотовый, новый цех · линия " + n]),
       [1, 2, 3, 4, 5].map((n, i) => ["Профильный", "линия " + n, "profile", i, "Профильный цех · линия " + n]))
 };
-const SS_F = ["Брак", "Краситель", "Первичное сырьё", "Вторичное сырьё", "Отходы"]; // те же поля, что в «Моей смене» киоска
 // оборудование переработки: [цех, название, киоск, № строки в «Моей смене»]
 const VS_EQ = {
   drob: KSHOPS.rec1.parts.a[1].map((n, i) => ["Переработка 1", n, "rec1:a", i]).concat([["Переработка 2", "Шредер", "rec2", 0], ["Переработка 2", "Дробилка (сота)", "rec2", 1]]),
@@ -1283,7 +1377,7 @@ const VS_EQ = {
 };
 // вкладки с остатками: [ключ, название, ед., наименования, [обычный остаток, расход за смену, расхождение факта]] — всё пример
 const MATS = {
-  raw: [["raw", "Сырьё", "кг", ["Первичное сырьё (пример)", "Вторичное сырьё — хлопья (пример)", "Вторичное сырьё — гранулы (пример)"], [6000, 2600, 40]]],
+  raw: [["raw", "Первичное сырьё", "кг", ["Первичное сырьё 1 (пример)", "Первичное сырьё 2 (пример)"], [6000, 2600, 40]]],
   vs: [["skart", "1. Брак, тех. обрезки", "кг", ["Брак сотового листа", "Брак монолитного листа и трапеции", "Брак профиля"], [700, 300, 10]],
     ["flakes", "2. Вторичные хлопья", "кг", ["Хлопья сотового", "Хлопья монолитного", "Хлопья профиля"], [900, 260, 15]],
     ["gr", "3. Вторичные гранулы", "кг", ["Гранулы сотового", "Гранулы монолитного", "Гранулы профиля"], [1200, 300, 15]],
@@ -1324,7 +1418,7 @@ function addDoc(t, o) {
     });
   }
 })();
-Object.assign(MK, { doc: null, docRO: false, docFrom: "", dTab: "", ssVer: {}, arcM: "10", arcT: "ss", arcQ: "" });
+Object.assign(MK, { doc: null, docRO: false, docFrom: "", dTab: "", ssVer: {}, ssCol: {}, arcM: "10", arcT: "ss", arcQ: "" });
 const curDoc = (t, area) => DOCS[t].find((d) => d.date === CUR.date && d.sh === CUR.sh && (t !== "ss" || d.area === area));
 const newDoc = (t) => curDoc(t, MK.area) || addDoc(t, { date: CUR.date, sh: CUR.sh, area: t === "ss" ? MK.area : "", keeper: "Кладовщик (пример)", seed: 83, fresh: true });
 const docNav = () => /^(ss|vs|rs)Doc$/.test(MK.view) ? MK.docFrom || MK.view.slice(0, 2) : "";
@@ -1344,12 +1438,50 @@ function ssLines(d) {
     return { title, who: KSHOPS[ks].who.toLowerCase(), pos, fv, used: pos.length > 0 || fv.some((v) => v > 0) };
   });
 }
-const ssVal = (d, li, fi, base) => { const v = MK.vals["ss|" + d.no + "|" + li + "|" + fi]; return v === undefined || v === "" ? base : Number(v); };
-function ssStats(d) {
-  const L = ssLines(d), u = (un) => L.reduce((s, l) => s + l.pos.filter((p) => p.unit === un).reduce((x, p) => x + p.n, 0), 0);
-  const out = [u("листов") ? u("листов") + " листов" : "", u("шт") ? u("шт") + " шт" : ""].filter(Boolean).join(" · ") || "—";
-  return { L, used: L.filter((l) => l.used).length, sheets: u("листов"), pcs: u("шт"), out, tot: (fi) => L.reduce((s, l, li) => s + (l.used ? ssVal(d, li, fi, l.fv[fi]) : 0), 0) };
+const ssNum = (key, base) => { const v = MK.vals[key]; return v === undefined || v === "" ? base : Number(v); };
+const ssAuto = (d, key, base) => !!d.fresh && !d.saved && MK.vals[key] === undefined && base > 0; // цифра из киоска — серым курсивом, пока кладовщик не поправил
+// строки сводки по линии: количество — из выпуска киоска; брак и краситель с киоска встают в строку позиции (брак — в первую,
+// краситель — в цветную), а без позиций — строкой «Брак (переходный)»; отходы — в полосе линии
+function ssRows(d) {
+  return ssLines(d).map((l, li) => {
+    const ci = Math.max(0, l.pos.findIndex((p) => p.color !== "прозрачный")), wk = "ss|" + d.no + "|" + li + "|4";
+    const rows = l.pos.map((p, pi) => {
+      const k = d.no + "|" + li + "|" + pi, bb = pi === 0 ? l.fv[0] : 0, cb = pi === ci ? l.fv[1] : 0;
+      return { k, p, pp: p.pp && PPI[p.pp] ? PPI[p.pp][0] : null, q: ssNum("ssq|" + k, p.n), qa: ssAuto(d, "ssq|" + k, p.n),
+        b: ssNum("ssb|" + k, bb), ba: ssAuto(d, "ssb|" + k, bb), c: ssNum("ssc|" + k, cb), ca: ssAuto(d, "ssc|" + k, cb) };
+    });
+    if (!l.pos.length && l.fv[0] > 0) {
+      const k = d.no + "|" + li + "|t";
+      rows.push({ k, defect: true, q: 0, c: 0, b: ssNum("ssb|" + k, l.fv[0]), ba: ssAuto(d, "ssb|" + k, l.fv[0]) });
+    }
+    const s = (f) => rows.reduce((x, r) => x + r[f], 0);
+    return Object.assign(l, { li, rows, prof: /^Профильный/.test(l.title), q: s("q"), b: s("b"), c: s("c"), w: ssNum(wk, l.fv[4]), wa: ssAuto(d, wk, l.fv[4]) });
+  });
 }
+function ssStats(d) {
+  const L = ssRows(d), s = (f, prof) => L.filter((l) => prof === undefined || l.prof === prof).reduce((x, l) => x + l[f], 0);
+  const sheets = s("q", false), pcs = s("q", true);
+  const out = [sheets ? sheets + " листов" : "", pcs ? pcs + " шт" : ""].filter(Boolean).join(" · ") || "—";
+  return { L, used: L.filter((l) => l.used).length, sheets, pcs, out, brak: s("b"), paint: s("c"), waste: s("w") };
+}
+// сводка участка сырья: первичное — приход, расход операторов (из киосков), расход вручную, факт; вторичное — расход по видам
+const SEC_T = ["Вторичные гранулы (пример)", "Вторичные хлопья (пример)"];
+function kSum(fi) { // сумма поля «Моей смены» по всем линиям киосков (2 — первичное, 3 — вторичное); null — ничего не внесли
+  let s = null;
+  Object.entries(KSHOPS).forEach(([ks, sh]) => (sh.lines || []).forEach((ln, li) => { const v = isLine(ln) ? kioskV(ks, li, fi) : null; if (v !== null) s = (s || 0) + v; }));
+  return s;
+}
+function rawRows(d) {
+  const names = MATS.raw[0][3], ko = d.fresh ? kSum(2) : null;
+  return d.m[0].map((r, j) => {
+    const ops = j === 0 && ko !== null ? ko : r[2], inn = ssNum("rin|" + d.no + "|" + j, r[1]), man = ssNum("rout|" + d.no + "|" + j, 0), fv = MK.vals["m|" + d.no + "|0|" + j];
+    return { name: names[j], start: r[0], inn, ops, man, end: r[0] + inn - ops - man, fact: fv !== undefined && fv !== "" ? Number(fv) : d.fresh ? null : r[4] };
+  });
+}
+const rawSec = (d) => SEC_T.map((name, j) => {
+  const ko = d.fresh && j === 0 ? kSum(3) : null, base = ko !== null ? ko : pr(d.seed, j + 3, 4) === 0 ? 0 : 200 + pr(d.seed, j + 5, 600);
+  return { name, v: ssNum("sec|" + d.no + "|" + j, base) };
+});
 // вторичная сводка: что за смену сделали дробилки, шредеры, грануляторы и мойка (вносят операторы в киосках)
 function vsEq(d, k) {
   return VS_EQ[k].map(([shop, name, ks, li], j) => {
@@ -1388,11 +1520,11 @@ function journal(t, cols, cells) {
 }
 const infoBox = (h, steps) => `<div class="mk-info"><div class="mk-info-h"><span class="i">i</span>${h}</div><div class="mk-steps">${steps.map((s, i) =>
   `<div class="mk-step"><b>${i + 1}</b>${s}</div>`).join("")}</div></div>`;
-function docHead(d, kpis) {
+function docHead(d, kpis, extra = "") {
   return `<div class="mk-card"><div class="mk-jh"><div style="display:flex;align-items:center;gap:12px"><button class="mk-btn" data-mk-docback>${ico("arrow-left")}Назад</button>
       <div><b style="font-size:1.125rem">${DT[d.t][0]} · ${d.no}</b><small>${docD(d)} · ${SH_L[d.sh].join(" ")} · заполняет ${d.keeper}${d.area ? " · " + AREAS[d.area] : ""}</small></div></div>
       <button class="mk-btn">${ico("printer")}Печать</button></div>
-    <div class="mk-dkpis" style="grid-template-columns:repeat(${kpis.length}, 1fr)">${kpis.map(([l, v, c]) => `<div><span>${l}</span><b class="${c || ""}">${v}</b></div>`).join("")}</div></div>
+    <div class="mk-dkpis" style="grid-template-columns:repeat(${kpis.length}, 1fr)">${kpis.map(([l, v, c]) => `<div><span>${l}</span><b class="${c || ""}">${v}</b></div>`).join("")}</div>${extra}</div>
     ${MK.docRO ? `<div class="mk-plashka">${ico("eye")}Режим просмотра — сводка открыта из архива.</div>` : ""}`;
 }
 const docFoot = (d) => MK.docRO ? "" : `<div class="mk-card mk-dfoot"><span class="mk-note">После сохранения сводка остаётся в журнале и попадает в архив.</span>
@@ -1410,35 +1542,110 @@ function matTable(d, ti) {
 }
 function pgSS() {
   const raw = MK.area === "raw";
-  const cells = raw ? (d) => [fmt(sumC(d.m[0], 1)), fmt(sumC(d.m[0], 2))] : (d) => { const s = ssStats(d); return [s.used, s.out, fmt(s.tot(0))]; };
+  const cells = raw ? (d) => [fmt(sumC(d.m[0], 1)), fmt(sumC(d.m[0], 2))] : (d) => { const s = ssStats(d); return [s.used, s.out, fmt(s.brak)]; };
   return `${wfBar("ss")}${areaSwitch()}${nowBar("ss")}
     <p class="mk-note">Ночью склад не работает — сводку ночной смены заполняют утром. ${TODO("сводка на участок или одна на смену")} ${TODO("нумерация")}${raw ? " " + TODO("что ведёт участок сырья") : ""}</p>
     ${journal("ss", raw ? ["Приход, кг", "Выдано в цеха, кг"] : ["Линий", "Выпуск", "Брак, кг"], cells)}`;
 }
+// открытая сменная сводка: шапка с итогами и блоками по видам, линии полосами (сворачиваются), под ними таблица позиций
 function pgSSDoc() {
   const d = DOCS.ss.find((x) => x.no === MK.doc), ro = MK.docRO;
-  if (d.area === "raw") {
-    return `${docHead(d, [["Приход, кг", fmt(sumC(d.m[0], 1))], ["Выдано в цеха, кг", fmt(sumC(d.m[0], 2)), "acc"], ["Остаток на конец, кг", fmt(sumC(d.m[0], 3))]])}
-      ${ro ? "" : infoBox("Как заполнить сменную сводку", ["Приход и выдачу в цеха внесите за смену", "В конце смены впишите «Фактически» — что есть на самом деле", "Нажмите «Сохранить и закрыть»"])}
-      <div class="mk-sec"><h3>Сырьё за смену</h3>${TODO("какое сырьё и откуда приход")}</div>${matTable(d, 0)}${docFoot(d)}`;
-  }
-  const s = ssStats(d), ver = (k) => (k in MK.ssVer ? MK.ssVer[k] : !d.fresh);
-  const kpis = [["Линий в работе", s.used], ["Выпуск, листов", fmt(s.sheets)]].concat(d.area === "sot" ? [["Выпуск, шт", fmt(s.pcs)]] : [],
-    SS_F.map((n, fi) => [n + ", кг", fmt(s.tot(fi)), fi === 0 ? "dng" : fi === 3 ? "acc" : ""]));
-  const blocks = s.L.map((l, li) => !l.used ? "" : `<div class="mk-card mk-lblk"><div class="mk-sec"><h3>${l.title} <small>· ${l.pos.length} поз.</small></h3><span class="mk-muted">из киоска · ${l.who}</span></div>
-    ${l.pos.length ? `<div class="mk-card mk-tbl dense" style="box-shadow:none"><table><thead><tr><th>№</th><th>Заявка</th><th>Продукция</th><th>Толщ., мм</th><th>Размер, мм</th><th>Цвет</th><th class="num">Произведено</th><th>Подтвердить</th></tr></thead><tbody>
-      ${l.pos.map((p, pi) => { const k = d.no + "|" + li + "|" + pi; return `<tr><td>${pi + 1}</td><td>${p.pp ? `<span class="mk-tag">${p.pp}</span>` : `<span class="mk-muted">—</span>`}</td>
-        <td>${p.prod}</td><td>${p.th}</td><td>${p.size}</td><td>${p.color}</td><td class="num"><b>${p.n} ${p.unit}</b></td>
-        <td><label class="mk-ver"><input type="checkbox" data-mk-ssver="${k}" ${ver(k) ? "checked" : ""} ${ro ? "disabled" : ""}>${ver(k) ? "Подтверждён" : "Подтвердить"}</label></td></tr>`; }).join("")}
-      </tbody></table></div>` : `<p class="mk-note">Позиций нет — по линии внесены только килограммы.</p>`}
-    <div class="mk-blocks">${SS_F.map((n, fi) => `<div class="mk-blk"><label for="ss-${li}-${fi}">${n}, кг</label><input type="number" min="0" id="ss-${li}-${fi}" data-mk-val="ss|${d.no}|${li}|${fi}" value="${ssVal(d, li, fi, l.fv[fi])}" ${ro ? "disabled" : ""}></div>`).join("")}</div></div>`).join("");
-  const idle = s.L.filter((l) => !l.used).map((l) => l.title);
-  return `${docHead(d, kpis)}
-    ${ro ? "" : infoBox("Как заполнить сменную сводку", ["Позиции и килограммы пришли из киосков — их внесли бригадиры и операторы", "Сверьте с тем, что реально произведено, и поправьте килограммы", "Подтвердите позиции галочкой и нажмите «Сохранить и закрыть»"])}
-    <div class="mk-sec"><h3>Линии <small>· ${s.used} в работе</small></h3>${TODO("набор полей сводки")}</div>
-    ${blocks || `<div class="mk-card mk-stub">${ico("clipboard-list")}<b>За смену ничего не внесли</b></div>`}
-    ${idle.length ? `<div class="mk-card" style="padding:12px 16px"><span class="mk-muted">Не работали в смене:</span> ${idle.join(", ")}</div>` : ""}${docFoot(d)}`;
+  if (d.area === "raw") return pgSSRaw(d, ro);
+  const s = ssStats(d), sot = d.area === "sot";
+  const kpis = [["Выпуск, листов", fmt(s.sheets)]].concat(sot ? [["Выпуск, шт", fmt(s.pcs)]] : [],
+    [["Брак, кг", fmt(s.brak), "dng"], ["Краситель, кг", fmt(s.paint)], ["Отходы, кг", fmt(s.waste)]]);
+  const cats = (sot ? [["Сотовый", [0, 1, 2, 3, 4, 5, 6], "Листов"], ["Профиль", [7, 8, 9, 10, 11], "Профилей"]]
+    : [["Монолит", [0, 1], "Листов"], ["Трапеция", [2, 3], "Листов"]]).map(([t, ix, ql]) => {
+    const g = (f) => ix.reduce((x, i) => x + s.L[i][f], 0);
+    return `<div class="mk-dcat"><b>${t}</b><div>${[[ql, g("q")], ["Брак, кг", g("b"), "dng"], ["Краситель, кг", g("c"), "mut"], ["Отходы, кг", g("w"), "mut"]]
+      .map(([l, v, c]) => `<span>${l}<em class="${c || ""}">${fmt(v)}</em></span>`).join("")}</div></div>`;
+  }).join("");
+  return `${docHead(d, kpis, `<div class="mk-dcats">${cats}</div>`)}
+    ${ro ? "" : infoSteps("Как заполнить сменную сводку", [
+      ["Позиции из киосков", "Позиции и количество приходят из киоска цеха — их внесли бригадиры и операторы. Не хватает позиции — «Добавить позицию»."],
+      ["Внести по факту смены", "Брак и краситель — в строке позиции, отходы — в полосе линии. Цифры из киоска стоят серым — поправьте, если не так."],
+      ["Подтвердить позиции", "Если всё сошлось с тем, что реально произведено, — поставьте галочку «Подтвердить» в каждой строке."],
+      ["Сырьё — у участка сырья", "Расход сырья с линий уходит в сводку участка сырья: там приход, расход и фактический остаток."]])}
+    <div class="mk-tools" style="justify-content:space-between"><div class="mk-tools">${TODO("колонки: скотч, плёнка, вес листа — нужны?")}${TODO("виды отходов")}</div>
+      <div class="mk-tools"><button class="mk-btn ghost sm" data-mk-ssall="open">Развернуть всё</button><button class="mk-btn ghost sm" data-mk-ssall="close">Свернуть всё</button></div></div>
+    ${s.L.map((l) => ssLine(d, l, ro)).join("")}${ssFoot(d)}`;
 }
+const ssCollapsed = (d, l) => { const k = d.no + "|" + l.li; return k in MK.ssCol ? MK.ssCol[k] : !l.used; }; // пустые линии свёрнуты
+function ssLine(d, l, ro) {
+  const li = l.li, key = d.no + "|" + li, col = ssCollapsed(d, l), sh = SH_L[d.sh][0] + " " + d.date, ds = "из киоска · " + l.who;
+  const inp = (id, k, v, auto, lab) => `<input class="mk-n${auto ? " auto" : ""}" type="number" min="0" id="${id}" data-mk-val="${k}" value="${v || ""}" placeholder="-" aria-label="${lab}" ${ro ? "disabled" : ""}>`;
+  const strip = `<div class="mk-card mk-lstrip${col ? " col" : ""}"><button data-mk-ssline="${key}" aria-expanded="${!col}">${ico(col ? "chevron-right" : "chevron-down")}<span class="nm">${l.title}</span>
+      <span class="ds">${ds}</span>${l.rows.length ? `<span class="cnt">${l.rows.length} поз.</span>` : `<span class="unused">не используется</span>`}</button>
+    ${col ? "" : `<label class="mk-waste" for="w-${li}">Отходы, кг ${inp(`w-${li}`, "ss|" + key + "|4", l.w, l.wa, "Отходы, кг: " + l.title)}</label>`}</div>`;
+  if (col) return `<div class="mk-lgrp">${strip}</div>`;
+  const ver = (k) => (k in MK.ssVer ? MK.ssVer[k] : !d.fresh);
+  const del = ro ? "" : `<button class="mk-del" data-mk-noop title="Удалить позицию" aria-label="Удалить позицию">${ico("trash-2")}</button>`;
+  const rows = l.rows.map((r, pi) => {
+    if (r.defect) return `<tr><td colspan="8" class="dfr">Брак (переходный)</td><td class="cell"></td><td class="cell">${inp(`b-${li}-t`, "ssb|" + r.k, r.b, r.ba, "Брак (переходный), кг")}</td><td class="cell"></td><td class="c">${del}</td></tr>`;
+    // «Ост.» — как в образце: сколько осталось до плана заявки с учётом других смен; ровно по плану — зелёный, отклонение — красный
+    const p = r.p, plan = r.pp ? r.pp.plan : 0, tot = r.pp ? r.q + Math.max(0, r.pp.other - p.n) : 0, dl = tot - plan;
+    const o = !r.pp ? ["-", "none"] : [dl > 0 ? "+" + dl : tot === 0 ? "-" : String(-dl), dl === 0 && tot > 0 ? "ok" : dl !== 0 ? "bad" : "none"];
+    const v = ver(r.k), nm = p.prod + " " + p.size;
+    return `<tr><td class="r ost ${o[1]}">${o[0]}</td><td class="r pl">${r.pp ? fmt(plan) : "-"}</td><td>${p.pp ? `<span class="zp">${p.pp}</span>` : `<span class="mk-muted">-</span>`}</td>
+      <td>${r.pp ? 1 : "-"}</td><td class="cl">${r.pp ? r.pp.client : "-"}</td><td>${p.size}</td><td>${p.th === "—" ? "-" : p.th + " мм"}</td><td>${p.color}</td>
+      <td class="cell">${inp(`q-${li}-${pi}`, "ssq|" + r.k, r.q, r.qa, "Количество: " + nm)}</td>
+      <td class="cell">${inp(`b-${li}-${pi}`, "ssb|" + r.k, r.b, r.ba, "Брак, кг: " + nm)}</td>
+      <td class="cell">${inp(`c-${li}-${pi}`, "ssc|" + r.k, r.c, r.ca, "Краситель, кг: " + nm)}</td>
+      <td class="c"><label class="mk-sver${v ? " on" : ""}"><input type="checkbox" data-mk-ssver="${r.k}" ${v ? "checked" : ""} ${ro ? "disabled" : ""}>${v ? "Подтверждён" : "Подтвердить"}</label>${del}</td></tr>`;
+  }).join("");
+  const table = `<div class="mk-srt"><table><thead>
+      <tr><th colspan="8"></th><th class="g g-q">${l.prof ? "Кол-во, шт" : "Кол-во листов"}</th><th class="g g-b">Брак, кг</th><th class="g g-c">Краситель, кг</th><th class="g g-v">Подтвердить позицию</th></tr>
+      <tr><th class="r" style="color:var(--success-700)">Ост.</th><th class="r">План</th><th>ЗП</th><th>#</th><th>Клиент</th><th>Размеры</th><th>Толщ</th><th>Цвет</th>
+        <th class="c g-q">${sh}</th><th class="c g-b">${sh}</th><th class="c g-c">${sh}</th><th class="g-v"></th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr><td colspan="8" class="r" style="font-size:13px;font-weight:800">Итого</td><td class="c">${fmt(l.q)}</td><td class="c">${fmt(l.b)}</td><td class="c">${fmt(l.c)}</td><td></td></tr></tfoot></table></div>`;
+  return `<div class="mk-lgrp">${strip}<div class="mk-card mk-lb"><div class="mk-lb-h"><div><span class="nm">${l.title}</span><span class="ds">${ds}</span></div>
+      <div class="mk-lb-r"><span>Произведено: <strong>${fmt(l.q)} ${l.prof ? "шт" : "листов"}</strong></span>${l.b > 0 ? `<span class="dfk">Брак: ${fmt(l.b)} кг</span>` : ""}
+        ${ro ? "" : `<button class="mk-btn sm dfc" data-mk-noop>${ico("plus")}Брак (переходный)</button><button class="mk-btn sm p" data-mk-noop>${ico("plus")}Добавить позицию</button>`}</div></div>
+    ${l.rows.length ? table : `<div class="mk-empty">${ico("inbox")}<div>${ro ? "Позиций нет" : "Нет позиций · нажмите «Добавить позицию»"}</div></div>`}</div></div>`;
+}
+// сводка участка сырья — блок «Сырьё по предприятию»: 5 карточек остатка и таблицы первичного и вторичного сырья по видам
+function pgSSRaw(d, ro) {
+  const R = rawRows(d), S = (f) => R.reduce((x, r) => x + (r[f] || 0), 0), hasF = R.some((r) => r.fact !== null);
+  const end = S("end"), fact = S("fact"), dl = fact - end, ad = Math.abs(dl), sec = rawSec(d), secT = sec.reduce((x, r) => x + r.v, 0), sh = SH_L[d.sh][0] + " " + d.date;
+  const fc = !hasF ? "var(--fg-tertiary)" : ad > 300 ? "var(--danger-600)" : ad > 100 ? "var(--warning-700)" : "var(--success-700)";
+  const card = (l, v, hint, color, st) => `<div class="mk-balc"${st || ""}><span>${l}</span><b style="color:${color || "var(--fg-primary)"}">${fmt(v)} <small>кг</small></b><i>${hint}</i></div>`;
+  const ent = (id, k, v, lab) => `<input class="mk-vbox" type="number" min="0" id="${id}" data-mk-val="${k}" value="${v === null || v === undefined ? "" : v}" placeholder="-" aria-label="${lab}" ${ro ? "disabled" : ""}>`;
+  const box = (v, st) => `<span class="mk-vbox"${st ? ` style="${st}"` : ""}>${v}</span>`;
+  return `${docHead(d, [["Приход, кг", fmt(S("inn"))], ["Расход операторов, кг", fmt(S("ops")), "acc"], ["Остаток на конец, кг", fmt(end)]])}
+    ${ro ? "" : infoSteps("Как заполнить сводку сырья", [
+      ["Приход", "Внесите сырьё, которое поступило за смену."],
+      ["Расход операторов", "Приходит сам — из того, что бригадиры и операторы внесли в киосках цехов."],
+      ["Вторичное сырьё", "Расход вторичного сырья по видам за смену."],
+      ["Фактический остаток", "Замер на конец смены. Следующая сводка возьмёт его как остаток на начало."]])}
+    <div class="mk-card mk-ent"><div class="mk-ent-h"><div><b>Сырьё по предприятию</b><small>учёт сырья за смену по всему заводу</small>${TODO("виды сырья и откуда приход")}</div>
+        <div class="how"><div><strong>Как работает:</strong> остаток на конец смены считается автоматически — <i>начало + приход − расход операторов − расход</i>.</div>
+          <div>Фактический остаток — замер кладовщика на конец смены.</div>
+          <div>Разница с расчётным: <span style="color:var(--success-700);font-weight:600">до ±100 кг — норма</span>, <span style="color:var(--warning-700);font-weight:600">100–300 — внимание</span>, <span style="color:var(--danger-600);font-weight:600">&gt;300 — тревога</span>. ${TODO("пороги")}</div></div></div>
+      <div class="mk-bal">${card("Остаток на начало смены", S("start"), "из предыдущей сводки")}${card("Приход за смену", S("inn"), "по видам — в таблице ниже")}
+        ${card("Расход операторов", S("ops"), "из киосков цехов")}${card("Остаток на конец смены", end, "расчётный", end < 0 ? "var(--danger-600)" : "")}
+        ${card("Фактический остаток", hasF ? fact : 0, !hasF ? "введите замер" : ad <= 50 ? "совпадает с расчётом" : `Разница ${dl > 0 ? "+" : ""}${fmt(dl)} кг`, fc,
+          ` style="border-color:color-mix(in oklab, ${fc} 30%, var(--border-subtle));background:color-mix(in oklab, ${fc} 5%, var(--bg-surface))"`)}</div>
+      <div class="mk-ent-t"><div class="fr"><table><thead><tr><th colspan="7" class="ttl">Движение первичного сырья по видам</th></tr>
+          <tr><th class="l">Наименование сырья</th><th>Остаток на начало</th><th>Приход</th><th>Расход операторов</th><th>Расход</th><th>Остаток на конец</th><th>Фактически</th></tr></thead>
+        <tbody>${R.map((r, j) => `<tr><td class="l">${r.name}</td><td>${box(fmt(r.start))}</td><td>${ent(`ri-${j}`, "rin|" + d.no + "|" + j, r.inn, "Приход: " + r.name)}</td>
+          <td>${box(r.ops ? fmt(r.ops) : "-")}</td><td>${ent(`ro-${j}`, "rout|" + d.no + "|" + j, r.man || null, "Расход: " + r.name)}</td>
+          <td>${box(fmt(r.end), `font-weight:600;color:${r.end < 0 ? "var(--danger-600)" : r.end > 0 ? "var(--primary-700)" : "var(--fg-tertiary)"}`)}</td>
+          <td>${ent(`rf-${j}`, "m|" + d.no + "|0|" + j, r.fact, "Фактически: " + r.name)}</td></tr>`).join("")}</tbody>
+        <tfoot><tr><td class="l">Итого</td>${[S("start"), S("inn"), S("ops"), S("man"), end, fact].map((v) => `<td>${fmt(v)}</td>`).join("")}</tr></tfoot></table></div></div>
+      <div class="mk-ent-t"><div class="fr"><table><thead><tr><th colspan="4" class="ttl">Расход вторичного сырья по видам</th></tr>
+          <tr><th class="l">Наименование сырья</th><th>${sh}</th><th>Итого</th><th style="width:36px"></th></tr></thead>
+        <tbody>${sec.map((r, j) => `<tr><td class="l">${r.name}</td><td>${ent(`rs-${j}`, "sec|" + d.no + "|" + j, r.v || null, "Расход: " + r.name)}</td>
+          <td>${box(r.v > 0 ? fmt(r.v) : "-", `font-weight:600;color:${r.v > 0 ? "var(--primary-700)" : "var(--fg-tertiary)"}`)}</td>
+          <td>${ro ? "" : `<button class="mk-x0" data-mk-noop title="Убрать вид" aria-label="Убрать вид">${ico("x")}</button>`}</td></tr>`).join("")}</tbody>
+        <tfoot><tr><td class="l">Итого</td><td>${fmt(secT)}</td><td>${fmt(secT)}</td><td></td></tr></tfoot></table></div>
+        ${ro ? "" : `<button class="mk-addt" data-mk-noop>+ добавить</button>`}</div></div>
+    ${ssFoot(d)}`;
+}
+const ssFoot = (d) => `<div class="mk-card mk-dfoot"><span class="mk-note">${MK.docRO ? "Сводку можно только просматривать — изменения недоступны." : "После сохранения сводка остаётся в журнале и попадает в архив."}</span>
+  <button class="mk-btn ghost" data-mk-docback>${ico("arrow-left")}Назад</button>${MK.docRO ? "" : `<button class="mk-btn p" data-mk-dsave="${d.no}">${ico("check")}Сохранить и закрыть</button>`}</div>`;
+const infoSteps = (h, steps) => `<div class="mk-info"><div class="mk-info-h"><span class="i">i</span>${h}</div><div class="mk-steps">${steps.map(([t, s], i) =>
+  `<div class="mk-step"><b>${i + 1}</b><div><i>${t}</i>${s}</div></div>`).join("")}</div></div>`;
 function pgVS() {
   return `${wfBar("vs")}${nowBar("vs")}
     <p class="mk-note">Одна сводка на смену по всему заводу: переработка 1 и 2, грануляторы профильного и плёночного цехов. ${TODO("кто ведёт — предлагаем участок сырья")}</p>
@@ -1681,7 +1888,7 @@ document.querySelectorAll(".hot[data-role]").forEach((g) => {
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-nav],[data-mk-order],[data-mk-lorder],[data-mk-corder],[data-mk-clfilter],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-lgfilter],[data-mk-ppfilter],[data-mk-seg],[data-mk-mark],[data-mk-send],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-nav],[data-mk-order],[data-mk-lorder],[data-mk-corder],[data-mk-clfilter],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-lgfilter],[data-mk-ppfilter],[data-mk-seg],[data-mk-mark],[data-mk-send],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
@@ -1723,9 +1930,17 @@ overlay.addEventListener("click", (e) => {
     const [tp, no, ro] = d.mkDoc ? d.mkDoc.split("|") : [d.mkNewdoc, newDoc(d.mkNewdoc).no, "0"];
     Object.assign(MK, { view: tp + "Doc", doc: no, docRO: ro === "1", docFrom: ro === "1" ? "arc" : "", dTab: "" });
   }
-  else if (t.hasAttribute("data-mk-docback") || d.mkDsave) MK.view = MK.docFrom || MK.view.slice(0, 2);
+  else if (t.hasAttribute("data-mk-docback") || d.mkDsave) {
+    if (d.mkDsave) { const x = DOCS[MK.view.slice(0, 2)].find((y) => y.no === d.mkDsave); if (x) x.saved = true; } // сохранённые цифры — уже не серые «из киоска»
+    MK.view = MK.docFrom || MK.view.slice(0, 2);
+  }
   else if (d.mkDtab) MK.dTab = d.mkDtab;
   else if (d.mkSsver) { const fresh = DOCS.ss.find((x) => x.no === MK.doc).fresh; MK.ssVer[d.mkSsver] = !(d.mkSsver in MK.ssVer ? MK.ssVer[d.mkSsver] : !fresh); }
+  else if (d.mkSsline || d.mkSsall) { // сменная сводка: свернуть / развернуть линию или все сразу
+    const x = DOCS.ss.find((y) => y.no === MK.doc), L = ssLines(x).map((l, li) => Object.assign(l, { li }));
+    if (d.mkSsall) L.forEach((l) => { MK.ssCol[x.no + "|" + l.li] = d.mkSsall === "close"; });
+    else { const l = L[+d.mkSsline.split("|")[1]]; MK.ssCol[d.mkSsline] = !ssCollapsed(x, l); }
+  }
   else if (d.mkArcm) MK.arcM = d.mkArcm;
   else if (d.mkArct) MK.arcT = d.mkArct;
   else if (t.hasAttribute("data-mk-back")) { MK.view = R().back; MK.order = null; }
