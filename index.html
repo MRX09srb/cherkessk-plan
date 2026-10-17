@@ -453,16 +453,28 @@ footer { color: var(--muted); font-size: 13px }
 .mk-balc > i { font-style: normal; font-size: 11px; color: var(--fg-tertiary) }
 .mk-ent-t { padding: 0 20px 20px; background: var(--bg-sunken) }
 .mk-ent-t .fr { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border-subtle); background: var(--bg-surface) }
-.mk-ent-t table { width: 100%; border-collapse: collapse; font-size: .875rem }
-.mk-ent-t th { padding: 10px 12px; font-size: .75rem; font-weight: 600; color: var(--fg-tertiary); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; text-align: center; background: var(--bg-sunken) }
-.mk-ent-t th.l, .mk-ent-t td.l { text-align: left }
-.mk-ent-t th.ttl { padding: 14px 18px; font-size: 14px; font-weight: 700; color: var(--fg-primary); text-transform: none; letter-spacing: 0; border-bottom: 2px solid var(--border-default) }
-.mk-ent-t td { padding: 4px 8px; text-align: center; vertical-align: middle; border-top: 1px solid var(--border-subtle) }
-.mk-ent-t td.l { padding: 8px 12px; font-weight: 500 }
-.mk-ent-t tfoot td { border-top: 2px solid var(--border-default); background: var(--bg-sunken); font-weight: 700; padding: 8px 12px; font-variant-numeric: tabular-nums }
+.mk-ent-t table, .mk-bt table { width: 100%; border-collapse: collapse; font-size: .875rem }
+.mk-ent-t th, .mk-bt th { padding: 10px 12px; font-size: .75rem; font-weight: 600; color: var(--fg-tertiary); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; text-align: center; background: var(--bg-sunken) }
+.mk-ent-t th.l, .mk-ent-t td.l, .mk-bt th.l, .mk-bt td.l { text-align: left }
+.mk-ent-t th.ttl, .mk-bt th.ttl { padding: 14px 18px; font-size: 14px; font-weight: 700; color: var(--fg-primary); text-transform: none; letter-spacing: 0; border-bottom: 2px solid var(--border-default) }
+.mk-ent-t td, .mk-bt td { padding: 4px 8px; text-align: center; vertical-align: middle; border-top: 1px solid var(--border-subtle) }
+.mk-ent-t td.l, .mk-bt td.l { padding: 8px 12px; font-weight: 500 }
+.mk-ent-t tfoot td, .mk-bt tfoot td { border-top: 2px solid var(--border-default); background: var(--bg-sunken); font-weight: 700; padding: 8px 12px; font-variant-numeric: tabular-nums }
 .mk-vbox { display: inline-block; min-width: 100px; padding: 5px 8px; border: 1px solid transparent; border-radius: 4px; font-size: .875rem; text-align: center; font-variant-numeric: tabular-nums }
 .mk input.mk-vbox { width: 100px; border-color: var(--border-default); background: var(--bg-surface); color: var(--fg-primary); font: inherit; font-size: .875rem; outline: none; -moz-appearance: textfield }
 .mk input.mk-vbox:disabled { background: transparent; border-color: transparent; color: var(--fg-secondary) }
+.mk-bt { overflow-x: auto }
+.mk input.mk-vbox.auto::placeholder { font-style: italic; color: var(--fg-tertiary) }
+/* вкладки вторичной сводки: полоса кнопок, ручной ввод (дробление, гранулирование) — жёлтым пунктиром после разделителя */
+.mk-dtabs { padding: 12px 16px; border-radius: 8px; background: var(--bg-sunken); border: 1px solid var(--border-subtle); display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
+.mk-dtabs button { display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 4px; background: var(--bg-surface); border: 1.5px solid var(--border-subtle); color: var(--fg-secondary); font-size: .875rem; font-weight: 500; box-shadow: var(--shadow-btn); transition: background 120ms ease, border-color 120ms ease, color 120ms ease }
+.mk-dtabs button:hover { background: var(--slate-200); color: var(--fg-primary) }
+.mk-dtabs button.on { background: color-mix(in oklab, var(--primary-500) 10%, var(--bg-surface)); border-color: var(--primary-500); color: var(--primary-700); font-weight: 600 }
+.mk-dtabs button.man { border-style: dashed; border-color: var(--warning-500); color: var(--warning-700); background: color-mix(in oklab, var(--warning-500) 8%, var(--bg-surface)) }
+.mk-dtabs button.man:hover { background: color-mix(in oklab, var(--warning-500) 20%, var(--bg-surface)) }
+.mk-dtabs button.man.on { background: color-mix(in oklab, var(--warning-500) 35%, var(--bg-surface)); box-shadow: 0 2px 6px color-mix(in oklab, var(--warning-500) 30%, transparent); font-weight: 600 }
+.mk-dtabs button svg.lucide { width: 12px; height: 12px }
+.mk-dtabs .sep { width: 1px; height: 28px; background: var(--border-default); margin: 0 4px }
 .mk-addt { margin-top: 8px; width: 100%; max-width: 320px; padding: 5px 8px; border: 1px dashed var(--border-default); border-radius: 4px; background: transparent; color: var(--fg-tertiary); font-size: 11px }
 .mk-arcf { padding: 12px 16px; display: grid; gap: 8px }
 .mk-search { margin-left: auto; width: 220px; padding: 6px 10px; border: 1px solid var(--border-default); border-radius: 8px; background: var(--bg-surface); color: var(--fg-primary); font: inherit; font-size: .875rem }
@@ -1378,7 +1390,7 @@ const VS_EQ = {
 // вкладки с остатками: [ключ, название, ед., наименования, [обычный остаток, расход за смену, расхождение факта]] — всё пример
 const MATS = {
   raw: [["raw", "Первичное сырьё", "кг", ["Первичное сырьё 1 (пример)", "Первичное сырьё 2 (пример)"], [6000, 2600, 40]]],
-  vs: [["skart", "1. Брак, тех. обрезки", "кг", ["Брак сотового листа", "Брак монолитного листа и трапеции", "Брак профиля"], [700, 300, 10]],
+  vs: [["skart", "1. Брак, тех. обрезки", "кг", ["Брак сотового листа", "Брак монолитного листа и трапеции", "Брак профиля", "Обжарка"], [700, 300, 10]],
     ["flakes", "2. Вторичные хлопья", "кг", ["Хлопья сотового", "Хлопья монолитного", "Хлопья профиля"], [900, 260, 15]],
     ["gr", "3. Вторичные гранулы", "кг", ["Гранулы сотового", "Гранулы монолитного", "Гранулы профиля"], [1200, 300, 15]],
     ["other", "4. Остальное", "кг", ["Стружка", "Сметки", "Плёнка", "Мешки"], [150, 35, 5]]],
@@ -1399,7 +1411,8 @@ const DOCS = { ss: [], vs: [], rs: [] }, LAST = {};
 function addDoc(t, o) {
   const key = t + (o.area || ""), kind = t === "ss" ? "raw" : t;
   const d = Object.assign({ t, no: DT[t][1] + "-2026-" + String(DOCS[t].length + 1).padStart(3, "0") }, o);
-  if (t !== "ss" || o.area === "raw") d.m = MATS[kind].map(([, , , names, sc], ti) =>
+  if (t === "vs") { if (DOCS.ready) vsInit(d, LAST[key]); } // вторичную считают после того, как готовы сменные (vsInit)
+  else if (t !== "ss" || o.area === "raw") d.m = MATS[kind].map(([, , , names, sc], ti) =>
     matStep(LAST[key] ? LAST[key].m[ti].map((r) => r[4]) : names.map(() => sc[0]), sc, o.seed + ti * 11));
   DOCS[t].push(d); LAST[key] = d;
   return d;
@@ -1482,17 +1495,55 @@ const rawSec = (d) => SEC_T.map((name, j) => {
   const ko = d.fresh && j === 0 ? kSum(3) : null, base = ko !== null ? ko : pr(d.seed, j + 3, 4) === 0 ? 0 : 200 + pr(d.seed, j + 5, 600);
   return { name, v: ssNum("sec|" + d.no + "|" + j, base) };
 });
-// вторичная сводка: что за смену сделали дробилки, шредеры, грануляторы и мойка (вносят операторы в киосках)
-function vsEq(d, k) {
-  return VS_EQ[k].map(([shop, name, ks, li], j) => {
-    const kv = d.fresh ? kioskV(ks, li, 0) : null;
-    return { shop, name, v: kv !== null ? kv : pr(d.seed + (k === "gran" ? 5 : 0), j, 4) === 0 ? 0 : 120 + pr(d.seed, j + 7, 380) };
-  });
+// вторичная сводка — как в образце: дробление брака уходит в хлопья, гранулирование хлопьев — в гранулы, обжарки — обратно в брак;
+// приход брака — из сменных сводок той же смены; кладовщик может перебить любую цифру
+const VS_START = { skart: [300, 250, 120, 100], flakes: [400, 300, 150], gr: [800, 600, 300] }; // остатки на 01.09 — пример
+function vsBrak(date, sh) { // брак из СС: сотовый, монолит и трапеция, профиль
+  const get = (a) => DOCS.ss.find((x) => x.date === date && x.sh === sh && x.area === a), mo = get("mono"), so = get("sot"), r = [0, 0, 0];
+  if (so) ssStats(so).L.forEach((l) => { r[l.prof ? 2 : 0] += l.b; });
+  if (mo) r[1] = ssStats(mo).brak;
+  return r;
 }
-const vsSum = (d) => {
-  const dr = vsEq(d, "drob"), gr = vsEq(d, "gran"), s = (a) => a.reduce((x, e) => x + e.v, 0);
-  return { drob: s(dr), gran: s(gr.filter((e) => e.name !== "Мойка")), wash: s(gr.filter((e) => e.name === "Мойка")), dr, gr };
-};
+function vsInit(d, prev) {
+  const sd = d.seed, f = (s, j, lo, hi) => (lo + pr(sd + s, j, hi - lo + 1)) / 100, z = [0, 0, 0];
+  d.st = prev ? prev.facts : { skart: VS_START.skart.slice(), flakes: VS_START.flakes.slice(), gr: VS_START.gr.slice(), other: MATS.vs[3][3].map(() => MATS.vs[3][4][0]) };
+  if (d.fresh) d.ex = { drob: z, gran: z, burnt: z, out3: z, obzOut: 0, in4: d.st.other.map(() => 0), out4: d.st.other.map(() => 0) };
+  else {
+    const brak = vsBrak(d.date, d.sh), drob = z.map((_, j) => Math.round((d.st.skart[j] + brak[j]) * f(1, j, 30, 90)));
+    const g0 = z.map((_, j) => Math.round((d.st.flakes[j] + drob[j]) * f(2, j, 30, 80))), burnt = g0.map((g, j) => Math.round(g * f(3, j, 2, 5)));
+    const gran = g0.map((g, j) => g - burnt[j]), o4 = matStep(d.st.other, MATS.vs[3][4], sd + 33);
+    d.ex = { brak, drob, gran, burnt, out3: z.map((_, j) => Math.round((d.st.gr[j] + gran[j]) * f(4, j, 20, 50))),
+      obzOut: Math.round((d.st.skart[3] + burnt.reduce((a, b) => a + b, 0)) * f(5, 0, 0, 60)), in4: o4.map((r) => r[1]), out4: o4.map((r) => r[2]) };
+  }
+  const c = vsCalc(d), diff = { skart: 5, flakes: 10, gr: 10, other: 5 };
+  // фактически: обычно = остаток на конец, иногда меньше (недостача); у новой — пусто, пока не впишут
+  if (!d.fresh) d.ex.fact = Object.fromEntries(Object.entries(c.secs).map(([s, rows]) => [s, rows.map((r, j) => (pr(sd + 7, j + s.length, 6) === 0 ? Math.max(0, r.end - diff[s]) : r.end))]));
+  const c2 = vsCalc(d);
+  d.facts = Object.fromEntries(Object.entries(c2.secs).map(([s, rows]) => [s, rows.map((r) => (r.fact === null ? r.end : r.fact))]));
+  if (!d.fresh) d.m = Object.values(c2.secs).map((rows) => rows.map((r) => [r.st, r.inn, r.out, r.end, r.fact]));
+}
+function vsCalc(d) {
+  const ex = d.ex, v = (k, base) => ssNum("vs|" + d.no + "|" + k, base), z = [0, 1, 2];
+  const brak = d.fresh ? vsBrak(CUR.date, CUR.sh) : ex.brak;
+  const drob = z.map((j) => v("drob|" + j, ex.drob[j])), gran = z.map((j) => v("gran|" + j, ex.gran[j])), burnt = z.map((j) => v("burnt|" + j, ex.burnt[j]));
+  const wash = v("wash|1", drob[1]), sum = (a) => a.reduce((x, y) => x + y, 0);
+  // строка: [название, начало, приход, приход авто?, расход, расход авто?]; авто — серым, пока кладовщик не вписал своё
+  const mk = (sec, rows) => rows.map(([name, st, ib, ia, ob, oa], j) => {
+    const p = "vs|" + d.no + "|" + sec + "|" + j + "|", fv = MK.vals[p + "fact"], fb = ex.fact ? ex.fact[sec][j] : null;
+    const inn = ssNum(p + "in", ib), out = ssNum(p + "out", ob);
+    return { j, name, st, inn, ib, ia, out, ob, oa, end: st + inn - out, fact: fv !== undefined && fv !== "" ? Number(fv) : fb };
+  });
+  const N = (i) => MATS.vs[i][3];
+  return { drob, gran, burnt, wash, sum: { drob: sum(drob), gran: sum(gran), wash }, secs: {
+    skart: mk("skart", N(0).map((n, j) => j < 3 ? [n, d.st.skart[j], brak[j], true, drob[j], true] : [n, d.st.skart[j], sum(burnt), true, ex.obzOut, false])),
+    flakes: mk("flakes", N(1).map((n, j) => [n, d.st.flakes[j], drob[j], true, gran[j] + burnt[j], true])),
+    gr: mk("gr", N(2).map((n, j) => [n, d.st.gr[j], gran[j], true, ex.out3[j], true])),
+    other: mk("other", N(3).map((n, j) => [n, d.st.other[j], ex.in4[j], false, ex.out4[j], false])) } };
+}
+const vsSum = (d) => vsCalc(d).sum;
+// из киосков переработки за смену (кг по машинам) — подсказка над «Дроблением» и «Гранулированием»
+const vsKiosk = (k, wash) => { let s = null; VS_EQ[k].forEach(([, n, ks, li]) => { if (k === "gran" && (n === "Мойка") !== !!wash) return; const x = kioskV(ks, li, 0); if (x !== null) s = (s || 0) + x; }); return s; };
+DOCS.vs.forEach((d, i) => vsInit(d, DOCS.vs[i - 1])); DOCS.ready = true;
 function wfBar(cur) {
   const W = [["ss", "Что произвели за смену по линиям: выпуск, брак, сырьё, отходы. Цифры приходят из киосков — сверьте."],
     ["vs", "Что раздробили и награнулировали. Остатки брака, хлопьев и гранул."],
@@ -1651,20 +1702,51 @@ function pgVS() {
     <p class="mk-note">Одна сводка на смену по всему заводу: переработка 1 и 2, грануляторы профильного и плёночного цехов. ${TODO("кто ведёт — предлагаем участок сырья")}</p>
     ${journal("vs", ["Задроблено, кг", "Сгранулировано, кг", "Помыто, кг"], (d) => { const s = vsSum(d); return [fmt(s.drob), fmt(s.gran), fmt(s.wash)]; })}`;
 }
+// открытая вторичная сводка: вкладки полосой (ручной ввод — жёлтые, после разделителя), таблицы остатков и процессов по сырью
+const VS_TABS = [["skart", "1. Брак, тех. обрезки"], ["flakes", "2. Вторичные хлопья"], ["gr", "3. Вторичные гранулы"], ["other", "4. Остальное"],
+  ["drob", "Дробление", "Дробление брака"], ["gran", "Гранулирование", "Гранулирование хлопьев"]];
 function pgVSDoc() {
-  const d = DOCS.vs.find((x) => x.no === MK.doc), s = vsSum(d), tab = MK.dTab || "skart";
-  const tabs = [["skart", MATS.vs[0][1]], ["drob", "Дробление"], ["flakes", MATS.vs[1][1]], ["gran", "Гранулирование"], ["gr", MATS.vs[2][1]], ["other", MATS.vs[3][1]]];
-  const eq = (arr, l) => `<div class="mk-card mk-tbl dense"><table><thead><tr><th>Цех</th><th>Оборудование</th><th class="num">${l}, кг</th><th>Кто внёс</th></tr></thead><tbody>
-    ${arr.map((e) => `<tr><td>${e.shop}</td><td>${e.name}</td><td class="num">${e.v ? `<b>${fmt(e.v)}</b>` : `<span class="mk-muted">не работало</span>`}</td><td class="mk-muted">оператор, киоск</td></tr>`).join("")}
-    <tr class="secrow"><td colspan="2">Итого</td><td class="num">${fmt(arr.reduce((x, e) => x + e.v, 0))}</td><td></td></tr></tbody></table></div>
-    <p class="mk-note">Цифры приходят из киосков — их вносят операторы в «Моей смене». Здесь только смотрим.</p>`;
-  const body = tab === "drob" ? eq(s.dr, "Задроблено") : tab === "gran" ? eq(s.gr, "Сгранулировано, помыто")
-    : matTable(d, MATS.vs.findIndex((m) => m[0] === tab));
-  return `${docHead(d, [["Задроблено, кг", fmt(s.drob)], ["Сгранулировано, кг", fmt(s.gran), "acc"], ["Помыто, кг", fmt(s.wash)]])}
-    ${MK.docRO ? "" : infoBox("Как заполнить вторичную сводку", ["«Дробление» и «Гранулирование» — что за смену внесли операторы в киосках", "По браку, хлопьям, гранулам и остальному сверьте приход и расход", "Впишите «Фактически» на конец смены и нажмите «Сохранить и закрыть»"])}
-    <div class="mk-tools"><div class="mk-seg">${tabs.map(([k, l]) => `<button class="${tab === k ? "on" : ""}" data-mk-dtab="${k}">${l}</button>`).join("")}</div>${TODO("список сырья")}</div>
-    ${body}${docFoot(d)}`;
+  const d = DOCS.vs.find((x) => x.no === MK.doc), ro = MK.docRO, c = vsCalc(d), tab = MK.dTab || "skart";
+  const bar = `<div class="mk-dtabs">${VS_TABS.map(([k, l, pt], i) => `${pt && !VS_TABS[i - 1][2] ? `<i class="sep" title="Ручной ввод"></i>` : ""}<button class="${pt ? "man" : ""}${tab === k ? " on" : ""}" data-mk-dtab="${k}"${pt ? ` title="Ручной ввод данных за смену"` : ""}>${pt ? ico("pencil") : ""}${l}</button>`).join("")}</div>`;
+  return `${docHead(d, [["Задроблено, кг", fmt(c.sum.drob)], ["Сгранулировано, кг", fmt(c.sum.gran)], ["Помыто, кг", fmt(c.sum.wash)]])}
+    ${ro ? "" : infoSteps("Как заполнить вторичную сводку", [
+      ["«Брак, тех. обрезки» и «Остальное»", "Брак с линий приходит из сменных сводок сам. Побочку — стружку, сметки, плёнку, мешки — внесите вручную."],
+      ["Вкладка «Дробление» → «Вторичные хлопья»", "Внесите, сколько кг задробили. Списывается из брака и приходит в хлопья. У монолита колонка «Мойка, кг»."],
+      ["Вкладка «Гранулирование» → «Вторичные гранулы»", "Внесите, сколько кг награнулировали. Гранулы — во «Вторичные гранулы», обжарки возвращаются в «Брак, тех. обрезки»."],
+      ["Фактический остаток", "«Фактически» следующая сводка возьмёт как «Остаток на начало». Не вписали — возьмёт «Остаток на конец»."]])}
+    <div class="mk-tools">${TODO("список сырья")}${TODO("в киоске переработки вносить кг по сырью?")}${TODO("бывает ли обжарка")}${TODO("что моют")}</div>
+    ${bar}${tab === "drob" || tab === "gran" ? vsProc(d, c, tab, ro) : vsSec(d, c, tab, ro)}${vsFoot(d)}`;
 }
+const vsBox = (v, st) => `<span class="mk-vbox"${st ? ` style="${st}"` : ""}>${v}</span>`;
+// поле сводки: введённое кладовщиком; пусто — серым курсивом авто-цифра (как в образце)
+function vsInp(d, key, base, auto, lab, ro) {
+  const k = "vs|" + d.no + "|" + key, ov = MK.vals[k], val = ov !== undefined ? ov : auto || base === null || base === undefined ? "" : base;
+  return `<td><input class="mk-vbox${auto ? " auto" : ""}" type="number" min="0" data-mk-val="${k}" value="${val}" placeholder="${auto && base ? fmt(base) : "-"}" aria-label="${lab}" ${ro ? "disabled" : ""}></td>`;
+}
+function vsSec(d, c, sec, ro) {
+  const rows = c.secs[sec], S = (f) => rows.reduce((x, r) => x + (r[f] || 0), 0);
+  return `<div class="mk-card mk-bt"><table><thead><tr><th colspan="6" class="ttl">${VS_TABS.find((t) => t[0] === sec)[1]}</th></tr>
+      <tr><th class="l">Наименование сырья</th><th>Остаток на начало</th><th>Приход</th><th>Расход</th><th>Остаток на конец</th><th>Фактически</th></tr></thead>
+    <tbody>${rows.map((r) => `<tr><td class="l">${r.name}</td><td>${vsBox(fmt(r.st), "color:var(--fg-secondary)")}</td>
+      ${vsInp(d, sec + "|" + r.j + "|in", r.ib, r.ia, "Приход: " + r.name, ro)}${vsInp(d, sec + "|" + r.j + "|out", r.ob, r.oa, "Расход: " + r.name, ro)}
+      <td>${vsBox(fmt(r.end), `font-weight:600;color:${r.end > 0 ? "var(--primary-700)" : r.end < 0 ? "var(--danger-600)" : "var(--fg-tertiary)"}`)}</td>
+      ${vsInp(d, sec + "|" + r.j + "|fact", r.fact, false, "Фактически: " + r.name, ro)}</tr>`).join("")}</tbody>
+    <tfoot><tr><td class="l">Итого</td>${[S("st"), S("inn"), S("out"), S("end"), S("fact")].map((v) => `<td>${v ? fmt(v) : "-"}</td>`).join("")}</tr></tfoot></table></div>`;
+}
+function vsProc(d, c, tab, ro) {
+  const drob = tab === "drob", rows = drob ? c.secs.skart.slice(0, 3) : c.secs.flakes, sum = (a) => a.reduce((x, y) => x + y, 0);
+  const kg = drob ? c.drob : c.gran, extra = drob ? "Мойка, кг" : "Обжарки, кг";
+  const k1 = d.fresh ? vsKiosk(tab) : null, k2 = d.fresh && !drob ? vsKiosk("gran", true) : null;
+  const hint = !d.fresh ? "" : `<div class="mk-plashka">${ico("info")}${k1 === null && k2 === null ? "В киосках переработки за смену пока ничего не внесли."
+    : `Из киосков переработки за смену: <b>${fmt(k1 || 0)} кг</b> — ${drob ? "дробилки и шредеры" : "грануляторы и агломератор"}${k2 !== null ? ` · мойка: <b>${fmt(k2)} кг</b>` : ""}. Там цифры по машинам — здесь внесите по сырью.`}</div>`;
+  return `${hint}<div class="mk-card mk-bt"><table><thead><tr><th colspan="3" class="ttl">${VS_TABS.find((t) => t[0] === tab)[2]}</th></tr>
+      <tr><th class="l">Наименование сырья</th><th>КГ</th><th>${extra}</th></tr></thead>
+    <tbody>${rows.map((r, j) => `<tr><td class="l">${r.name}</td>${vsInp(d, tab + "|" + j, d.ex[tab][j] || null, false, (drob ? "Задроблено: " : "Сгранулировано: ") + r.name, ro)}
+      ${drob ? (j === 1 ? vsInp(d, "wash|1", c.drob[1], true, "Мойка: " + r.name, ro) : `<td class="mk-muted">—</td>`) : vsInp(d, "burnt|" + j, d.ex.burnt[j] || null, false, "Обжарки: " + r.name, ro)}</tr>`).join("")}</tbody>
+    <tfoot><tr><td class="l">Итого</td><td>${fmt(sum(kg))}</td><td>${fmt(drob ? c.wash : sum(c.burnt))}</td></tr></tfoot></table></div>`;
+}
+const vsFoot = (d) => MK.docRO ? "" : `<div class="mk-card mk-dfoot"><span class="mk-note">Сохранение зафиксирует объёмы переработки и остатки — следующая сводка стартует с этих цифр.</span>
+  <button class="mk-btn ghost" data-mk-docback>${ico("x")}Отмена</button><button class="mk-btn p" data-mk-dsave="${d.no}">${ico("check")}Сохранить и закрыть</button></div>`;
 const rsOut = (d, ti) => sumC(d.m[ti], 2);
 function pgRS() {
   return `${wfBar("rs")}${nowBar("rs")}
