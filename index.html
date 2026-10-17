@@ -366,12 +366,7 @@ footer { color: var(--muted); font-size: 13px }
 .mk-dkpis b { display: block; margin-top: 4px; font-size: 26px; font-weight: 600; letter-spacing: -.015em; font-variant-numeric: tabular-nums }
 .mk-dkpis b.acc { color: var(--primary-700) }
 .mk-dkpis b.dng { color: var(--danger-600) }
-.mk-lblk { padding: 16px; display: grid; gap: 12px }
-.mk-lblk .mk-tbl { border-radius: 8px }
-.mk-tin { width: 96px; padding: 5px 8px; border: 1px solid var(--border-default); border-radius: 6px; background: var(--bg-surface); color: var(--fg-primary); font: inherit; text-align: right }
-.mk-tin:disabled, .mk-blk input:disabled { background: var(--bg-sunken); color: var(--fg-secondary) }
-.mk-ver { display: inline-flex; align-items: center; gap: 6px; font-size: .8125rem; cursor: pointer }
-.mk-ver input { width: 16px; height: 16px }
+.mk-blk input:disabled { background: var(--bg-sunken); color: var(--fg-secondary) }
 .mk-dfoot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 16px }
 .mk-dfoot .mk-note { margin-right: auto }
 .mk-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block }
@@ -464,6 +459,8 @@ footer { color: var(--muted); font-size: 13px }
 .mk input.mk-vbox { width: 100px; border-color: var(--border-default); background: var(--bg-surface); color: var(--fg-primary); font: inherit; font-size: .875rem; outline: none; -moz-appearance: textfield }
 .mk input.mk-vbox:disabled { background: transparent; border-color: transparent; color: var(--fg-secondary) }
 .mk-bt { overflow-x: auto }
+.mk-cg-h { padding: 12px 16px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-sunken); display: flex; align-items: center; justify-content: space-between; gap: 10px }
+.mk-cg-h span { font-size: .75rem; font-weight: 700; color: var(--fg-tertiary); text-transform: uppercase; letter-spacing: .06em }
 .mk input.mk-vbox.auto::placeholder { font-style: italic; color: var(--fg-tertiary) }
 /* вкладки вторичной сводки: полоса кнопок, ручной ввод (дробление, гранулирование) — жёлтым пунктиром после разделителя */
 .mk-dtabs { padding: 12px 16px; border-radius: 8px; background: var(--bg-sunken); border: 1px solid var(--border-subtle); display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
@@ -1411,7 +1408,7 @@ const DOCS = { ss: [], vs: [], rs: [] }, LAST = {};
 function addDoc(t, o) {
   const key = t + (o.area || ""), kind = t === "ss" ? "raw" : t;
   const d = Object.assign({ t, no: DT[t][1] + "-2026-" + String(DOCS[t].length + 1).padStart(3, "0") }, o);
-  if (t === "vs") { if (DOCS.ready) vsInit(d, LAST[key]); } // вторичную считают после того, как готовы сменные (vsInit)
+  if (t === "vs" || t === "rs") { if (DOCS.ready) (t === "vs" ? vsInit : rsInit)(d, LAST[key]); } // вторичную и расходную считают после сменных (vsInit, rsInit)
   else if (t !== "ss" || o.area === "raw") d.m = MATS[kind].map(([, , , names, sc], ti) =>
     matStep(LAST[key] ? LAST[key].m[ti].map((r) => r[4]) : names.map(() => sc[0]), sc, o.seed + ti * 11));
   DOCS[t].push(d); LAST[key] = d;
@@ -1544,6 +1541,37 @@ const vsSum = (d) => vsCalc(d).sum;
 // из киосков переработки за смену (кг по машинам) — подсказка над «Дроблением» и «Гранулированием»
 const vsKiosk = (k, wash) => { let s = null; VS_EQ[k].forEach(([, n, ks, li]) => { if (k === "gran" && (n === "Мойка") !== !!wash) return; const x = kioskV(ks, li, 0); if (x !== null) s = (s || 0) + x; }); return s; };
 DOCS.vs.forEach((d, i) => vsInit(d, DOCS.vs[i - 1])); DOCS.ready = true;
+// расходная сводка — как в образце: расход красителя приходит сам из сменных сводок той же смены (бронзовые позиции — в бронзовый краситель),
+// остальное кладовщик вносит; карточки по группам внутри вкладки
+const RS_GROUPS = { film: [["Плёнка для сотовых", [0]], ["Плёнка для монолита", [1]]], paint: [["Краситель", [0, 1]]], scotch: [["Скотч", [0]]], pack: [["Упаковка", [0, 1]]] };
+function rsPaint(date, sh) {
+  const r = [0, 0];
+  ["mono", "sot"].forEach((a) => { const x = DOCS.ss.find((y) => y.date === date && y.sh === sh && y.area === a);
+    if (x) ssStats(x).L.forEach((l) => l.rows.forEach((row) => { if (row.c) r[row.p && row.p.color === "бронза" ? 0 : 1] += row.c; })); });
+  return r;
+}
+function rsInit(d, prev) {
+  d.st = prev ? prev.facts : MATS.rs.map(([, , , names, sc]) => names.map(() => sc[0]));
+  d.ex = d.fresh ? { in: d.st.map((t) => t.map(() => 0)), out: d.st.map((t) => t.map(() => 0)) } : (() => {
+    const m = MATS.rs.map(([, , , , sc], ti) => matStep(d.st[ti], sc, d.seed + ti * 11)), paint = rsPaint(d.date, d.sh);
+    return { in: m.map((t) => t.map((r) => r[1])), out: m.map((t, ti) => t.map((r, j) => (MATS.rs[ti][0] === "paint" ? Math.min(paint[j], r[0] + r[1]) : r[2]))) };
+  })();
+  const c = rsCalc(d);
+  if (!d.fresh) d.ex.fact = c.map((t, ti) => t.map((r, j) => (pr(d.seed + 3, j + ti, 6) === 0 ? Math.max(0, r.end - MATS.rs[ti][4][2]) : r.end)));
+  const c2 = rsCalc(d);
+  d.facts = c2.map((t) => t.map((r) => (r.fact === null ? r.end : r.fact)));
+  if (!d.fresh) d.m = c2.map((t) => t.map((r) => [r.st, r.inn, r.out, r.end, r.fact]));
+}
+function rsCalc(d) {
+  const paint = d.fresh ? rsPaint(CUR.date, CUR.sh) : null;
+  return MATS.rs.map(([k, , unit, names], ti) => names.map((name, j) => {
+    const p = "rs|" + d.no + "|" + k + "|" + j + "|", oa = k === "paint", ob = oa && paint ? paint[j] : d.ex.out[ti][j], ib = d.ex.in[ti][j];
+    const inn = ssNum(p + "in", ib), out = ssNum(p + "out", ob), fv = MK.vals[p + "fact"];
+    return { j, name, unit, st: d.st[ti][j], inn, ib, out, ob, oa, end: d.st[ti][j] + inn - out, fact: fv !== undefined && fv !== "" ? Number(fv) : d.ex.fact ? d.ex.fact[ti][j] : null };
+  }));
+}
+const rsOut = (d, ti) => rsCalc(d)[ti].reduce((x, r) => x + r.out, 0);
+DOCS.rs.forEach((d, i) => rsInit(d, DOCS.rs[i - 1]));
 function wfBar(cur) {
   const W = [["ss", "Что произвели за смену по линиям: выпуск, брак, сырьё, отходы. Цифры приходят из киосков — сверьте."],
     ["vs", "Что раздробили и награнулировали. Остатки брака, хлопьев и гранул."],
@@ -1569,27 +1597,12 @@ function journal(t, cols, cells) {
         <td class="num"><button class="mk-btn sm" data-mk-noop title="Печать" aria-label="Печать">${ico("printer")}</button> <button class="mk-btn sm" data-mk-noop title="Excel" aria-label="Excel">${ico("file-spreadsheet")}</button></td></tr>`).join("")}
     </tbody></table></div></div>`;
 }
-const infoBox = (h, steps) => `<div class="mk-info"><div class="mk-info-h"><span class="i">i</span>${h}</div><div class="mk-steps">${steps.map((s, i) =>
-  `<div class="mk-step"><b>${i + 1}</b>${s}</div>`).join("")}</div></div>`;
 function docHead(d, kpis, extra = "") {
   return `<div class="mk-card"><div class="mk-jh"><div style="display:flex;align-items:center;gap:12px"><button class="mk-btn" data-mk-docback>${ico("arrow-left")}Назад</button>
       <div><b style="font-size:1.125rem">${DT[d.t][0]} · ${d.no}</b><small>${docD(d)} · ${SH_L[d.sh].join(" ")} · заполняет ${d.keeper}${d.area ? " · " + AREAS[d.area] : ""}</small></div></div>
       <button class="mk-btn">${ico("printer")}Печать</button></div>
     <div class="mk-dkpis" style="grid-template-columns:repeat(${kpis.length}, 1fr)">${kpis.map(([l, v, c]) => `<div><span>${l}</span><b class="${c || ""}">${v}</b></div>`).join("")}</div>${extra}</div>
     ${MK.docRO ? `<div class="mk-plashka">${ico("eye")}Режим просмотра — сводка открыта из архива.</div>` : ""}`;
-}
-const docFoot = (d) => MK.docRO ? "" : `<div class="mk-card mk-dfoot"><span class="mk-note">После сохранения сводка остаётся в журнале и попадает в архив.</span>
-  <button class="mk-btn" data-mk-docback>Отмена</button><button class="mk-btn p" data-mk-dsave="${d.no}">${ico("check")}Сохранить и закрыть</button></div>`;
-function matTable(d, ti) {
-  const [, , unit, names] = MATS[d.t === "ss" ? "raw" : d.t][ti], outL = d.t === "ss" ? "Выдано в цеха" : "Расход";
-  return `<div class="mk-card mk-tbl dense"><table><thead><tr><th>Наименование</th><th class="num">Остаток на начало, ${unit}</th><th class="num">Приход, ${unit}</th>
-      <th class="num">${outL}, ${unit}</th><th class="num">Остаток на конец, ${unit}</th><th class="num">Фактически, ${unit}</th></tr></thead><tbody>
-    ${d.m[ti].map((r, j) => {
-      const key = "m|" + d.no + "|" + ti + "|" + j, v = MK.vals[key] ?? (d.fresh ? "" : r[4]);
-      return `<tr><td>${names[j]}</td><td class="num">${fmt(r[0])}</td><td class="num">${fmt(r[1])}</td><td class="num">${fmt(r[2])}</td><td class="num"><b>${fmt(r[3])}</b></td>
-        <td class="num"><input class="mk-tin" type="number" min="0" id="mf-${ti}-${j}" data-mk-val="${key}" value="${v}" placeholder="${r[3]}" aria-label="Фактически: ${names[j]}" ${MK.docRO ? "disabled" : ""}></td></tr>`;
-    }).join("")}</tbody></table></div>
-    <p class="mk-note">«Остаток на начало» — из «Фактически» прошлой сводки. «Остаток на конец» = начало + приход − ${outL.toLowerCase()}. «Фактически» — что есть на самом деле на конец смены.</p>`;
 }
 function pgSS() {
   const raw = MK.area === "raw";
@@ -1719,8 +1732,10 @@ function pgVSDoc() {
 }
 const vsBox = (v, st) => `<span class="mk-vbox"${st ? ` style="${st}"` : ""}>${v}</span>`;
 // поле сводки: введённое кладовщиком; пусто — серым курсивом авто-цифра (как в образце)
-function vsInp(d, key, base, auto, lab, ro) {
-  const k = "vs|" + d.no + "|" + key, ov = MK.vals[k], val = ov !== undefined ? ov : auto || base === null || base === undefined ? "" : base;
+const vsInp = (d, key, ...a) => docInp("vs|" + d.no + "|" + key, ...a);
+function docInp(k, base, auto, lab, ro) { // ноль в приходе и расходе — пусто, как в образце; в «Фактически» явный 0 виден («кончилось»)
+  const none = base === null || base === undefined || (base === 0 && !k.endsWith("|fact"));
+  const ov = MK.vals[k], val = ov !== undefined ? ov : auto || none ? "" : base;
   return `<td><input class="mk-vbox${auto ? " auto" : ""}" type="number" min="0" data-mk-val="${k}" value="${val}" placeholder="${auto && base ? fmt(base) : "-"}" aria-label="${lab}" ${ro ? "disabled" : ""}></td>`;
 }
 function vsSec(d, c, sec, ro) {
@@ -1747,19 +1762,37 @@ function vsProc(d, c, tab, ro) {
 }
 const vsFoot = (d) => MK.docRO ? "" : `<div class="mk-card mk-dfoot"><span class="mk-note">Сохранение зафиксирует объёмы переработки и остатки — следующая сводка стартует с этих цифр.</span>
   <button class="mk-btn ghost" data-mk-docback>${ico("x")}Отмена</button><button class="mk-btn p" data-mk-dsave="${d.no}">${ico("check")}Сохранить и закрыть</button></div>`;
-const rsOut = (d, ti) => sumC(d.m[ti], 2);
 function pgRS() {
   return `${wfBar("rs")}${nowBar("rs")}
     <p class="mk-note">Одна сводка на смену по всему заводу. ${TODO("кто ведёт")} ${TODO("список расходников")}</p>
-    ${journal("rs", MATS.rs.map((m) => m[1] + ", " + m[2]), (d) => d.m.map((_, ti) => fmt(rsOut(d, ti))))}`;
+    ${journal("rs", MATS.rs.map((m) => m[1] + ", " + m[2]), (d) => MATS.rs.map((_, ti) => fmt(rsOut(d, ti))))}`;
 }
+// открытая расходная сводка: вкладки полосой, внутри — карточки по группам с полями «Приход / Расход / Фактически»
 function pgRSDoc() {
-  const d = DOCS.rs.find((x) => x.no === MK.doc), tab = MK.dTab || "film", ti = MATS.rs.findIndex((m) => m[0] === tab);
-  return `${docHead(d, MATS.rs.map((m, i) => [m[1] + ", " + m[2], fmt(rsOut(d, i))]))}
-    ${MK.docRO ? "" : infoBox("Как заполнить расходную сводку", ["По каждой вкладке внесите приход за смену", "Впишите «Фактически» — что осталось на конец смены", "Нажмите «Сохранить и закрыть» — следующая смена возьмёт «Фактически» как остаток"])}
-    <div class="mk-tools"><div class="mk-seg">${MATS.rs.map(([k, l]) => `<button class="${tab === k ? "on" : ""}" data-mk-dtab="${k}">${l}</button>`).join("")}</div></div>
-    ${matTable(d, ti)}${docFoot(d)}`;
+  const d = DOCS.rs.find((x) => x.no === MK.doc), ro = MK.docRO, c = rsCalc(d), tab = MK.dTab || "film", ti = MATS.rs.findIndex((m) => m[0] === tab);
+  const out = (k) => c[MATS.rs.findIndex((m) => m[0] === k)].reduce((x, r) => x + r.out, 0);
+  const cards = RS_GROUPS[tab].map(([title, ix]) => {
+    const rows = ix.map((j) => c[ti][j]), S = (f) => rows.reduce((x, r) => x + (r[f] || 0), 0), p = (r) => tab + "|" + r.j + "|";
+    return `<div class="mk-card mk-bt"><div class="mk-cg-h"><span>${title}</span>${ro ? "" : `<button class="mk-btn sm" data-mk-noop>${ico("plus")}Добавить</button>`}</div>
+      <table><thead><tr><th class="l">Материал</th><th>Ед.</th><th>Остаток на начало</th><th>Приход</th><th>Расход</th><th>Остаток на конец</th><th>Фактически</th>${ro ? "" : "<th></th>"}</tr></thead>
+      <tbody>${rows.map((r) => `<tr><td class="l">${r.name}</td><td class="mk-muted" style="font-size:.75rem">${r.unit}</td><td>${vsBox(fmt(r.st), "color:var(--fg-secondary)")}</td>
+        ${rsInp(d, p(r) + "in", r.ib, false, "Приход: " + r.name, ro)}${rsInp(d, p(r) + "out", r.ob, r.oa, "Расход: " + r.name, ro)}
+        <td>${vsBox(fmt(r.end), `font-weight:600;color:${r.end > 0 ? "var(--primary-700)" : r.end < 0 ? "var(--danger-600)" : "var(--fg-tertiary)"}`)}</td>
+        ${rsInp(d, p(r) + "fact", r.fact, false, "Фактически: " + r.name, ro)}${ro ? "" : `<td><button class="mk-x0" data-mk-noop title="Удалить материал" aria-label="Удалить материал">${ico("trash-2")}</button></td>`}</tr>`).join("")}</tbody>
+      <tfoot><tr><td class="l">Итого</td><td></td>${[S("st"), S("inn"), S("out"), S("end"), S("fact")].map((v) => `<td>${v ? fmt(v) : "-"}</td>`).join("")}${ro ? "" : "<td></td>"}</tr></tfoot></table></div>`;
+  }).join("");
+  return `${docHead(d, [["Плёнка, рул", fmt(out("film"))], ["Краситель, кг", fmt(out("paint"))], ["Упаковка, шт", fmt(out("pack"))]])}
+    ${ro ? "" : infoSteps("Как заполнить сводку расходного материала", [
+      ["Приход", "Поступления за смену — новые рулоны плёнки, краситель, скотч, упаковка."],
+      ["Расход", "Что использовали. Краситель списывается сам из сменных сводок — вручную не вводить."],
+      ["Фактически", "Если пересчитали по факту — впишите число. Следующая смена возьмёт его как «остаток на начало»."],
+      ["Новая позиция", "Кнопка «+ Добавить» на карточке — пришёл материал, которого нет в списке."]])}
+    <div class="mk-tools">${TODO("список расходников")}${TODO("свойства плёнки: толщина, ширина, вес рулона — нужны?")}</div>
+    <div class="mk-dtabs">${MATS.rs.map(([k, l]) => `<button class="${tab === k ? "on" : ""}" data-mk-dtab="${k}">${l}</button>`).join("")}</div>
+    ${cards}${MK.docRO ? "" : `<div class="mk-card mk-dfoot"><span class="mk-note">Сохранение зафиксирует приход и расход за смену — следующая сводка стартует с этих остатков.</span>
+      <button class="mk-btn ghost" data-mk-docback>${ico("x")}Отмена</button><button class="mk-btn p" data-mk-dsave="${d.no}">${ico("check")}Сохранить и закрыть</button></div>`}`;
 }
+const rsInp = (d, key, ...a) => docInp("rs|" + d.no + "|" + key, ...a);
 function pgArc() {
   const MON = [["09", "Сентябрь"], ["10", "Октябрь"]], all = DOCS.ss.concat(DOCS.vs, DOCS.rs), q = MK.arcQ.trim().toLowerCase();
   const inM = all.filter((d) => d.date.slice(3) === MK.arcM);
