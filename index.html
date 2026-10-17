@@ -472,6 +472,78 @@ footer { color: var(--muted); font-size: 13px }
 .mk-dtabs button.man.on { background: color-mix(in oklab, var(--warning-500) 35%, var(--bg-surface)); box-shadow: 0 2px 6px color-mix(in oklab, var(--warning-500) 30%, transparent); font-weight: 600 }
 .mk-dtabs button svg.lucide { width: 12px; height: 12px }
 .mk-dtabs .sep { width: 1px; height: 28px; background: var(--border-default); margin: 0 4px }
+/* остатки готовой продукции: поиск, вкладки-пилюли с числом партий, таблица партий, история */
+.mk-st { overflow: hidden }
+.mk-stbar { padding: 14px 20px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap }
+.mk-sts { position: relative; min-width: 340px; flex: 0 1 460px }
+.mk-sts svg.lucide { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--fg-tertiary) }
+.mk-sts input { width: 100%; padding: 8px 12px 8px 34px; border: 1px solid var(--border-default); border-radius: 8px; background: var(--bg-surface); color: var(--fg-primary); font: inherit; font-size: .875rem }
+.mk-sts input::placeholder { color: var(--fg-tertiary); font-style: italic; opacity: .7 }
+.mk-sttabs { padding: 12px 20px; border-bottom: 1px solid var(--border-subtle); background: var(--bg-sunken); display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
+.mk-stp { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 9999px; background: var(--bg-surface); border: 1.5px solid var(--border-subtle); color: var(--fg-secondary); font-size: .875rem; font-weight: 500; box-shadow: var(--shadow-btn); transition: background 120ms ease, border-color 120ms ease, color 120ms ease }
+.mk-stp:hover { border-color: var(--border-default) }
+.mk-stp svg.lucide { width: 14px; height: 14px }
+.mk-stp em { min-width: 22px; padding: 2px 8px; border-radius: 9999px; background: var(--bg-sunken); color: var(--fg-secondary); font-style: normal; font-size: 11px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums }
+.mk-stp.on { background: color-mix(in oklab, var(--primary-500) 10%, var(--bg-surface)); border-color: var(--primary-500); color: var(--primary-700); font-weight: 600 }
+.mk-stp.on em { background: var(--primary-600); color: #fff }
+.mk-stp.dfc.on { background: color-mix(in oklab, var(--danger-500) 12%, var(--bg-surface)); border-color: var(--danger-500); color: var(--danger-700) }
+.mk-stp.dfc.on em { background: var(--danger-600) }
+.mk-stp em.hit { background: var(--success-600); color: #fff }
+.mk-stp.none { opacity: .55 }
+.mk-sttabs .tot { margin-left: auto; font-size: .75rem; color: var(--fg-tertiary) }
+.mk-sttabs .tot b { color: var(--fg-primary) }
+.mk-sttabs .tot b.dng { color: var(--danger-700) }
+.mk-stt { overflow: auto; max-height: 620px }
+.mk-stt table { width: 100%; border-collapse: collapse; font-size: .875rem }
+.mk-stt th { position: sticky; top: 0; z-index: 2; background: var(--bg-sunken); box-shadow: 0 1px 0 var(--border-default); padding: 10px 12px; font-size: .75rem; font-weight: 600; color: var(--fg-tertiary); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; text-align: left }
+.mk-stt th small { display: block; font-size: 9px; font-weight: 500; text-transform: none; letter-spacing: 0 }
+.mk-stt th.c, .mk-stt td.c { text-align: center }
+.mk-stt th.w { width: 28px }
+.mk-stt td { padding: 10px 12px; border-top: 1px solid var(--border-subtle); vertical-align: middle; white-space: nowrap; color: var(--fg-primary) }
+.mk-stt td.chev { width: 28px; padding: 10px 4px 10px 10px; color: var(--fg-tertiary); text-align: center }
+.mk-stt td.chev svg.lucide { width: 14px; height: 14px }
+.mk-stt tr.click { cursor: pointer }
+.mk-stt tbody tr:not(.det):hover > td { background: var(--bg-sunken) }
+.mk-stt tr.grp > td { font-weight: 600 }
+.mk-stt tr.ing > td, .mk-stt tr.open > td { background: color-mix(in oklab, var(--primary-500) 4%, var(--bg-canvas)) }
+.mk-stt tr.last > td { border-bottom: 2px solid var(--primary-300) }
+.mk-stt .src { font-size: .75rem; line-height: 1.4 }
+.mk-stt .src b { font-family: var(--font-mono); color: var(--primary-700) }
+.mk-stt .src .pos { color: var(--fg-secondary); font-weight: 600; margin-left: 6px }
+.mk-stt .sub { font-size: 10px; color: var(--fg-tertiary); margin-top: 1px; font-weight: 400 }
+.mk-stt .mv { font-weight: 600; font-size: 13px; font-variant-numeric: tabular-nums; letter-spacing: -.01em }
+.mk-stt .mv.in { color: var(--success-700) }
+.mk-stt .mv.out { color: var(--danger-700) }
+.mk-stt .dt { font-size: 10px; color: var(--fg-tertiary); margin-top: 2px; font-variant-numeric: tabular-nums; font-weight: 400 }
+.mk-stt .ref { font-size: 10px; font-family: var(--font-mono); color: var(--fg-tertiary); margin-top: 1px; font-weight: 400 }
+.mk-stt td.cl { font-weight: 500 }
+.mk-stt td.qty { font-weight: 700; font-variant-numeric: tabular-nums }
+.mk-stt td.qty small { display: block; font-size: 10px; color: var(--danger-700); font-weight: 600 }
+.mk-stt td.dng { color: var(--danger-700) }
+.mk-cps { display: inline-flex; flex-direction: column; gap: 3px; align-items: center }
+.mk-cp { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px 1px 6px; border-radius: 9999px; border: 1px solid var(--fg-tertiary); background: var(--bg-surface); color: var(--fg-secondary); font-size: 10px; font-weight: 600; line-height: 1.2; letter-spacing: .02em; white-space: nowrap }
+.mk-cp.ok { border-color: var(--success-500); background: var(--success-50); color: var(--success-700) }
+.mk-cp.part { border-color: var(--warning-500); background: var(--warning-50); color: var(--warning-700) }
+.mk-cp svg.lucide { width: 9px; height: 9px; stroke-width: 3 }
+.mk-cp i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; border: 1px solid currentColor }
+.mk-ib { background: transparent; border: 1px solid var(--border-default); color: var(--warning-700); padding: 4px 6px; border-radius: 4px; display: inline-flex }
+.mk-ib svg.lucide { width: 14px; height: 14px }
+.mk-stt tr.det > td { padding: 10px 16px 14px 56px; background: color-mix(in oklab, var(--primary-500) 4%, var(--bg-canvas)); white-space: normal }
+.mk-sth { display: grid; grid-template-columns: max-content max-content 1fr max-content max-content; row-gap: 6px; column-gap: 16px; align-items: center; font-size: .75rem }
+.mk-sth .l { display: inline-flex; align-items: center; gap: 6px; font-weight: 600 }
+.mk-sth .l svg.lucide { width: 12px; height: 12px }
+.mk-sth .in { color: var(--success-700) }
+.mk-sth .out, .mk-sth .dng { color: var(--danger-700) }
+.mk-sth .q { font-weight: 700; font-variant-numeric: tabular-nums }
+.mk-sth .refs { color: var(--fg-secondary); display: flex; flex-wrap: wrap; gap: 12px }
+.mk-sth .refs span { color: var(--fg-tertiary) }
+.mk-sth .refs strong { color: var(--fg-primary); font-weight: 500 }
+.mk-sth .d, .mk-sth .by { color: var(--fg-tertiary) }
+.mk-sth .sum { grid-column: 1 / -1; margin-top: 4px; padding-top: 8px; border-top: 1px dashed var(--border-default); display: flex; gap: 18px; color: var(--fg-secondary) }
+.mk-sth .sum strong { color: var(--fg-primary) }
+.mk-sth .sum strong.dng { color: var(--danger-700) }
+.mk-sth .sum .rem { margin-left: auto }
+.mk-sth .sum .rem strong { color: var(--success-700) }
 .mk-addt { margin-top: 8px; width: 100%; max-width: 320px; padding: 5px 8px; border: 1px dashed var(--border-default); border-radius: 4px; background: transparent; color: var(--fg-tertiary); font-size: 11px }
 .mk-arcf { padding: 12px 16px; display: grid; gap: 8px }
 .mk-search { margin-left: auto; width: 220px; padding: 6px 10px; border: 1px solid var(--border-default); border-radius: 8px; background: var(--bg-surface); color: var(--fg-primary); font: inherit; font-size: .875rem }
@@ -1029,13 +1101,6 @@ const OUT = [
   { area: "sot", sh: "d", shop: "Профильный", line: "линия 1", prod: "Профиль", th: "—", size: "длина 6000", color: "прозрачный", qty: "120 шт", by: "оператор" }
 ];
 const SH = { n: "Ночная смена 11.10 · 20:00–08:00 — принять утром", d: "Дневная смена 12.10 · 08:00–20:00" };
-const STOCK = {
-  mono: [["Монолитный лист", "3", "2050×3050", "прозрачный", "18 листов"], ["Монолитный лист", "4", "2050×3050", "прозрачный", "85 листов"],
-    ["Монолитный лист", "6", "2050×3050", "прозрачный", "40 листов"], ["Монолитный лист", "8", "2050×3050", "прозрачный", "30 листов"], ["Трапеция", "1", "1150×6000", "прозрачный", "70 листов"]],
-  sot: [["Сотовый лист", "4", "2100×6000", "прозрачный", "120 листов"], ["Сотовый лист", "6", "2100×6000", "прозрачный", "95 листов"],
-    ["Сотовый лист", "8", "2100×12000", "прозрачный", "60 листов"], ["Сотовый лист", "10", "2100×6000", "прозрачный", "150 листов"],
-    ["Сотовый лист", "16", "2100×6000", "бронза", "30 листов"], ["Профиль", "—", "длина 6000", "прозрачный", "220 шт"]]
-};
 const areaSwitch = () => `<div class="mk-tools"><span class="mk-muted">Участок:</span><div class="mk-seg">${Object.entries(AREAS).map(([k, l]) =>
   `<button class="${MK.area === k ? "on" : ""}" data-mk-area="${k}">${l}</button>`).join("")}</div></div>`;
 function pgAccept() {
@@ -1079,13 +1144,128 @@ function pgLoading() {
     ${list.length ? `<div class="mk-deals${list.length >= 3 ? " compact" : ""}" style="grid-template-columns:repeat(${list.length}, minmax(0, 1fr))">${cards}</div>`
       : `<div class="mk-card mk-stub">${ico("truck")}<b>Нет одобренных отгрузок</b></div>`}`;
 }
-function pgKStock() {
-  return `${areaSwitch()}
-    <div class="mk-sec"><h3>Остатки · ${AREAS[MK.area]}</h3>${TODO("колонки остатков")}</div>
-    <div class="mk-card mk-tbl"><table><thead><tr><th>Продукция</th><th>Толщ., мм</th><th>Размер, мм</th><th>Цвет</th><th>Остаток</th></tr></thead><tbody>
-      ${STOCK[MK.area].map((r) => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td><b>${r[4]}</b></td></tr>`).join("")}
+/* --- остатки готовой продукции: одна страница для всех, у кого есть пункт меню; логисты смотрят, шеф логистов и кладовщики правят --- */
+const ST_TABS = [["sot", "Сотовые листы"], ["mono", "Монолитные листы"], ["trap", "Трапеция"], ["prof", "Профиль"], ["thermo", "Термошайбы"]];
+// партии на складе (пример): [вкладка, продукция, толщ., размер, цвет, клиент, ЗП, дата и смена сводки, участок, линия, приход, отгрузки [кол-во, дата, ЗО, инвойс], брак [кол-во, дата, причина]]
+// итог по каждой позиции — тот же, что был в остатках кладовщиков (монолит 4 мм — 85 листов и т. д.)
+const SP = (c, prod, th, size, color, client, pp, date, sh, area, line, qty, out = [], def = null) => ({ c, prod, th, size, color, client, pp, date, sh, area, line, qty, out, def });
+const STOCK_P = [
+  SP("mono", "Монолитный лист", "3", "2050×3050", "прозрачный", "Клиент 3", "ПП-2026-014", "11.10", "n", "mono", "Монолитный цех · синяя", 15),
+  SP("mono", "Монолитный лист", "3", "2050×3050", "прозрачный", "", null, "22.09", "d", "mono", "Монолитный цех · синяя", 3),
+  SP("mono", "Монолитный лист", "4", "2050×3050", "прозрачный", "", null, "11.10", "n", "mono", "Монолитный цех · масляная", 60),
+  SP("mono", "Монолитный лист", "4", "2050×3050", "прозрачный", "", null, "05.10", "d", "mono", "Монолитный цех · масляная", 27, [], [2, "06.10", "Царапины (пример)"]),
+  SP("mono", "Монолитный лист", "6", "2050×3050", "прозрачный", "", null, "03.10", "d", "mono", "Монолитный цех · масляная", 40),
+  SP("mono", "Монолитный лист", "8", "2050×3050", "прозрачный", "", null, "29.09", "d", "mono", "Монолитный цех · синяя", 30),
+  SP("trap", "Трапеция", "1", "1150×6000", "прозрачный", "Клиент 4", "ПП-2026-013", "11.10", "n", "mono", "Трапеция · новая", 40),
+  SP("trap", "Трапеция", "1", "1150×6000", "прозрачный", "Клиент 2", null, "25.09", "d", "mono", "Трапеция · старая", 70, [[40, "01.10", "ЗО-2026-001", "2026/001"]]),
+  SP("sot", "Сотовый лист", "4", "2100×6000", "прозрачный", "Клиент 5", null, "07.10", "d", "sot", "Старый цех · линия 1", 213, [[90, "10.10", "ЗО-2026-002", null]], [3, "08.10", "Повреждён при погрузке (пример)"]),
+  SP("sot", "Сотовый лист", "6", "2100×6000", "прозрачный", "Клиент 1", "ПП-2026-009", "04.10", "d", "sot", "Старый цех · линия 2", 70),
+  SP("sot", "Сотовый лист", "6", "2100×6000", "прозрачный", "", null, "01.10", "n", "sot", "Новый цех · линия 2", 25),
+  SP("sot", "Сотовый лист", "8", "2100×12000", "прозрачный", "", null, "06.10", "d", "sot", "Новый цех · линия 2", 60),
+  SP("sot", "Сотовый лист", "10", "2100×6000", "прозрачный", "", null, "11.10", "n", "sot", "Старый цех · линия 2", 80),
+  SP("sot", "Сотовый лист", "10", "2100×6000", "прозрачный", "", null, "02.10", "d", "sot", "Старый цех · линия 3", 70),
+  SP("sot", "Сотовый лист", "16", "2100×6000", "бронза", "", null, "11.10", "n", "sot", "Новый цех · линия 6", 30),
+  SP("prof", "Профиль", "—", "длина 6000", "прозрачный", "Клиент 4", "ПП-2026-012", "11.10", "n", "sot", "Профильный цех · линия 3", 50),
+  SP("prof", "Профиль", "—", "длина 6000", "прозрачный", "Клиент 5", null, "05.10", "d", "sot", "Профильный цех · линия 1", 230, [[60, "10.10", "ЗО-2026-002", null]]),
+  // термошайбы в сводки кладовщиков пока не входят — подтверждения кладовщика нет (кто их принимает — уточнить)
+  SP("thermo", "Термошайбы", "—", "—", "прозрачный", "Клиент 6", "ПП-2026-010", "02.10", "d", null, "Термошайбы · линия 1", 300)
+].map((p, id) => Object.assign(p, { id }));
+const stTabOf = () => MK.stTab || (MK.role === "keepers" ? MK.area : MK.role === "logist2" ? "prof" : "sot");
+const stEdit = () => MK.role === "cheflog" || MK.role === "keepers";
+const ssOf = (p) => (p.area ? DOCS.ss.find((x) => x.date === p.date && x.sh === p.sh && x.area === p.area) : null);
+const stShipped = (p) => p.out.reduce((s, o) => s + o[0], 0);
+const stAvail = (p) => p.qty - stShipped(p) - (p.def ? p.def[0] : 0);
+const stNum = (d) => +d.slice(3) * 100 + +d.slice(0, 2);
+const shortNm = (n) => (n || "").replace(" (пример)", "");
+const stDefs = () => STOCK_P.filter((p) => p.def).map((p) => ({ p, qty: p.def[0], date: p.def[1], reason: p.def[2],
+  by: (ssOf({ date: p.def[1], sh: "d", area: p.area }) || {}).keeper || "Кладовщик (пример)" }));
+function stMatch(p, q) {
+  if (!q) return true;
+  const s = ssOf(p);
+  return [p.prod, p.th + " мм", p.size, p.color, p.client, p.pp, s && s.no, p.line].concat(p.out.map((o) => o[2] + (o[3] ? " ИН-" + o[3] : ""))).join(" ").toLowerCase().includes(q);
+}
+const stPill = (ok, role, name) => `<span class="mk-cp${ok ? " ok" : ""}" title="${role}: ${ok ? name : "не подтверждено"}">${ok ? ico("check") : "<i></i>"}${ok ? shortNm(name) : "-"}</span>`;
+const stGPill = (ok, total, role) => `<span class="mk-cp${ok === total ? " ok" : ok ? " part" : ""}" title="${role}: ${ok} из ${total}">${ok === total ? ico("check") : "<i></i>"}${ok}/${total}</span>`;
+const stWho = (p) => (/Профильный|Термошайбы/.test(p.line) ? "Оператор" : "Бригадир");
+const stMove = (sign, qty, date, ref) => `<div class="mv ${sign === "+" ? "in" : "out"}">${sign}${fmt(qty)}</div><div class="dt">${date}.2026</div>${ref ? `<div class="ref">${ref}</div>` : ""}`;
+function pgStock() {
+  const tab = stTabOf(), q = MK.stQ.trim().toLowerCase(), ed = stEdit();
+  const parts = STOCK_P.filter((p) => stMatch(p, q)).sort((a, b) => stNum(b.date) - stNum(a.date));
+  const defs = stDefs().filter((x) => stMatch(x.p, q));
+  const cnt = (k) => (k === "defect" ? defs : parts.filter((p) => p.c === k)).length;
+  const pill = ([k, l]) => `<button class="mk-stp${tab === k ? " on" : ""}${k === "defect" ? " dfc" : ""}${q && !cnt(k) ? " none" : ""}" data-mk-sttab="${k}">${ico("layers")}<span>${l}</span><em class="${q && cnt(k) ? "hit" : ""}">${cnt(k)}</em></button>`;
+  const rows = parts.filter((p) => p.c === tab);
+  const tot = tab === "defect" ? `Итого в браке: <b class="dng">${fmt(defs.reduce((s, x) => s + x.qty, 0))} шт</b>` : `Итого: <b>${fmt(rows.reduce((s, p) => s + stAvail(p), 0))} шт</b>`;
+  return `${MK.role === "keepers" ? areaSwitch() : ""}
+    ${ed ? infoSteps("Как работать с остатками готовой продукции", [
+      ["Смотрите остатки", "Вся готовая продукция по вкладкам: приход со сменных сводок, расход на отгрузки. Поиск — по клиенту, цвету, толщине, ЗП, СС."],
+      ["Пометьте брак", "Если лист повредился на складе — нажмите ⚠ у партии, укажите количество и причину. Листы уйдут во вкладку «Брак»."],
+      ["Внесите ручной остаток", "Если есть продукция, которая не пришла через сменную сводку (старая, из Excel), — нажмите «Добавить вручную»."],
+      ["Корректируйте остаток", "Ручные партии можно править и удалять. Партии со сменных сводок так не правятся."]]) : ""}
+    <div class="mk-tools">${TODO("колонки: структура, плотность, плёнка, скотч, паллета, вес — нужны?")}${TODO("действия: пересорт, порезка — нужны?")}${TODO("кто правит остатки")}${TODO("плёнка — готовая продукция?")}</div>
+    <div class="mk-card mk-st"><div class="mk-stbar"><div class="mk-sts">${ico("search")}<input id="stQ" data-mk-stq value="${MK.stQ.replace(/"/g, "&quot;")}" placeholder="Поиск: клиент, ЗП · ЗО · СС · ИН, толщина, цвет…" aria-label="Поиск по остаткам"></div>
+        <div class="mk-tools">${ed && tab !== "defect" ? `<button class="mk-btn p" data-mk-noop>${ico("plus")}Добавить вручную</button>` : ""}<button class="mk-btn" data-mk-noop>${ico("file-down")}Экспорт</button><button class="mk-btn" data-mk-noop>${ico("printer")}Печать</button></div></div>
+      <div class="mk-sttabs">${ST_TABS.map(pill).join("")}${pill(["defect", "Брак"])}<span class="tot">${tot}</span></div>
+      ${tab === "defect" ? stDefTable(defs) : stTable(rows, tab, ed)}</div>`;
+}
+function stTable(rows, tab, ed) {
+  const prof = tab === "prof", th = tab === "thermo";
+  const heads = [["", "w"], ["Источник"], ["Подтверждение", "c", "киоск / кладовщик"], ["Приход", "c"], ["Расход", "c"], ["Клиент"]]
+    .concat(th ? [] : [["Толщ."], [prof ? "Тип" : "Размер"]], [["Цвет"], ["Кол-во, шт", "c"]], ed ? [["", "a"]] : []);
+  if (!rows.length) return `<div class="mk-empty">Пусто${MK.stQ.trim() ? " — по поиску ничего нет" : ""}.</div>`;
+  // одинаковые партии (продукция, толщина, размер, цвет, клиент) — одной строкой со стрелкой, как в образце
+  const groups = [];
+  rows.forEach((p) => { const k = [p.c, p.prod, p.th, p.size, p.color, p.client].join("|"); let g = groups.find((x) => x.k === k); if (!g) groups.push(g = { k, ps: [] }); g.ps.push(p); });
+  const body = groups.map((g) => g.ps.length === 1 ? stRow(g.ps[0], heads.length, ed, th)
+    : stGroup(g, th, ed) + (MK.stG[g.k] ? g.ps.map((p, i) => stRow(p, heads.length, ed, th, true, i === g.ps.length - 1)).join("") : "")).join("");
+  return `<div class="mk-stt"><table><thead><tr>${heads.map(([l, c, sub]) => `<th class="${c || ""}">${l}${sub ? `<small>${sub}</small>` : ""}</th>`).join("")}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+function stRow(p, ncol, ed, th, inGroup = false, last = false) {
+  const s = ssOf(p), av = stAvail(p), hist = p.out.length > 0 || !!p.def, open = hist && !!MK.stOpen[p.id];
+  const top = p.pp ? `<b>${p.pp}</b><span class="pos">· №1</span>` : `<b>${s ? s.no : "—"}</b>`;
+  const sub = [p.pp && s ? s.no : "", p.line, s ? s.keeper : ""].filter(Boolean).join(" · ");
+  const outs = p.out.map((o) => stMove("−", o[0], o[1], o[3] ? "ИН-" + o[3] : o[2])).join("");
+  return `<tr class="${[inGroup ? "ing" : "", last ? "last" : "", hist ? "click" : "", open ? "open" : ""].filter(Boolean).join(" ")}"${hist ? ` data-mk-stopen="${p.id}"` : ""}>
+      <td class="chev">${hist ? ico(open ? "chevron-down" : "chevron-right") : ""}</td>
+      <td><div class="src">${top}</div><div class="sub">${sub}</div></td>
+      <td class="c"><span class="mk-cps">${stPill(true, "Киоск", stWho(p))}${stPill(!!s, "Кладовщик", s && s.keeper)}</span></td>
+      <td class="c">${stMove("+", p.qty, p.date, p.pp)}</td><td class="c">${outs || `<span class="mk-muted">-</span>`}</td>
+      <td class="cl">${p.client || "-"}</td>${th ? "" : `<td>${p.th === "—" ? "-" : p.th + " мм"}</td><td>${p.size}</td>`}<td>${p.color}</td>
+      <td class="c qty">${fmt(av)}${p.def ? `<span class="mk-muted"> / ${fmt(p.qty)}</span><small>${p.def[0]} в браке</small>` : ""}</td>
+      ${ed ? `<td class="c"><button class="mk-ib" data-mk-noop title="Пометить брак" aria-label="Пометить брак">${ico("triangle-alert")}</button></td>` : ""}</tr>
+    ${open ? `<tr class="det"><td colspan="${ncol}">${stHist(p, s)}</td></tr>` : ""}`;
+}
+function stGroup(g, th, ed) {
+  const ps = g.ps, f = ps[0], ss = ps.map(ssOf).filter(Boolean), open = !!MK.stG[g.k];
+  const pps = [...new Set(ps.map((p) => p.pp))], pp = pps.length === 1 ? pps[0] : null;
+  const top = pp ? pp : ss.length >= 2 ? `${ss[ss.length - 1].no} → ${ss[0].no}` : ss[0] ? ss[0].no : "—", n = ps.length;
+  const outs = ps.flatMap((p) => p.out).sort((a, b) => stNum(b[1]) - stNum(a[1]));
+  return `<tr class="grp click${open ? " gopen" : ""}" data-mk-stg="${g.k}"><td class="chev">${ico(open ? "chevron-down" : "chevron-right")}</td>
+      <td><div class="src"><b>${top}</b></div><div class="sub">${n} ${n < 5 ? "партии" : "партий"}</div></td>
+      <td class="c"><span class="mk-cps">${stGPill(n, n, "Киоск")}${stGPill(ss.length, n, "Кладовщик")}</span></td>
+      <td class="c">${stMove("+", ps.reduce((s, p) => s + p.qty, 0), f.date, pp)}</td><td class="c">${outs.length ? `<div class="dt">${outs[0][1]}.2026</div>` : `<span class="mk-muted">-</span>`}</td>
+      <td class="cl">${f.client || "-"}</td>${th ? "" : `<td>${f.th === "—" ? "-" : f.th + " мм"}</td><td>${f.size}</td>`}<td>${f.color}</td>
+      <td class="c qty">${fmt(ps.reduce((s, p) => s + stAvail(p), 0))}</td>${ed ? "<td></td>" : ""}</tr>`;
+}
+// история партии: произведено, отгрузки, брак; внизу — итог
+function stHist(p, s) {
+  const ev = (icon, label, cls, sign, qty, refs, date, by) => `<div class="l ${cls}">${ico(icon)}<span>${label}</span></div><div class="q ${cls}">${sign}${fmt(qty)} шт</div>
+    <div class="refs">${refs.filter((r) => r[1]).map(([l, v]) => `<span>${l} <strong>${v}</strong></span>`).join("")}</div><div class="d">${date}.2026</div><div class="by">${by || ""}</div>`;
+  const shipped = stShipped(p), dmg = p.def ? p.def[0] : 0;
+  return `<div class="mk-sth">${ev("package-check", "Произведено", "in", "+", p.qty, [["Сводка", s && s.no], ["ЗП", p.pp], ["", p.line]], p.date, s && s.keeper)}
+    ${p.out.map((o) => ev("truck", "Отгрузка", "out", "−", o[0], [["ЗО", o[2]], ["Инвойс", o[3] && "ИН-" + o[3]]], o[1], "")).join("")}
+    ${p.def ? ev("triangle-alert", "Брак", "out", "−", p.def[0], [["Причина", p.def[2]]], p.def[1], (stDefs().find((x) => x.p === p) || {}).by) : ""}
+    <div class="sum"><span>Произведено: <strong>${fmt(p.qty)}</strong></span><span>Отгружено: <strong class="dng">${fmt(shipped)}</strong></span>${dmg ? `<span>Брак: <strong class="dng">${fmt(dmg)}</strong></span>` : ""}
+      <span class="rem">Остаток: <strong>${fmt(stAvail(p))} шт</strong></span></div></div>`;
+}
+function stDefTable(defs) {
+  if (!defs.length) return `<div class="mk-empty">Пусто${MK.stQ.trim() ? " — по поиску ничего нет" : ""}.</div>`;
+  return `<div class="mk-stt"><table><thead><tr><th>Дата</th><th>Кто</th><th>Источник</th><th>Клиент</th><th>Толщ.</th><th>Размер / Тип</th><th>Цвет</th><th>Причина</th><th class="c">Кол-во, шт</th></tr></thead><tbody>
+    ${defs.map((x) => { const p = x.p, s = ssOf(p); return `<tr><td>${x.date}.2026</td><td>${x.by}</td><td><div class="src"><b>${p.pp || (s ? s.no : "—")}</b></div><div class="sub">${[p.pp && s ? s.no : "", p.line].filter(Boolean).join(" · ")}</div></td>
+      <td class="cl">${p.client || "-"}</td><td>${p.th === "—" ? "-" : p.th + " мм"}</td><td>${p.size}</td><td>${p.color}</td><td>${x.reason}</td><td class="c qty dng">${fmt(x.qty)}</td></tr>`; }).join("")}
     </tbody></table></div>`;
 }
+Object.assign(MK, { stTab: null, stQ: "", stG: {}, stOpen: {} });
 function pgRaw() {
   return `${areaSwitch()}<div class="mk-card mk-stub">${ico("package")}<b>${AREAS.raw}</b>
     <p class="mk-note">Что кладовщики сырья делают в системе — приход, выдача в цеха, учёт — ещё не обсуждали.</p>${TODO("работа участка сырья")}</div>`;
@@ -1914,8 +2094,7 @@ function pgInvoices() {
 function pgStub() {
   if (MK.view === "keepers") return `<div class="mk-card mk-stub">${ico("users")}<b>Кладовщики</b>
     <p class="mk-note">Как шеф логистов руководит кладовщиками в системе — ещё не обсуждали.</p>${TODO("что здесь нужно")}</div>`;
-  const why = MK.view === "stock" ? "Остатки видны прямо в карточке заявки — колонка «На складе»."
-    : MK.role === "manager" ? "Смотрим заявки, отгрузки и инвойсы." : "Смотрим входящие заявки и заявки на производство.";
+  const why = MK.role === "manager" ? "Смотрим заявки, отгрузки и инвойсы." : "Смотрим входящие заявки и заявки на производство.";
   return `<div class="mk-card mk-stub">${ico("layout-dashboard")}<b>${TITLE()[0]}</b>
     <p class="mk-note">В этом макете раздел не показан. ${why}</p></div>`;
 }
@@ -1964,11 +2143,11 @@ function mkModal() {
 }
 function mkRender() {
   const pages = MK.role === "manager" ? { orders: pgOrders, order: pgOrder, ships: pgShips, invoices: pgInvoices }
-    : MK.role === "cheflog" ? { fromL1: pgFromL1, corder: pgCOrder, plan: pgPlan, ships: pgShips }
+    : MK.role === "cheflog" ? { fromL1: pgFromL1, corder: pgCOrder, plan: pgPlan, ships: pgShips, stock: pgStock }
     : MK.role === "kiosk" ? { kOrders: pgKOrders, kOrder: pgKOrder, kShift: pgKShift }
     : MK.role === "loaderchief" ? { lships: pgLShips } : MK.role === "loaders" ? { noaccess: pgNoAccess } : MK.role === "checker" ? { check: pgCheck }
-    : MK.role === "keepers" ? Object.assign(MK.area === "raw" ? { accept: pgRaw, loading: pgRaw, stock: pgRaw } : { accept: pgAccept, loading: pgLoading, stock: pgKStock }, KDOC_PAGES)
-    : { inbox: pgInbox, lorder: pgLOrder, plan: pgPlan };
+    : MK.role === "keepers" ? Object.assign(MK.area === "raw" ? { accept: pgRaw, loading: pgRaw, stock: pgRaw } : { accept: pgAccept, loading: pgLoading, stock: pgStock }, KDOC_PAGES)
+    : { inbox: pgInbox, lorder: pgLOrder, plan: pgPlan, stock: pgStock };
   const page = pages[MK.view] || pgStub;
   document.getElementById("mkApp").innerHTML = mkSide() + `<div class="mk-col">${mkTop()}<main class="mk-main"><div class="mk-page">${page()}</div></main></div>`;
   document.getElementById("mkModalHost").innerHTML = mkModal();
@@ -1980,6 +2159,7 @@ let lastHot = null;
 function mkOpen(role, from, shop) {
   lastHot = from;
   if (shop) { MK.shop = shop; MK.kPart = "a"; }
+  MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {};
   MK.role = role; MK.view = role === "kiosk" && !KSHOPS[MK.shop].orders ? "kShift" : ROLES[role].start; MK.order = null; MK.modal = null; MK.pre = null;
   MK.filter = MK.lgFilter = MK.ppFilter = MK.clFilter = "all";
   document.getElementById("mkTitle").textContent = "Макет · " + (role === "kiosk" ? "Киоск · " + KSHOPS[MK.shop].name : ROLES[role].label);
@@ -2003,7 +2183,7 @@ document.querySelectorAll(".hot[data-role]").forEach((g) => {
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-nav],[data-mk-order],[data-mk-lorder],[data-mk-corder],[data-mk-clfilter],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-lgfilter],[data-mk-ppfilter],[data-mk-seg],[data-mk-mark],[data-mk-send],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-nav],[data-mk-order],[data-mk-lorder],[data-mk-corder],[data-mk-clfilter],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-lgfilter],[data-mk-ppfilter],[data-mk-seg],[data-mk-mark],[data-mk-send],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
@@ -2017,7 +2197,10 @@ overlay.addEventListener("click", (e) => {
   else if (d.mkCorder) { MK.view = "corder"; MK.order = d.mkCorder; }
   else if (d.mkClfilter) MK.clFilter = d.mkClfilter;
   else if (d.mkApprove) MK.approved[d.mkApprove] = true;
-  else if (d.mkArea) MK.area = d.mkArea;
+  else if (d.mkArea) { MK.area = d.mkArea; MK.stTab = null; }
+  else if (d.mkSttab) MK.stTab = d.mkSttab;
+  else if (d.mkStg) MK.stG[d.mkStg] = !MK.stG[d.mkStg];
+  else if (d.mkStopen) MK.stOpen[d.mkStopen] = !MK.stOpen[d.mkStopen];
   else if (d.mkAcc) { const [k, v] = d.mkAcc.split("|"); MK.acc[k] = v; }
   else if (d.mkLoad) MK.loadedA[d.mkLoad] = true;
   else if (d.mkTake) MK.taken[d.mkTake] = true;
@@ -2078,12 +2261,14 @@ overlay.addEventListener("change", (e) => {
   mkRender();
   if (keep && document.getElementById(keep)) document.getElementById(keep).focus();
 });
-// поиск в архиве: фильтр на каждую букву, курсор остаётся в поле
+// поиск в архиве и в остатках: фильтр на каждую букву, курсор остаётся в поле
 overlay.addEventListener("input", (e) => {
-  if (!e.target.hasAttribute || !e.target.hasAttribute("data-mk-arcq")) return;
+  const arc = e.target.hasAttribute && e.target.hasAttribute("data-mk-arcq"), st = e.target.hasAttribute && e.target.hasAttribute("data-mk-stq");
+  if (!arc && !st) return;
   const pos = e.target.selectionStart;
-  MK.arcQ = e.target.value; mkRender();
-  const el = document.getElementById("arcQ");
+  if (arc) MK.arcQ = e.target.value; else MK.stQ = e.target.value;
+  mkRender();
+  const el = document.getElementById(arc ? "arcQ" : "stQ");
   if (el) { el.focus(); el.setSelectionRange(pos, pos); }
 });
 document.addEventListener("keydown", (e) => {
