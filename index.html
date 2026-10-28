@@ -239,6 +239,20 @@ footer { color: var(--muted); font-size: 13px }
 .mk-modal { width: 560px; max-width: 100%; background: var(--bg-surface); color: var(--fg-primary); border: 1px solid var(--border-default); border-radius: 12px; box-shadow: 0 20px 60px rgba(15,23,42,.25); font-family: var(--font-sans) }
 .mk-modal.sm { width: 380px } /* окно PIN — как в киоске образца */
 .mk-modal.md { width: 480px }
+.mk-modal.lg { width: 720px }
+.mk-modal.lg .mk-modal-b { max-height: 70vh; overflow: auto }
+.mk-f2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px }
+.mk-kpi small { display: block; font-size: .75rem; color: var(--fg-tertiary); margin-top: 2px }
+.mk-cltbl { overflow-x: auto }
+.mk-tbl th.r, .mk-tbl td.r { text-align: right }
+.mk-cltabs { border: 1px solid var(--border-subtle); border-radius: 12px }
+.cl-seg { width: 200px; display: inline-flex; justify-content: space-between; align-items: center }
+.mk-act { display: inline-flex; align-items: center; gap: 4px; font-size: .75rem }
+.mk-act svg.lucide { width: 11px; height: 11px }
+.mk-act.fresh { color: var(--success-700) } .mk-act.warm { color: var(--fg-secondary) } .mk-act.stale { color: var(--warning-700) } .mk-act.cold { color: var(--danger-700) }
+.mk-acts { display: inline-flex; gap: 4px; align-items: center }
+.mk-ib0 { width: 28px; height: 28px; display: inline-grid; place-items: center; border: 1px solid var(--border-default); background: var(--bg-surface); border-radius: 6px; color: var(--fg-secondary) }
+.mk-ib0 svg.lucide { width: 14px; height: 14px }
 .mk-modal-h { padding: 22px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; gap: 12px }
 .mk-modal-h h4 { font-size: 1.0625rem; font-weight: 600 }
 .mk-modal-x { width: 28px; height: 28px; border-radius: 8px; border: 0; background: transparent; display: grid; place-items: center; color: var(--fg-secondary) }
@@ -980,13 +994,13 @@ const SEC_NOTE = {
   2: "Логист №2 — сверяет склад и сам создаёт заявку на производство"
 };
 const O_ST = {
-  client: ["От клиента", "b-primary"], draft: ["Черновик", "b-slate"], chef: ["У шефа логистов", "b-primary"], prod: ["В производстве", "b-warning"],
+  client: ["От клиента", "b-primary"], draft: ["Черновик", "b-slate"], chef: ["У логистов", "b-primary"], prod: ["В производстве", "b-warning"],
   ready: ["Готово к отгрузке", "b-success"], shipped: ["Отгружено", "b-danger"]
 };
-// у менеджера логистов нет: пока заявка не ушла в производство, она «у шефа логистов» (раздал он её логистам или нет — его дело)
+// менеджер работает с шефом логистов; пока заявка не ушла в производство, у менеджера она «У логистов» (как шеф делит её со своими логистами — его дело)
 const oKey = (o) => (o.st === "logist" ? "chef" : o.st);
 const oSt = (o) => O_ST[oKey(o)];
-const I_ST = { wait: ["У шефа логистов", "b-slate"], stock: ["Есть на складе", "b-success"], prod: ["В производстве", "b-warning"] };
+const I_ST = { wait: ["У логистов", "b-slate"], stock: ["Есть на складе", "b-success"], prod: ["В производстве", "b-warning"] };
 const it = (s, prod, th, size, color, qty, st, pp) => ({ s, prod, th, size, color, qty, st, pp });
 const ORDERS = [
   { no: "З-2026-009", client: "МВ-Строй", created: "12.10.2026", need: "26.10.2026", st: "chef", items: [
@@ -1472,7 +1486,7 @@ function pgOrders() {
   const rows = ORDERS.filter((o) => MK.filter === "all" || oKey(o) === MK.filter);
   return `<div class="mk-kpis">
       <div class="mk-card mk-kpi"><span>Всего</span><b>${ORDERS.length}</b></div>
-      <div class="mk-card mk-kpi"><span>У шефа логистов</span><b>${cnt("chef")}</b></div>
+      <div class="mk-card mk-kpi"><span>У логистов</span><b>${cnt("chef")}</b></div>
       <div class="mk-card mk-kpi"><span>В производстве</span><b>${cnt("prod")}</b></div>
       <div class="mk-card mk-kpi"><span>Готово к отгрузке</span><b>${cnt("ready")}</b></div></div>
     <div class="mk-sec"><h3>Мои заявки <small>· ${ORDERS.length}</small></h3>
@@ -2321,17 +2335,47 @@ function cSend() {
   MK.cart = {}; Object.keys(MK.vals).filter((k) => /^cq?\|/.test(k)).forEach((k) => delete MK.vals[k]);
   MK.cSent = no; MK.view = "corders";
 }
-// менеджер: «Клиенты» — его клиенты и доступ в кабинет; «Выдать доступ» / «Новый пароль» — окно с логином и паролем
+// менеджер: «Клиенты» — как в образце: цифры, вкладки по статусу, поиск, сегмент, таблица, окно клиента; плюс доступ в кабинет.
+// Данные компаний (ИНН, город, контакты, сегмент, заметка) — «-», пока юзер не пришлёт: за настоящие компании не выдумываем
+const CL_TABS = [["active", "Активные", "users"], ["prospect", "Потенциальные", "user-plus"], ["paused", "Приостановлены", "pause-circle"], ["all", "Все", "list"], ["archive", "Архив", "archive"]];
+const CL_STAT = { active: ["Активный", "b-success"], prospect: ["Потенциальный", "b-primary"], paused: ["Приостановлен", "b-slate"] };
+Object.assign(MK, { clTab: "active", clQ: "", clEdit: null });
+const clOrders = (c) => ORDERS.filter((o) => o.client === c);
+const clStatus = (c) => (clOrders(c).length ? "active" : "prospect"); // в примере: с заявками — активный, без — потенциальный
+const dNum = (d) => { const [dd, mm, yy] = d.split("."); return Date.UTC(+yy, +mm - 1, +dd); };
+// активность — по последней заявке от «сегодня» макета (12.10.2026), как в образце: сегодня / N дн. назад / N мес. назад
+function clAct(c) {
+  const os = clOrders(c);
+  if (!os.length) return `<span class="mk-muted">-</span>`;
+  const days = Math.floor((dNum("12.10.2026") - Math.max(...os.map((o) => dNum(o.created)))) / 86400000);
+  const [l, tone] = days < 1 ? ["сегодня", "fresh"] : days < 90 ? [days + " дн. назад", days < 7 ? "fresh" : days < 30 ? "warm" : "stale"] : [Math.floor(days / 30) + " мес. назад", "cold"];
+  return `<span class="mk-act ${tone}">${ico("clock")}${l}</span>`;
+}
 function pgClients() {
-  const rows = [...new Set(ORDERS.map((o) => o.client).concat(C_EXTRA))].sort((a, b) => a.localeCompare(b, "ru", { numeric: true }));
-  return `
-    ${MK.accDone ? `<div class="mk-hint ok">✓ Доступ для ${MK.accDone} выдан — передайте клиенту логин и пароль.</div>` : ""}
+  const all = [...new Set(ORDERS.map((o) => o.client).concat(C_EXTRA))].sort((a, b) => a.localeCompare(b, "ru", { numeric: true }));
+  const n = (k) => (k === "all" ? all.length : k === "archive" ? 0 : all.filter((c) => clStatus(c) === k).length);
+  const q = MK.clQ.trim().toLowerCase(), act = n("active"), dash = `<span class="mk-muted">-</span>`;
+  const rows = all.filter((c) => (MK.clTab === "all" || clStatus(c) === MK.clTab) && (!q || c.toLowerCase().includes(q)));
+  return `${MK.accDone ? `<div class="mk-hint ok">✓ Доступ для ${MK.accDone} выдан — передайте клиенту логин и пароль.</div>` : ""}
+    <div class="mk-kpis">
+      <div class="mk-card mk-kpi"><span>Всего клиентов</span><b>${all.length}</b></div>
+      <div class="mk-card mk-kpi"><span>Активных</span><b>${act}</b><small>${Math.round((act / all.length) * 100)}% базы</small></div>
+      <div class="mk-card mk-kpi"><span>Потенциальных</span><b>${n("prospect")}</b></div>
+      <div class="mk-card mk-kpi"><span>Дебиторка</span><b class="mk-muted">-</b><small>будет позже</small></div></div>
+    <div class="mk-sttabs mk-cltabs">${CL_TABS.map(([k, l, ic]) => `<button class="mk-stp${MK.clTab === k ? " on" : ""}" data-mk-cltab="${k}">${ico(ic)}<span>${l}</span><em>${n(k)}</em></button>`).join("")}</div>
+    <div class="mk-tools"><div class="mk-sts">${ico("search")}<input id="clQ" data-mk-clq value="${esc(MK.clQ)}" placeholder="Поиск по названию, ИНН, городу" aria-label="Поиск клиентов"></div>
+      <button type="button" class="mk-combo cl-seg" data-mk-noop><span>Все сегменты</span>${ico("chevron-down")}</button>
+      <button class="mk-btn p" style="margin-left:auto" data-mk-clform="">${ico("plus")}Новый клиент</button></div>
     <div class="mk-tools">${TODO("адрес сайта для клиентов")}${TODO("как передавать пароль клиенту")}</div>
-    <div class="mk-card mk-tbl"><table><thead><tr><th>Клиент</th><th>Заявок</th><th>Доступ в кабинет</th><th></th></tr></thead><tbody>
-      ${rows.map((c) => { const a = MK.access[c];
-        return `<tr><td><b>${c}</b></td><td>${ORDERS.filter((o) => o.client === c).length}</td>
+    <div class="mk-card mk-tbl dense mk-cltbl"><table><thead><tr><th>Клиент</th><th>ИНН</th><th>Страна / Город</th><th>Сегмент</th><th>Директор / Менеджер</th><th>Активность</th>
+      <th>Контакты</th><th>Заметка</th><th>Заявок</th><th>Доступ в кабинет</th><th class="r">Действия</th></tr></thead><tbody>
+      ${rows.length ? rows.map((c) => { const a = MK.access[c];
+        return `<tr><td><b>${c}</b> ${badge(CL_STAT[clStatus(c)])}</td><td>${dash}</td><td>${dash}</td><td>${dash}</td><td>Менеджер (пример)</td><td>${clAct(c)}</td><td>${dash}</td><td>${dash}</td>
+          <td>${clOrders(c).length}</td>
           <td>${a ? `<span class="mk-pill b-success">Доступ выдан</span><small>логин ${esc(a.login)} · ${a.date}</small>` : `<span class="mk-muted">нет доступа</span>`}</td>
-          <td><button class="mk-btn sm${a ? "" : " p"}" data-mk-cacc="${c}">${ico(a ? "key" : "user-plus")}${a ? "Новый пароль" : "Выдать доступ"}</button></td></tr>`; }).join("")}
+          <td class="r"><span class="mk-acts"><button class="mk-ib0" data-mk-clform="${c}" title="Изменить" aria-label="Изменить">${ico("pencil")}</button><button class="mk-ib0" data-mk-noop title="В архив" aria-label="В архив">${ico("trash-2")}</button>
+            <button class="mk-btn sm${a ? "" : " p"}" data-mk-cacc="${c}">${ico(a ? "key" : "user-plus")}${a ? "Новый пароль" : "Выдать доступ"}</button></span></td></tr>`; }).join("")
+        : `<tr><td colspan="11" class="mk-muted">${q ? "Клиенты не найдены — попробуйте другой запрос" : "Пусто"}</td></tr>`}
     </tbody></table></div>`;
 }
 function pgStub() {
@@ -2370,6 +2414,17 @@ function mkModal() {
       <div style="font-size:22px;font-weight:700;color:var(--primary-800)">${MK.pinFor || ""}</div></div>
       <input type="password" inputmode="numeric" maxlength="4" id="mkPin" class="mk-pin${MK.pinErr ? " err" : ""}" placeholder="••••" autocomplete="off" aria-label="PIN">
       ${MK.pinErr ? `<div class="mk-err">${MK.pinErr}</div>` : ""}<div class="mk-hint">В макете подойдёт любой PIN из 4 цифр.</div>`, "Войти", 'data-mk-pinok="1"'],
+    client: (() => {
+      if (MK.modal !== "client") return null;
+      const c = MK.clEdit, inp = (id, l, val = "", ph = "") => f(id, l, `<input id="${id}" value="${esc(val)}"${ph ? ` placeholder="${ph}"` : ""}>`);
+      return [c ? "Редактировать клиента" : "Новый клиент", `<div class="mk-f2">${inp("mkfClName", "Название *", c || "")}${inp("mkfClInn", "ИНН")}
+          ${inp("mkfClKpp", "КПП")}${inp("mkfClOgrn", "ОГРН")}${inp("mkfClCountry", "Страна")}${inp("mkfClCity", "Город")}</div>
+        ${inp("mkfClAddr", "Адрес")}
+        <div class="mk-f2">${inp("mkfClEmail", "Email")}${inp("mkfClPhone", "Телефон")}${inp("mkfClSite", "Сайт", "", "https://...")}${inp("mkfClContract", "Номер договора")}
+          ${f("mkfClDate", "Дата договора", `<input type="date" id="mkfClDate">`)}${f("mkfClStatus", "Статус", combo("mkfClStatus", CL_STAT[c ? clStatus(c) : "active"][0], ""))}
+          ${inp("mkfClSeg", "Сегмент", "", "напр. оптовик / розница")}${inp("mkfClMgr", "Директор / Менеджер", c ? "Менеджер (пример)" : "", "Имя")}</div>
+        ${f("mkfClNote", "Заметки", `<textarea id="mkfClNote" placeholder="Любые заметки по клиенту…"></textarea>`)}`, c ? "Сохранить" : "Создать"];
+    })(),
     access: (() => {
       if (MK.modal !== "access") return null;
       const c = MK.accFor, a = MK.access[c];
@@ -2387,7 +2442,7 @@ function mkModal() {
       return ["Подтверждение завершения", `${msg}<div>Подтвердить позицию как «Готово»? После подтверждения изменить нельзя.</div>`, "✓ Да, подтвердить", 'data-mk-kdoneok="1"'];
     })()
   }[MK.modal];
-  return `<div class="mk-back" data-mk-close-modal><div class="mk-modal${MK.modal === "pin" ? " sm" : MK.modal === "kdone" ? " md" : ""}" role="dialog" aria-modal="true" aria-label="${M[0]}">
+  return `<div class="mk-back" data-mk-close-modal><div class="mk-modal${MK.modal === "pin" ? " sm" : MK.modal === "kdone" ? " md" : MK.modal === "client" ? " lg" : ""}" role="dialog" aria-modal="true" aria-label="${M[0]}">
     <div class="mk-modal-h"><h4>${M[0]}</h4><button class="mk-modal-x" data-mk-close-modal aria-label="Закрыть">${ico("x")}</button></div>
     <div class="mk-modal-b">${M[1]}</div>
     <div class="mk-modal-f"><button class="mk-btn" data-mk-close-modal>Отмена</button><button class="mk-btn p" ${M[3] || "data-mk-close-modal"}>${M[2]}</button></div></div></div>`;
@@ -2414,7 +2469,7 @@ function mkOpen(role, from, shop) {
   if (shop) { MK.shop = shop; MK.kPart = "a"; }
   MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cOpen = null; MK.cRow = null; MK.cCol = null; MK.cTh = null; MK.cLenR = {}; MK.cLenErr = null; MK.cSent = null; MK.cErr = ""; MK.cLogged = false; MK.cLoginErr = ""; MK.accDone = null;
   MK.role = role; MK.view = role === "kiosk" && !KSHOPS[MK.shop].orders ? "kShift" : ROLES[role].start; MK.order = null; MK.modal = null; MK.pre = null;
-  MK.filter = MK.lgFilter = MK.ppFilter = MK.clFilter = MK.cinFilter = "all";
+  MK.filter = MK.lgFilter = MK.ppFilter = MK.clFilter = MK.cinFilter = "all"; MK.clTab = "active"; MK.clQ = "";
   document.getElementById("mkTitle").textContent = "Макет · " + (role === "kiosk" ? "Киоск · " + KSHOPS[MK.shop].name : ROLES[role].label);
   overlay.setAttribute("aria-label", "Макет рабочего места: " + ROLES[role].label);
   overlay.hidden = false; document.body.style.overflow = "hidden"; mkRender(); fitMk(); document.getElementById("mkClose").focus();
@@ -2436,7 +2491,7 @@ document.querySelectorAll(".hot[data-role]").forEach((g) => {
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-nav],[data-mk-order],[data-mk-lorder],[data-mk-corder],[data-mk-clfilter],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-cinorder],[data-mk-cinfilter],[data-mk-deal],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-lgfilter],[data-mk-ppfilter],[data-mk-seg],[data-mk-mark],[data-mk-send],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-nav],[data-mk-order],[data-mk-lorder],[data-mk-corder],[data-mk-clfilter],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-cinorder],[data-mk-cinfilter],[data-mk-deal],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-lgfilter],[data-mk-ppfilter],[data-mk-seg],[data-mk-mark],[data-mk-send],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
@@ -2521,6 +2576,8 @@ overlay.addEventListener("click", (e) => {
     if (l.trim() && p) Object.assign(MK, { cLogged: true, cLoginErr: "", view: "cat" }); else MK.cLoginErr = "Введите логин и пароль";
   }
   else if (t.hasAttribute("data-mk-clogout")) Object.assign(MK, { cLogged: false, cSent: null, cErr: "" });
+  else if (d.mkCltab) MK.clTab = d.mkCltab;
+  else if (t.hasAttribute("data-mk-clform")) { MK.modal = "client"; MK.clEdit = d.mkClform || null; }
   else if (d.mkCacc) { MK.modal = "access"; MK.accFor = d.mkCacc; }
   else if (t.hasAttribute("data-mk-cgive")) {
     const l = ((document.getElementById("mkfLogin") || {}).value || "").trim();
@@ -2550,12 +2607,12 @@ overlay.addEventListener("change", (e) => {
 });
 // поиск в архиве и в остатках: фильтр на каждую букву, курсор остаётся в поле
 overlay.addEventListener("input", (e) => {
-  const arc = e.target.hasAttribute && e.target.hasAttribute("data-mk-arcq"), st = e.target.hasAttribute && e.target.hasAttribute("data-mk-stq");
-  if (!arc && !st) return;
+  const has = (a) => e.target.hasAttribute && e.target.hasAttribute(a), arc = has("data-mk-arcq"), st = has("data-mk-stq"), cl = has("data-mk-clq");
+  if (!arc && !st && !cl) return;
   const pos = e.target.selectionStart;
-  if (arc) MK.arcQ = e.target.value; else MK.stQ = e.target.value;
+  if (arc) MK.arcQ = e.target.value; else if (st) MK.stQ = e.target.value; else MK.clQ = e.target.value;
   mkRender();
-  const el = document.getElementById(arc ? "arcQ" : "stQ");
+  const el = document.getElementById(arc ? "arcQ" : st ? "stQ" : "clQ");
   if (el) { el.focus(); el.setSelectionRange(pos, pos); }
 });
 overlay.addEventListener("keydown", (e) => {
