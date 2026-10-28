@@ -584,6 +584,12 @@ footer { color: var(--muted); font-size: 13px }
 .cs-szs { padding: 0 0 8px 14px }
 .cs-sz { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid color-mix(in oklab, var(--border-default) 50%, transparent) }
 .cs-sz .nm { flex: 1; font-size: .875rem; color: var(--fg-secondary) }
+.cs-c + .cs-c { border-top: 1px solid color-mix(in oklab, var(--border-default) 50%, transparent) }
+.cs-rh.cs-ch { padding: 10px 0; font-size: .875rem }
+.cs-ths { padding: 0 0 8px 14px }
+.cs-hint { font-size: .75rem; color: var(--fg-tertiary); padding: 2px 0 6px }
+.cs-th .cs-q { gap: 6px }
+.cs-th input.mk-n { width: 80px }
 .cs-q { display: flex; align-items: center; gap: 8px; font-size: .875rem; color: var(--fg-tertiary) }
 .cs input.mk-n { width: 96px; padding: 6px 8px; font-size: .875rem }
 .cs-anim { animation: csIn .22s ease-out }
@@ -2217,29 +2223,32 @@ function pgInvoices() {
 }
 /* --- клиент: простой сайт для клиентов — вход по логину и паролю, которые выдаёт менеджер; продукция, моя заявка, мои заявки; заявка уходит менеджеру --- */
 const C_NAME = "Клиент 1";
-// марки сотового листа: [ключ, название, толщины, мм]
+// марки сотового листа: [ключ, название, толщины, мм]; у Сибирских теплиц только 4 мм (со слов юзера), остальные толщины, цвета и размеры — пример
 const C_BRANDS = [["sotalux", "Соталюкс", [4, 6, 8, 10, 16]], ["sotalight", "Соталайт", [4, 6, 8, 10, 16]], ["sibtep", "Сибирские теплицы", [4]],
   ["berolux", "Беролюкс", [4, 6, 8, 10, 16]], ["borrex", "Боррекс", [4, 6, 8, 10, 16]]];
-const C_TABS = C_BRANDS.map(([k, l]) => [k, l, "Сотовый лист " + l, "листов", "сотовый лист"]).concat([["mono", "Монолитные листы", "Монолитный лист", "листов"], ["prof", "Профиль", "Профиль", "шт"], ["thermo", "Термошайбы", "Термошайбы", "шт"]]);
-// продукция (пример): у марок — толщины × прозрачный × 2100×6000 и 2100×12000; остальное — позиции, что встречаются в заявках и на складе макета
+const C_COLORS = ["прозрачный", "бронза"];
+const C_SIZES = [["2100×6000", "6 м"], ["2100×12000", "12 м"]];
+const C_TABS = [["sot", "Сотовые листы", "Сотовый лист", "листов"], ["mono", "Монолитные листы", "Монолитный лист", "листов"], ["prof", "Профиль", "Профиль", "шт"], ["thermo", "Термошайбы", "Термошайбы", "шт"]];
+// продукция (пример): у сотового — марка × цвет × толщина × размер; остальное — позиции, что встречаются в заявках и на складе макета
 const CAT = Object.fromEntries(C_TABS.map(([k, , prod]) => {
-  const m = new Map(), br = C_BRANDS.find((b) => b[0] === k);
-  const src = br ? br[2].flatMap((th) => ["2100×6000", "2100×12000"].map((size) => ({ prod, th: String(th), size, color: "прозрачный" })))
+  const m = new Map();
+  const src = k === "sot" ? C_BRANDS.flatMap(([, b, ths]) => C_COLORS.flatMap((color) => ths.flatMap((th) => C_SIZES.map(([size]) => ({ prod: prod + " " + b, brand: b, th: String(th), size, color })))))
     : ORDERS.flatMap((o) => o.items).concat(STOCK_P).filter((x) => x.prod === prod);
   src.forEach((x) => {
     const key = [x.prod, x.th, x.size, x.color].join("|");
-    if (!m.has(key)) m.set(key, { key, tab: k, prod: x.prod, th: x.th, size: x.size, color: x.color });
+    if (!m.has(key)) m.set(key, { key, tab: k, prod: x.prod, brand: x.brand, th: x.th, size: x.size, color: x.color });
   });
-  return [k, [...m.values()].sort((a, b) => (parseFloat(a.th) || 0) - (parseFloat(b.th) || 0) || a.size.localeCompare(b.size, "ru", { numeric: true }) || a.color.localeCompare(b.color))];
+  return [k, k === "sot" ? [...m.values()] : [...m.values()].sort((a, b) => (parseFloat(a.th) || 0) - (parseFloat(b.th) || 0) || a.size.localeCompare(b.size, "ru", { numeric: true }) || a.color.localeCompare(b.color))];
 }));
 const catItem = (key) => Object.values(CAT).flat().find((x) => x.key === key);
 const cUnit = (tab) => C_TABS.find((t) => t[0] === tab)[3];
 const cName = (x) => x.prod + (x.th !== "—" ? " " + x.th + " мм" : "");
 const cSub = (x) => [x.size !== "—" ? x.size : "", x.color].filter(Boolean).join(" · ");
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-const nPos = (n) => n + " " + (n % 10 === 1 && n % 100 !== 11 ? "позиция" : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? "позиции" : "позиций");
+const pl = (n, a, b, c) => n + " " + (n % 10 === 1 && n % 100 !== 11 ? a : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? b : c);
+const nPos = (n) => pl(n, "позиция", "позиции", "позиций");
 // доступ в кабинет выдаёт менеджер (пример: у клиента 1 уже есть)
-Object.assign(MK, { cart: {}, cOpen: null, cRow: null, cAnim: null, cSent: null, cErr: "", cLogged: false, cLoginErr: "", access: { [C_NAME]: { login: "klient1", date: "10.10.2026" } }, accFor: null, accDone: null });
+Object.assign(MK, { cart: {}, cOpen: null, cRow: null, cCol: null, cAnim: null, cSent: null, cErr: "", cLogged: false, cLoginErr: "", access: { [C_NAME]: { login: "klient1", date: "10.10.2026" } }, accFor: null, accDone: null });
 ROLES.client = { label: "Сайт для клиентов", user: [C_NAME + " (пример)", "", "К1"], start: "cat", back: "cat", nav: [], titles: {} };
 const cLogo = `<div class="cs-logo"><span class="cs-cube">Ч</span><b>Завод Черкесск</b></div>`;
 function cSite(page) {
@@ -2271,21 +2280,46 @@ const cRows = (k) => {
 function cSize(x) {
   const inC = MK.cart[x.key], q = inC ? inC.qty : MK.vals["cq|" + x.key] || "", err = MK.cErr === x.key;
   return `<div class="cs-sz"><span class="nm">${x.size}</span>
-    <label class="cs-q"><input class="mk-n${err ? " err" : ""}" type="number" min="1" inputmode="numeric" data-mk-val="cq|${x.key}" value="${q}"${err ? ' placeholder="сколько?"' : ""} aria-label="Количество">${cUnit(x.tab)}</label>
+    <label class="cs-q"><input class="mk-n${err ? " err" : ""}" type="number" min="1" inputmode="numeric" data-key="${x.key}" data-mk-val="cq|${x.key}" value="${q}"${err ? ' placeholder="сколько?"' : ""} aria-label="Количество">${cUnit(x.tab)}</label>
     ${inC ? `<button class="mk-btn sm g" data-mk-cadd="${x.key}" title="Изменить количество">${ico("check")}В заявке</button>`
       : `<button class="mk-btn sm p" data-mk-cadd="${x.key}">${ico("plus")}В заявку</button>`}</div>`;
 }
+// сотовый лист: марка → цвет → толщина; у толщины поля «6 м» и «12 м», одна кнопка «В заявку» на оба
+const gotMark = `<span class="got">${ico("check")}в заявке</span>`;
+function cThick(id, th, items) {
+  const inC = items.some((x) => MK.cart[x.key]), err = MK.cErr === id;
+  return `<div class="cs-sz cs-th"><span class="nm">${th} мм</span>
+    ${items.map((x) => { const q = MK.cart[x.key] ? MK.cart[x.key].qty : MK.vals["cq|" + x.key] || "", lab = C_SIZES.find((z) => z[0] === x.size)[1];
+      return `<label class="cs-q">${lab}<input class="mk-n${err ? " err" : ""}" type="number" min="1" inputmode="numeric" data-key="${x.key}" data-mk-val="cq|${x.key}" value="${q}" aria-label="Количество, ${lab}"></label>`; }).join("")}
+    <span class="mk-muted">листов</span>
+    ${inC ? `<button class="mk-btn sm g" data-mk-cadd="${id}" title="Изменить количество">${ico("check")}В заявке</button>`
+      : `<button class="mk-btn sm p" data-mk-cadd="${id}">${ico("plus")}В заявку</button>`}</div>`;
+}
+function cSotList(anim) {
+  return C_BRANDS.map(([bid, b], i) => {
+    const items = CAT.sot.filter((x) => x.brand === b), on = MK.cRow === bid, cols = [...new Set(items.map((x) => x.color))];
+    const colRow = (c) => { const id = bid + "|" + c, its = items.filter((x) => x.color === c), ths = [...new Set(its.map((x) => x.th))], open = MK.cCol === id;
+      return `<div class="cs-c"><button class="cs-rh cs-ch${open ? " on" : ""}" data-mk-ccol="${id}" aria-expanded="${open}"><span class="nm">${cap(c)}</span>
+          ${its.some((x) => MK.cart[x.key]) ? gotMark : ""}<span class="mk-muted">${pl(ths.length, "толщина", "толщины", "толщин")}</span>${ico("chevron-down")}</button>
+        ${open ? `<div class="cs-ths${anim === "col" ? " cs-anim" : ""}"><div class="cs-hint">Размер листа: 6 м — 2100×6000, 12 м — 2100×12000 (пример)</div>
+          ${ths.map((th) => cThick(id + "|" + th, th, its.filter((x) => x.th === th))).join("")}</div>` : ""}</div>`; };
+    return `<div class="cs-r${i ? " grp" : ""}">
+      <button class="cs-rh${on ? " on" : ""}" data-mk-crow="${bid}" aria-expanded="${on}"><span class="nm">${b}</span>
+        ${items.some((x) => MK.cart[x.key]) ? gotMark : ""}<span class="mk-muted">${pl(cols.length, "цвет", "цвета", "цветов")}</span>${ico("chevron-down")}</button>
+      ${on ? `<div class="cs-szs${anim === "row" ? " cs-anim" : ""}">${cols.map(colRow).join("")}</div>` : ""}</div>`;
+  }).join("");
+}
 function pgCat() {
   const open = MK.cOpen, anim = MK.cAnim; MK.cAnim = null; // плавно раскрывается только то, что сейчас открыли
-  const tile = ([k, l, , , kind]) => { const on = open === k, n = Object.values(MK.cart).filter((c) => c.tab === k).length;
+  const tile = ([k, l]) => { const on = open === k, n = Object.values(MK.cart).filter((c) => c.tab === k).length;
     return `<button class="cs-tile${on ? " on" : ""}" data-mk-ccat="${k}" aria-expanded="${on}"><span class="t">${l}${ico("chevron-down")}</span>
-      <span class="s">${kind ? kind + " · " : ""}${nPos(cRows(k).length)}</span>${n ? `<span class="c">${ico("check")}в заявке: ${n}</span>` : ""}</button>`; };
-  const list = open ? cRows(open).map((r, i, a) => { const on = MK.cRow === r.id, got = r.sizes.some((x) => MK.cart[x.key]);
+      <span class="s">${k === "sot" ? pl(C_BRANDS.length, "марка", "марки", "марок") : nPos(cRows(k).length)}</span>${n ? `<span class="c">${ico("check")}в заявке: ${n}</span>` : ""}</button>`; };
+  const list = open === "sot" ? cSotList(anim) : open ? cRows(open).map((r, i, a) => { const on = MK.cRow === r.id, got = r.sizes.some((x) => MK.cart[x.key]);
     return `<div class="cs-r${i && r.th !== a[i - 1].th ? " grp" : ""}">
       <button class="cs-rh${on ? " on" : ""}" data-mk-crow="${r.id}" aria-expanded="${on}"><span class="nm">${r.name}</span>
-        ${got ? `<span class="got">${ico("check")}в заявке</span>` : ""}<span class="mk-muted">${nSz(r.sizes.length)}</span>${ico("chevron-down")}</button>
+        ${got ? gotMark : ""}<span class="mk-muted">${nSz(r.sizes.length)}</span>${ico("chevron-down")}</button>
       ${on ? `<div class="cs-szs${anim === "row" ? " cs-anim" : ""}">${r.sizes.map(cSize).join("")}</div>` : ""}</div>`; }).join("") : "";
-  return `${cHero("Продукция", "Нажмите на вид продукции, выберите толщину и цвет, укажите количество по размеру и добавьте в заявку.")}
+  return `${cHero("Продукция", "Нажмите на вид продукции. У сотовых листов — марка, цвет, толщина; укажите количество и добавьте в заявку.")}
     <div class="mk-tools"><span class="mk-muted">Позиции — пример.</span>${TODO("толщины марок, цвета и размеры")}${TODO("цены — показывать?")}${TODO("трапеция — показывать?")}</div>
     <div class="cs-tiles">${C_TABS.map(tile).join("")}</div>
     ${open ? `<div class="cs-list${anim === "cat" ? " cs-anim" : ""}">${list}</div>` : ""}`;
@@ -2412,7 +2446,7 @@ let lastHot = null;
 function mkOpen(role, from, shop) {
   lastHot = from;
   if (shop) { MK.shop = shop; MK.kPart = "a"; }
-  MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cOpen = null; MK.cRow = null; MK.cSent = null; MK.cErr = ""; MK.cLogged = false; MK.cLoginErr = ""; MK.accDone = null;
+  MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cOpen = null; MK.cRow = null; MK.cCol = null; MK.cSent = null; MK.cErr = ""; MK.cLogged = false; MK.cLoginErr = ""; MK.accDone = null;
   MK.role = role; MK.view = role === "kiosk" && !KSHOPS[MK.shop].orders ? "kShift" : ROLES[role].start; MK.order = null; MK.modal = null; MK.pre = null;
   MK.filter = MK.lgFilter = MK.ppFilter = MK.clFilter = MK.cinFilter = "all";
   document.getElementById("mkTitle").textContent = "Макет · " + (role === "kiosk" ? "Киоск · " + KSHOPS[MK.shop].name : ROLES[role].label);
@@ -2436,7 +2470,7 @@ document.querySelectorAll(".hot[data-role]").forEach((g) => {
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-nav],[data-mk-order],[data-mk-lorder],[data-mk-corder],[data-mk-clfilter],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-cinorder],[data-mk-cinfilter],[data-mk-deal],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-lgfilter],[data-mk-ppfilter],[data-mk-seg],[data-mk-mark],[data-mk-send],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-nav],[data-mk-order],[data-mk-lorder],[data-mk-corder],[data-mk-clfilter],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-cinorder],[data-mk-cinfilter],[data-mk-deal],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-lgfilter],[data-mk-ppfilter],[data-mk-seg],[data-mk-mark],[data-mk-send],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
@@ -2492,12 +2526,14 @@ overlay.addEventListener("click", (e) => {
     if (d.mkSsall) L.forEach((l) => { MK.ssCol[x.no + "|" + l.li] = d.mkSsall === "close"; });
     else { const l = L[+d.mkSsline.split("|")[1]]; MK.ssCol[d.mkSsline] = !ssCollapsed(x, l); }
   }
-  else if (d.mkCcat) { MK.cOpen = MK.cOpen === d.mkCcat ? null : d.mkCcat; MK.cRow = null; MK.cAnim = "cat"; MK.cErr = ""; }
-  else if (d.mkCrow) { MK.cRow = MK.cRow === d.mkCrow ? null : d.mkCrow; MK.cAnim = "row"; MK.cErr = ""; }
-  else if (d.mkCadd) { // клиент: «В заявку» берёт количество из строки; пустое поле у позиции в заявке — убрать её
-    const inp = t.closest(".cs-sz").querySelector("input"), v = Number(inp && inp.value), k = d.mkCadd;
-    if (v > 0) { MK.cart[k] = { tab: catItem(k).tab, qty: v }; MK.cErr = ""; MK.cSent = null; }
-    else if (MK.cart[k]) delete MK.cart[k]; else MK.cErr = k;
+  else if (d.mkCcat) { MK.cOpen = MK.cOpen === d.mkCcat ? null : d.mkCcat; MK.cRow = MK.cCol = null; MK.cAnim = "cat"; MK.cErr = ""; }
+  else if (d.mkCrow) { MK.cRow = MK.cRow === d.mkCrow ? null : d.mkCrow; MK.cCol = null; MK.cAnim = "row"; MK.cErr = ""; }
+  else if (d.mkCcol) { MK.cCol = MK.cCol === d.mkCcol ? null : d.mkCcol; MK.cAnim = "col"; MK.cErr = ""; }
+  else if (d.mkCadd) { // клиент: «В заявку» берёт количество из полей строки (у сотового — 6 м и 12 м); пустое поле у позиции в заявке — убрать её
+    const ins = [...t.closest(".cs-sz").querySelectorAll("input")], had = ins.some((i) => MK.cart[i.dataset.key]);
+    let any = false;
+    ins.forEach((i) => { const k = i.dataset.key, v = Number(i.value); if (v > 0) { MK.cart[k] = { tab: catItem(k).tab, qty: v }; any = true; } else delete MK.cart[k]; });
+    if (any) { MK.cErr = ""; MK.cSent = null; } else if (!had) MK.cErr = d.mkCadd;
   }
   else if (d.mkCdel) { delete MK.cart[d.mkCdel]; delete MK.vals["cq|" + d.mkCdel]; }
   else if (t.hasAttribute("data-mk-csend")) cSend();
