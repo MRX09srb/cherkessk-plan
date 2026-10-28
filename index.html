@@ -684,28 +684,28 @@ footer { color: var(--muted); font-size: 13px }
     </g>
 
     <g class="hot" data-role="logist1" role="button" tabindex="0" aria-label="Открыть макет: логист №1">
-      <rect class="node" x="40" y="220" width="180" height="80" rx="10"/>
-      <text class="nt" x="54" y="246">Логист №1</text>
-      <text class="ns" x="54" y="268">сотовый и</text>
-      <text class="ns" x="54" y="288">монолитный лист</text>
-      <text class="hint" x="210" y="246" text-anchor="end">макет ›</text>
+      <rect class="node" x="40" y="350" width="180" height="80" rx="10"/>
+      <text class="nt" x="54" y="376">Логист №1</text>
+      <text class="ns" x="54" y="398">сотовый и</text>
+      <text class="ns" x="54" y="418">монолитный лист</text>
+      <text class="hint" x="210" y="376" text-anchor="end">макет ›</text>
     </g>
 
     <g class="hot" data-role="logist2" role="button" tabindex="0" aria-label="Открыть макет: логист №2">
-      <rect class="node" x="240" y="220" width="180" height="80" rx="10"/>
-      <text class="nt" x="254" y="246">Логист №2</text>
-      <text class="ns" x="254" y="268">профиль, термошайба,</text>
-      <text class="ns" x="254" y="288">трапеция</text>
-      <text class="hint" x="410" y="246" text-anchor="end">макет ›</text>
+      <rect class="node" x="240" y="350" width="180" height="80" rx="10"/>
+      <text class="nt" x="254" y="376">Логист №2</text>
+      <text class="ns" x="254" y="398">профиль, термошайба,</text>
+      <text class="ns" x="254" y="418">трапеция</text>
+      <text class="hint" x="410" y="376" text-anchor="end">макет ›</text>
     </g>
 
     <g class="hot" data-role="cheflog" role="button" tabindex="0" aria-label="Открыть макет: шеф логистов">
-      <rect class="node lead" x="40" y="360" width="200" height="100" rx="10"/>
-      <text class="nt" x="54" y="386">Шеф логистов</text>
-      <text class="ns" x="54" y="408">он же шеф кладовщиков</text>
-      <text class="ns" x="54" y="428">раздаёт заявки логистам</text>
-      <text class="ns" x="54" y="448">одобряет отгрузки</text>
-      <text class="hint" x="230" y="386" text-anchor="end">макет ›</text>
+      <rect class="node lead" x="120" y="200" width="220" height="100" rx="10"/>
+      <text class="nt" x="134" y="226">Шеф логистов</text>
+      <text class="ns" x="134" y="248">он же шеф кладовщиков</text>
+      <text class="ns" x="134" y="268">раздаёт заявки логистам</text>
+      <text class="ns" x="134" y="288">одобряет отгрузки</text>
+      <text class="hint" x="330" y="226" text-anchor="end">макет ›</text>
     </g>
 
     <!-- легенда в офисе -->
@@ -868,23 +868,26 @@ footer { color: var(--muted); font-size: 13px }
     <path class="ln h lh" d="M720,150 L740,150 L740,230 L1038,230" marker-end="url(#mH)"/>
     <path class="ln lh" d="M1300,372 L1357,372" marker-end="url(#mH)"/>
 
-    <!-- все заявки: менеджер → шеф логистов (между логистами); шеф раздаёт: лист — логисту №1, остальное — логисту №2 -->
-    <path class="ln lh" d="M230,154 L230,358" marker-end="url(#mH)"/>
-    <text class="lbl fh" x="236" y="194">заявки</text>
+    <!-- все заявки: менеджеры → шеф логистов (он под ними); шеф раздаёт логистам (они под ним): лист — №1, остальное — №2 -->
+    <path class="ln lh" d="M230,154 L230,198" marker-end="url(#mH)"/>
+    <text class="lbl fh" x="236" y="182">заявки</text>
 
     <!-- лист: шеф → логист №1 → шеф логистов (есть / нет) → сотовый и монолитный -->
-    <path class="ln la" d="M70,358 L70,302" marker-end="url(#mA)"/>
-    <text class="lbl fa" x="76" y="324">раздаёт</text>
-    <path class="ln la" d="M130,300 L130,358" marker-end="url(#mA)"/>
-    <text class="lbl fa" x="138" y="346">есть / нет</text>
-    <path class="ln la" d="M240,430 L462,430 L462,490 L689,490 L689,507" marker-end="url(#mA)"/>
+    <path class="ln la" d="M150,300 L150,348" marker-end="url(#mA)"/>
+    <text class="lbl fa" x="144" y="330" text-anchor="end">раздаёт</text>
+    <path class="ln la" d="M200,350 L200,302" marker-end="url(#mA)"/>
+    <text class="lbl fa" x="206" y="330">есть / нет</text>
+    <path class="ln la" d="M340,262 L462,262 L462,490 L689,490 L689,507" marker-end="url(#mA)"/>
     <path class="ln la" d="M462,490 L1070,490 L1070,507" marker-end="url(#mA)"/>
-    <text class="lbl fa" x="250" y="423">заявка на производство</text>
+    <text class="lbl fa" x="348" y="240">заявка на</text>
+    <text class="lbl fa" x="348" y="254">производство</text>
 
     <!-- профиль, термошайба, трапеция: шеф → логист №2 → цеха -->
-    <path class="ln lb" d="M240,380 L330,380 L330,302" marker-end="url(#mB)"/>
+    <path class="ln lb" d="M310,300 L310,348" marker-end="url(#mB)"/>
+    <text class="lbl fb" x="316" y="330">раздаёт</text>
+    <path class="halo" d="M453,390 L471,390"/>
     <path class="halo" d="M478,481 L478,499"/>
-    <path class="ln lb" d="M420,260 L478,260 L478,470 L1110,470 L1110,507" marker-end="url(#mB)"/>
+    <path class="ln lb" d="M420,390 L478,390 L478,470 L1110,470 L1110,507" marker-end="url(#mB)"/>
     <path class="ln lb" d="M478,470 L478,682 L689,682 L689,701" marker-end="url(#mB)"/>
     <path class="ln lb" d="M689,682 L1091,682 L1091,701" marker-end="url(#mB)"/>
 
@@ -893,9 +896,9 @@ footer { color: var(--muted); font-size: 13px }
     <text class="lbl fc" x="618" y="262">заявка на производство</text>
 
     <!-- отгрузка -->
-    <path class="ln ls dash" d="M120,122 L28,122 L28,400 L37,400" marker-end="url(#mS)"/>
-    <text class="lbl fs" transform="translate(22,330) rotate(-90)">заявка на отгрузку</text>
-    <path class="ln ls dash" d="M56,460 L56,890 L1330,890 L1330,508 L1357,508" marker-end="url(#mS)"/>
+    <path class="ln ls dash" d="M150,154 L150,198" marker-end="url(#mS)"/>
+    <text class="lbl fs" x="144" y="182" text-anchor="end">заявка на отгрузку</text>
+    <path class="ln ls dash" d="M120,280 L28,280 L28,890 L1330,890 L1330,508 L1357,508" marker-end="url(#mS)"/>
     <text class="lbl fs" x="640" y="882">одобренная заявка на отгрузку → шеф или бригадир грузчиков</text>
     <path class="ln ls" d="M1510,536 L1510,554" marker-end="url(#mS)"/>
     <path class="ln ls" d="M1510,612 L1510,632" marker-end="url(#mS)"/>
