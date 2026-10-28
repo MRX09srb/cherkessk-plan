@@ -977,10 +977,13 @@ const SEC_NOTE = {
   2: "Логист №2 — сверяет склад и сам создаёт заявку на производство"
 };
 const O_ST = {
-  client: ["От клиента", "b-primary"], draft: ["Черновик", "b-slate"], chef: ["У шефа логистов", "b-primary"], logist: ["У логиста", "b-primary"], prod: ["В производстве", "b-warning"],
+  client: ["От клиента", "b-primary"], draft: ["Черновик", "b-slate"], chef: ["У шефа логистов", "b-primary"], prod: ["В производстве", "b-warning"],
   ready: ["Готово к отгрузке", "b-success"], shipped: ["Отгружено", "b-danger"]
 };
-const I_ST = { wait: ["Ждёт логиста", "b-slate"], stock: ["Есть на складе", "b-success"], prod: ["В производстве", "b-warning"] };
+// у менеджера логистов нет: пока заявка не ушла в производство, она «у шефа логистов» (раздал он её логистам или нет — его дело)
+const oKey = (o) => (o.st === "logist" ? "chef" : o.st);
+const oSt = (o) => O_ST[oKey(o)];
+const I_ST = { wait: ["У шефа логистов", "b-slate"], stock: ["Есть на складе", "b-success"], prod: ["В производстве", "b-warning"] };
 const it = (s, prod, th, size, color, qty, st, pp) => ({ s, prod, th, size, color, qty, st, pp });
 const ORDERS = [
   { no: "З-2026-009", client: "МВ-Строй", created: "12.10.2026", need: "26.10.2026", st: "chef", items: [
@@ -1359,10 +1362,6 @@ const TITLE = () => {
 };
 const ico = (n) => `<i data-lucide="${n}"></i>`;
 const badge = (st, dot = true) => `<span class="mk-badge ${st[1]}">${dot ? "<i></i>" : ""}${st[0]}</span>`;
-const logists = (o) => {
-  const s = new Set(o.items.map((x) => x.s));
-  return [...s].sort().map((k) => "№" + k).join(" + ");
-};
 const TODO = (t) => `<span class="mk-todo">уточнить: ${t}</span>`;
 
 function mkSide() {
@@ -1465,29 +1464,26 @@ function pgPlan() {
     </tbody></table></div>`;
 }
 function pgOrders() {
-  const cnt = (st) => ORDERS.filter((o) => o.st === st).length;
+  const cnt = (st) => ORDERS.filter((o) => oKey(o) === st).length;
   const chips = [["all", "Все", ORDERS.length]].concat(Object.entries(O_ST).map(([k, v]) => [k, v[0], cnt(k)]));
-  const rows = ORDERS.filter((o) => MK.filter === "all" || o.st === MK.filter);
+  const rows = ORDERS.filter((o) => MK.filter === "all" || oKey(o) === MK.filter);
   return `<div class="mk-kpis">
       <div class="mk-card mk-kpi"><span>Всего</span><b>${ORDERS.length}</b></div>
-      <div class="mk-card mk-kpi"><span>У логиста</span><b>${cnt("logist")}</b></div>
+      <div class="mk-card mk-kpi"><span>У шефа логистов</span><b>${cnt("chef")}</b></div>
       <div class="mk-card mk-kpi"><span>В производстве</span><b>${cnt("prod")}</b></div>
       <div class="mk-card mk-kpi"><span>Готово к отгрузке</span><b>${cnt("ready")}</b></div></div>
     <div class="mk-sec"><h3>Мои заявки <small>· ${ORDERS.length}</small></h3>
       <button class="mk-btn p" data-mk-modal="order">${ico("plus")}Новая заявка</button></div>
     <div class="mk-chips">${chips.map(([k, l, n]) => `<button class="mk-chip${MK.filter === k ? " on" : ""}" data-mk-filter="${k}">${l}<em>${n}</em></button>`).join("")}
       ${TODO("статусы и номера")}</div>
-    <div class="mk-card mk-tbl"><table><thead><tr><th>№ заявки</th><th>Клиент</th><th>Создана</th><th>Нужна к</th><th>Позиций</th><th>Логист</th><th>Статус</th></tr></thead><tbody>
+    <div class="mk-card mk-tbl"><table><thead><tr><th>№ заявки</th><th>Клиент</th><th>Создана</th><th>Нужна к</th><th>Позиций</th><th>Статус</th></tr></thead><tbody>
       ${rows.map((o) => `<tr class="click" data-mk-order="${o.no}"><td class="mk-no">${o.no}</td><td>${o.client}</td><td>${o.created}</td><td>${o.need}</td>
-        <td>${o.items.length}</td><td>${logists(o)}</td><td><span class="mk-pill ${O_ST[o.st][1]}">${O_ST[o.st][0]}</span></td></tr>`).join("")}
+        <td>${o.items.length}</td><td><span class="mk-pill ${oSt(o)[1]}">${oSt(o)[0]}</span></td></tr>`).join("")}
     </tbody></table></div>`;
 }
 function pgOrder() {
   const o = ORDERS.find((x) => x.no === MK.order);
-  const secs = [1, 2].filter((s) => o.items.some((x) => x.s === s));
-  let n = 0;
-  const body = secs.map((s) => `<tr class="secrow"><td colspan="8">${SEC[s]} · логист №${s}<span>${SEC_NOTE[s]}</span></td></tr>` +
-    o.items.filter((x) => x.s === s).map((x) => `<tr><td>${++n}</td><td>${x.prod}</td><td>${x.th}</td><td>${x.size}</td><td>${x.color}</td><td>${x.qty}</td><td class="mk-muted">—</td><td>${badge(I_ST[x.st])}</td></tr>`).join("")).join("");
+  const body = o.items.map((x, i) => `<tr><td>${i + 1}</td><td>${x.prod}</td><td>${x.th}</td><td>${x.size}</td><td>${x.color}</td><td>${x.qty}</td><td class="mk-muted">—</td><td>${badge(I_ST[x.st])}</td></tr>`).join("");
   const tools = o.st === "client" ? `<button class="mk-btn">${ico("printer")}Печать</button><button class="mk-btn p" data-mk-tochef="${o.no}">${ico("send")}Передать шефу логистов</button>`
     : o.st === "draft"
     ? `<button class="mk-btn">${ico("pencil")}Редактировать</button><button class="mk-btn p" data-mk-tochef="${o.no}">${ico("send")}Отправить шефу логистов</button>`
@@ -1497,9 +1493,9 @@ function pgOrder() {
     ${o.from === "client" ? `<div class="mk-hint">ⓘ Заявка пришла из личного кабинета клиента ${o.created}.${o.note ? " Комментарий клиента: «" + esc(o.note) + "»" : ""}</div>` : ""}
     <div class="mk-card mk-head">
       <div><span>Заявка</span><b class="mk-no">${o.no}</b></div><div><span>Клиент</span><b>${o.client}</b></div>
-      <div><span>Статус</span><b><span class="mk-pill ${O_ST[o.st][1]}">${O_ST[o.st][0]}</span></b></div>
+      <div><span>Статус</span><b><span class="mk-pill ${oSt(o)[1]}">${oSt(o)[0]}</span></b></div>
       <div><span>Позиций</span><b>${o.items.length}</b></div><div><span>Создана</span><b>${o.created}</b></div>
-      <div><span>Нужна к</span><b>${o.need}</b></div><div><span>Логист</span><b>${logists(o)}</b></div></div>
+      <div><span>Нужна к</span><b>${o.need}</b></div></div>
     <div class="mk-sec"><h3>Позиции заявки <small>· ${o.items.length}</small></h3>${TODO("поля позиции и статусы позиций")}</div>
     <div class="mk-card mk-tbl dense"><table><thead><tr><th>№</th><th>Продукция</th><th>Толщ., мм</th><th>Размер, мм</th><th>Цвет</th><th>Кол-во</th><th>Примечание</th><th>Что с позицией</th></tr></thead>
       <tbody>${body}</tbody></table></div>`;
@@ -2304,7 +2300,7 @@ function pgCart() {
       <div class="mk-f"><label for="cNote">Комментарий (необязательно)</label><textarea id="cNote" data-mk-val="c|note">${esc(MK.vals["c|note"] || "")}</textarea></div></div>
     <div class="cs-send"><span class="mk-note">Заявку получит ваш менеджер.</span><button class="mk-btn p cs-wide" data-mk-csend>${ico("send")}Отправить заявку менеджеру</button></div>`;
 }
-const cSt = (o) => o.st === "client" ? ["Отправлена менеджеру", "b-primary"] : O_ST[o.st];
+const cSt = (o) => o.st === "client" ? ["Отправлена менеджеру", "b-primary"] : oSt(o);
 function pgCOrders() {
   const rows = ORDERS.filter((o) => o.client === C_NAME && o.st !== "draft");
   return `${cHero("Мои заявки", "Отправленные заявки и что с ними.")}
@@ -2347,7 +2343,7 @@ function mkModal() {
   const f = (id, l, html) => `<div class="mk-f"><label for="${id}">${l}</label>${html}</div>`;
   const combo = (id, v, ph) => `<button type="button" class="mk-combo" id="${id}">${v ? `<span>${v}</span>` : `<span class="ph">${ph}</span>`}${ico("chevron-down")}</button>`;
   const M = {
-    order: ["Новая заявка", `<div class="mk-hint">ⓘ Заявка уйдёт шефу логистов — он раздаст: лист — логисту №1, профиль, термошайбу и трапецию — логисту №2.</div>
+    order: ["Новая заявка", `<div class="mk-hint">ⓘ Заявка уйдёт шефу логистов.</div>
       ${f("mkfClient", "Клиент", combo("mkfClient", "", "Начни печатать имя клиента"))}
       ${f("mkfNeed", "Нужна к", `<input type="date" id="mkfNeed" value="2026-10-24">`)}
       ${f("mkfNote", "Примечание (необязательно)", `<textarea id="mkfNote"></textarea>`)}
