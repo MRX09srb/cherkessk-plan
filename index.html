@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Golos+Text:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap">
 <style>
-/* Layout: широкая страница; плакат — одна SVG-схема 1700×1090: три колонки (офис → производство → склад и отгрузка), цветные стрелки заявок, внизу полоса графиков.
+/* Layout: широкая страница; плакат — одна SVG-схема 1700×1180: сверху клиенты, ниже три колонки (офис → производство → склад и отгрузка), цветные стрелки заявок, внизу полоса графиков.
    Тема: всегда тёмная на любом устройстве — светлых значений и переключения по теме нет. */
 :root {
   --bg: #0F161B; --surface: #172128; --panel: #131C22; --fg: #E9F0F3; --muted: #9AABB5; --line: #2F3E48;
@@ -544,6 +544,12 @@ footer { color: var(--muted); font-size: 13px }
 .mk-sth .sum strong.dng { color: var(--danger-700) }
 .mk-sth .sum .rem { margin-left: auto }
 .mk-sth .sum .rem strong { color: var(--success-700) }
+/* личный кабинет клиента: продукция по вкладкам, количество и «В заявку»; поля заявки */
+.mk-cat td.a { text-align: right; width: 1% }
+.mk-cat input.mk-n { width: 76px; padding: 4px 6px; font-size: .8125rem }
+.mk input.mk-n.err { border-color: var(--danger-600) }
+.mk-cform { padding: 16px 20px; display: grid; grid-template-columns: 220px 1fr; gap: 16px; align-items: start }
+.mk-hint.ok { background: var(--success-50); color: var(--success-700) }
 .mk-addt { margin-top: 8px; width: 100%; max-width: 320px; padding: 5px 8px; border: 1px dashed var(--border-default); border-radius: 4px; background: transparent; color: var(--fg-tertiary); font-size: 11px }
 .mk-arcf { padding: 12px 16px; display: grid; gap: 8px }
 .mk-search { margin-left: auto; width: 220px; padding: 6px 10px; border: 1px solid var(--border-default); border-radius: 8px; background: var(--bg-surface); color: var(--fg-primary); font: inherit; font-size: .875rem }
@@ -581,7 +587,7 @@ footer { color: var(--muted); font-size: 13px }
   </div>
 
   <div class="poster" id="poster">
-  <svg viewBox="0 0 1700 1090" role="img" aria-labelledby="pt" xmlns="http://www.w3.org/2000/svg">
+  <svg viewBox="0 0 1700 1180" role="img" aria-labelledby="pt" xmlns="http://www.w3.org/2000/svg">
     <title id="pt">Схема завода Черкесск: люди, путь заявки, цеха и графики</title>
     <defs>
       <marker id="mA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="fa"/></marker>
@@ -591,6 +597,17 @@ footer { color: var(--muted); font-size: 13px }
       <marker id="mH" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="fh"/></marker>
     </defs>
 
+    <!-- КЛИЕНТЫ: личный кабинет по ссылке от менеджера → заявка менеджеру -->
+    <g class="hot" data-role="client" role="button" tabindex="0" aria-label="Открыть макет: личный кабинет клиента">
+      <rect class="node" x="120" y="12" width="220" height="64" rx="10"/>
+      <text class="nt" x="134" y="38">Клиенты</text>
+      <text class="ns" x="134" y="60">личный кабинет по ссылке</text>
+      <text class="hint" x="330" y="38" text-anchor="end">макет ›</text>
+    </g>
+    <path class="ln lh" d="M230,76 L230,178" marker-end="url(#mH)"/>
+    <text class="lbl fh" x="238" y="112">заявка</text>
+
+    <g transform="translate(0,90)">
     <!-- колонки -->
     <rect class="pnl" x="20" y="40" width="420" height="820" rx="18"/>
     <rect class="pnl" x="480" y="40" width="820" height="820" rx="18"/>
@@ -840,6 +857,7 @@ footer { color: var(--muted); font-size: 13px }
     <text class="cm" x="1140" y="1046">ночную продукцию принимают утром</text>
     <text class="cm" x="1400" y="976">Д — день · Н — ночь</text>
     <text class="cm" x="1400" y="994">В — выходной · Р — работа</text>
+    </g>
   </svg>
   </div>
 
@@ -894,7 +912,7 @@ const SEC_NOTE = {
   2: "Логист №2 — сверяет склад и сам создаёт заявку на производство"
 };
 const O_ST = {
-  draft: ["Черновик", "b-slate"], logist: ["У логиста", "b-primary"], prod: ["В производстве", "b-warning"],
+  client: ["От клиента", "b-primary"], draft: ["Черновик", "b-slate"], logist: ["У логиста", "b-primary"], prod: ["В производстве", "b-warning"],
   ready: ["Готово к отгрузке", "b-success"], shipped: ["Отгружено", "b-danger"]
 };
 const I_ST = { wait: ["Ждёт логиста", "b-slate"], stock: ["Есть на складе", "b-success"], prod: ["В производстве", "b-warning"] };
@@ -1287,7 +1305,7 @@ const TODO = (t) => `<span class="mk-todo">уточнить: ${t}</span>`;
 function mkSide() {
   const act = MK.view === "order" ? "orders" : MK.view === "lorder" ? "inbox" : MK.view === "corder" ? "fromL1" : MK.view === "kOrder" ? "kOrders" : docNav() || MK.view;
   return `<aside class="mk-side">
-    <div class="mk-logo"><div class="mk-cube">Ч</div><div class="mk-logo-t"><b>Завод Черкесск</b><span>ERP</span></div>
+    <div class="mk-logo"><div class="mk-cube">Ч</div><div class="mk-logo-t"><b>Завод Черкесск</b><span>${MK.role === "client" ? "Личный кабинет" : "ERP"}</span></div>
       <span class="mk-collapse">${ico("chevrons-left")}</span></div>
     <nav class="mk-nav">${R().nav.map((g) => `${g.title ? `<div class="mk-grp">${g.title}</div>` : ""}${g.items.map(([id, l, ic, ro]) =>
       `<button class="mk-item${act === id ? " on" : ""}" data-mk-nav="${id}"><span class="ic">${ico(ic)}</span>${l}${ro ? `<span class="mk-ro">${ico("eye")}Чтение</span>` : ""}</button>`).join("")}`).join("")}</nav>
@@ -1417,11 +1435,13 @@ function pgOrder() {
   let n = 0;
   const body = secs.map((s) => `<tr class="secrow"><td colspan="8">${SEC[s]} · логист №${s}<span>${SEC_NOTE[s]}</span></td></tr>` +
     o.items.filter((x) => x.s === s).map((x) => `<tr><td>${++n}</td><td>${x.prod}</td><td>${x.th}</td><td>${x.size}</td><td>${x.color}</td><td>${x.qty}</td><td class="mk-muted">—</td><td>${badge(I_ST[x.st])}</td></tr>`).join("")).join("");
-  const tools = o.st === "draft"
+  const tools = o.st === "client" ? `<button class="mk-btn">${ico("printer")}Печать</button><button class="mk-btn p" data-mk-noop>${ico("send")}Передать шефу логистов</button>`
+    : o.st === "draft"
     ? `<button class="mk-btn">${ico("pencil")}Редактировать</button><button class="mk-btn p">${ico("send")}Отправить логистам</button>`
     : o.st === "ready" ? `<button class="mk-btn">${ico("printer")}Печать</button><button class="mk-btn p" data-mk-modal="ship" data-mk-pre="${o.no}">${ico("truck")}Создать заявку на отгрузку</button>`
     : `<button class="mk-btn">${ico("printer")}Печать</button>`;
   return `<div class="mk-tools"><button class="mk-btn" data-mk-back>${ico("arrow-left")}Назад</button>${tools}</div>
+    ${o.from === "client" ? `<div class="mk-hint">ⓘ Заявка пришла из личного кабинета клиента ${o.created}.${o.note ? " Комментарий клиента: «" + esc(o.note) + "»" : ""}</div>` : ""}
     <div class="mk-card mk-head">
       <div><span>Заявка</span><b class="mk-no">${o.no}</b></div><div><span>Клиент</span><b>${o.client}</b></div>
       <div><span>Статус</span><b><span class="mk-pill ${O_ST[o.st][1]}">${O_ST[o.st][0]}</span></b></div>
@@ -2091,6 +2111,77 @@ function pgInvoices() {
       <tr class="click"><td class="mk-no">2026/001</td><td>ЗО-2026-001</td><td>Клиент 2</td><td>486 000,00 ₽</td><td>01.10.2026</td><td>Менеджер</td><td><button class="mk-btn sm">Изменить</button></td></tr>
     </tbody></table></div>`;
 }
+/* --- клиент: личный кабинет по ссылке от менеджера — продукция, моя заявка, мои заявки; отправленная заявка уходит менеджеру --- */
+const C_NAME = "Клиент 1";
+const C_TABS = [["sot", "Сотовые листы", "Сотовый лист", "листов"], ["mono", "Монолитные листы", "Монолитный лист", "листов"], ["prof", "Профиль", "Профиль", "шт"], ["thermo", "Термошайбы", "Термошайбы", "шт"]];
+// продукция (пример): позиции, что встречаются в заявках и на складе макета
+const CAT = Object.fromEntries(C_TABS.map(([k, , prod]) => {
+  const m = new Map();
+  ORDERS.flatMap((o) => o.items).concat(STOCK_P).filter((x) => x.prod === prod).forEach((x) => {
+    const key = [x.prod, x.th, x.size, x.color].join("|");
+    if (!m.has(key)) m.set(key, { key, tab: k, prod: x.prod, th: x.th, size: x.size, color: x.color });
+  });
+  return [k, [...m.values()].sort((a, b) => (parseFloat(a.th) || 0) - (parseFloat(b.th) || 0) || a.size.localeCompare(b.size) || a.color.localeCompare(b.color))];
+}));
+const catItem = (key) => Object.values(CAT).flat().find((x) => x.key === key);
+const cUnit = (tab) => C_TABS.find((t) => t[0] === tab)[3];
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const nPos = (n) => n + " " + (n % 10 === 1 && n % 100 !== 11 ? "позиция" : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? "позиции" : "позиций");
+Object.assign(MK, { cart: {}, cTab: "sot", cSent: null, cErr: "" });
+ROLES.client = { label: "Клиент · личный кабинет", user: [C_NAME + " (пример)", "Личный кабинет", "К1"], start: "cat", back: "cat",
+  get nav() { const n = Object.keys(MK.cart).length; return [{ items: [["cat", "Продукция", "layers"], ["cart", "Моя заявка" + (n ? " · " + n : ""), "shopping-cart"], ["corders", "Мои заявки", "clipboard-list"]] }]; },
+  titles: { cat: ["Продукция", "Что производит завод — выберите позиции и добавьте в заявку"], cart: ["Моя заявка", "Проверьте позиции и отправьте менеджеру"],
+    corders: ["Мои заявки", "Отправленные заявки и что с ними"] } };
+function pgCat() {
+  const tab = MK.cTab, unit = cUnit(tab), n = Object.keys(MK.cart).length, noTh = tab === "prof" || tab === "thermo", noSize = tab === "thermo";
+  const pill = ([k, l]) => `<button class="mk-stp${tab === k ? " on" : ""}" data-mk-ctab="${k}">${ico("layers")}<span>${l}</span><em>${CAT[k].length}</em></button>`;
+  const heads = (noTh ? [] : ["Толщина"]).concat(noSize ? [] : ["Размер, мм"], ["Цвет"]);
+  return `${infoSteps("Как сделать заявку", [["Выберите продукцию", "Вкладки сверху: сотовые и монолитные листы, профиль, термошайбы."],
+      ["Укажите количество", "Введите количество у нужной позиции и нажмите «В заявку»."],
+      ["Отправьте заявку", "В разделе «Моя заявка» укажите, к какой дате нужно, и отправьте менеджеру."]])}
+    <div class="mk-tools"><span class="mk-muted">Позиции — пример: взяты из заявок и склада макета.</span>${TODO("вход — только по ссылке или с паролем")}${TODO("цены — показывать?")}${TODO("трапеция — показывать?")}</div>
+    <div class="mk-card mk-st mk-cat"><div class="mk-sttabs">${C_TABS.map(pill).join("")}
+        <span class="tot">В заявке: <b>${nPos(n)}</b>${n ? ` <button class="mk-btn sm" data-mk-nav="cart">${ico("shopping-cart")}Моя заявка</button>` : ""}</span></div>
+      <div class="mk-stt"><table><thead><tr>${heads.map((h) => `<th>${h}</th>`).join("")}<th class="c">Количество</th><th></th></tr></thead><tbody>
+        ${CAT[tab].map((x) => { const inC = MK.cart[x.key], q = inC ? inC.qty : MK.vals["cq|" + x.key] || "", err = MK.cErr === x.key;
+          return `<tr>${noTh ? "" : `<td>${x.th} мм</td>`}${noSize ? "" : `<td>${x.size}</td>`}<td>${x.color}</td>
+          <td class="c"><input class="mk-n${err ? " err" : ""}" type="number" min="1" inputmode="numeric" data-mk-val="cq|${x.key}" value="${q}"${err ? ' placeholder="сколько?"' : ""} aria-label="Количество"> <span class="mk-muted">${unit}</span></td>
+          <td class="a">${inC ? `<button class="mk-btn sm g" data-mk-cadd="${x.key}" title="Изменить количество">${ico("check")}В заявке</button>`
+            : `<button class="mk-btn sm p" data-mk-cadd="${x.key}">${ico("plus")}В заявку</button>`}</td></tr>`; }).join("")}
+      </tbody></table></div></div>`;
+}
+function pgCart() {
+  const keys = Object.keys(MK.cart);
+  if (!keys.length) return `<div class="mk-card mk-empty">${ico("shopping-cart")}В заявке пока ничего нет.<button class="mk-btn p" data-mk-nav="cat">${ico("layers")}Перейти к продукции</button></div>`;
+  return `<div class="mk-sec"><h3>Позиции <small>· ${keys.length}</small></h3><button class="mk-btn" data-mk-nav="cat">${ico("plus")}Добавить ещё</button></div>
+    <div class="mk-card mk-tbl"><table><thead><tr><th>№</th><th>Продукция</th><th>Толщ., мм</th><th>Размер, мм</th><th>Цвет</th><th>Кол-во</th><th></th></tr></thead><tbody>
+      ${keys.map((k, i) => { const x = catItem(k); return `<tr><td>${i + 1}</td><td>${x.prod}</td><td>${x.th}</td><td>${x.size}</td><td>${x.color}</td><td>${fmt(MK.cart[k].qty)} ${cUnit(x.tab)}</td>
+        <td><button class="mk-x0" data-mk-cdel="${k}" title="Убрать из заявки" aria-label="Убрать из заявки">${ico("x")}</button></td></tr>`; }).join("")}
+    </tbody></table></div>
+    <div class="mk-card mk-cform">
+      <div class="mk-f"><label for="cNeed">Нужна к</label><input type="date" id="cNeed" data-mk-val="c|need" value="${MK.vals["c|need"] || "2026-10-24"}"></div>
+      <div class="mk-f"><label for="cNote">Комментарий (необязательно)</label><textarea id="cNote" data-mk-val="c|note">${esc(MK.vals["c|note"] || "")}</textarea></div></div>
+    <div class="mk-card mk-dfoot"><span class="mk-note">Заявку получит ваш менеджер: проверит и передаст шефу логистов.</span>
+      <button class="mk-btn p" data-mk-csend>${ico("send")}Отправить менеджеру</button></div>`;
+}
+const cSt = (o) => o.st === "client" ? ["Отправлена менеджеру", "b-primary"] : O_ST[o.st];
+function pgCOrders() {
+  const rows = ORDERS.filter((o) => o.client === C_NAME && o.st !== "draft");
+  return `${MK.cSent ? `<div class="mk-hint ok">✓ Заявка <b>${MK.cSent}</b> отправлена менеджеру.</div>` : ""}
+    <div class="mk-tools">${TODO("какие заявки и статусы видит клиент")}</div>
+    <div class="mk-card mk-tbl"><table><thead><tr><th>№ заявки</th><th>Отправлена</th><th>Нужна к</th><th>Позиций</th><th>Статус</th></tr></thead><tbody>
+      ${rows.map((o) => `<tr><td class="mk-no">${o.no}</td><td>${o.created}</td><td>${o.need}</td><td>${o.items.length}</td><td><span class="mk-pill ${cSt(o)[1]}">${cSt(o)[0]}</span></td></tr>`).join("")}
+    </tbody></table></div>`;
+}
+// отправка: заявка встаёт первой в «Мои заявки» менеджера со статусом «От клиента»; лист — секция 1, профиль и термошайбы — секция 2
+function cSend() {
+  const need = (document.getElementById("cNeed") || {}).value || "2026-10-24", note = (document.getElementById("cNote") || {}).value || "";
+  const no = "З-2026-" + String(Math.max(...ORDERS.map((o) => +o.no.slice(7))) + 1).padStart(3, "0");
+  ORDERS.unshift({ no, client: C_NAME, created: "12.10.2026", need: need.split("-").reverse().join("."), st: "client", from: "client", note,
+    items: Object.entries(MK.cart).map(([k, c]) => { const x = catItem(k); return it(/лист$/.test(x.prod) ? 1 : 2, x.prod, x.th, x.size, x.color, fmt(c.qty) + " " + cUnit(x.tab), "wait"); }) });
+  MK.cart = {}; Object.keys(MK.vals).filter((k) => /^cq?\|/.test(k)).forEach((k) => delete MK.vals[k]);
+  MK.cSent = no; MK.view = "corders";
+}
 function pgStub() {
   if (MK.view === "keepers") return `<div class="mk-card mk-stub">${ico("users")}<b>Кладовщики</b>
     <p class="mk-note">Как шеф логистов руководит кладовщиками в системе — ещё не обсуждали.</p>${TODO("что здесь нужно")}</div>`;
@@ -2146,6 +2237,7 @@ function mkRender() {
     : MK.role === "cheflog" ? { fromL1: pgFromL1, corder: pgCOrder, plan: pgPlan, ships: pgShips, stock: pgStock }
     : MK.role === "kiosk" ? { kOrders: pgKOrders, kOrder: pgKOrder, kShift: pgKShift }
     : MK.role === "loaderchief" ? { lships: pgLShips } : MK.role === "loaders" ? { noaccess: pgNoAccess } : MK.role === "checker" ? { check: pgCheck }
+    : MK.role === "client" ? { cat: pgCat, cart: pgCart, corders: pgCOrders }
     : MK.role === "keepers" ? Object.assign(MK.area === "raw" ? { accept: pgRaw, loading: pgRaw, stock: pgRaw } : { accept: pgAccept, loading: pgLoading, stock: pgStock }, KDOC_PAGES)
     : { inbox: pgInbox, lorder: pgLOrder, plan: pgPlan, stock: pgStock };
   const page = pages[MK.view] || pgStub;
@@ -2159,7 +2251,7 @@ let lastHot = null;
 function mkOpen(role, from, shop) {
   lastHot = from;
   if (shop) { MK.shop = shop; MK.kPart = "a"; }
-  MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {};
+  MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cTab = "sot"; MK.cSent = null; MK.cErr = "";
   MK.role = role; MK.view = role === "kiosk" && !KSHOPS[MK.shop].orders ? "kShift" : ROLES[role].start; MK.order = null; MK.modal = null; MK.pre = null;
   MK.filter = MK.lgFilter = MK.ppFilter = MK.clFilter = "all";
   document.getElementById("mkTitle").textContent = "Макет · " + (role === "kiosk" ? "Киоск · " + KSHOPS[MK.shop].name : ROLES[role].label);
@@ -2183,7 +2275,7 @@ document.querySelectorAll(".hot[data-role]").forEach((g) => {
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-nav],[data-mk-order],[data-mk-lorder],[data-mk-corder],[data-mk-clfilter],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-lgfilter],[data-mk-ppfilter],[data-mk-seg],[data-mk-mark],[data-mk-send],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-nav],[data-mk-order],[data-mk-lorder],[data-mk-corder],[data-mk-clfilter],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ctab],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-lgfilter],[data-mk-ppfilter],[data-mk-seg],[data-mk-mark],[data-mk-send],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
@@ -2239,6 +2331,14 @@ overlay.addEventListener("click", (e) => {
     if (d.mkSsall) L.forEach((l) => { MK.ssCol[x.no + "|" + l.li] = d.mkSsall === "close"; });
     else { const l = L[+d.mkSsline.split("|")[1]]; MK.ssCol[d.mkSsline] = !ssCollapsed(x, l); }
   }
+  else if (d.mkCtab) { MK.cTab = d.mkCtab; MK.cErr = ""; }
+  else if (d.mkCadd) { // клиент: «В заявку» берёт количество из строки; пустое поле у позиции в заявке — убрать её
+    const inp = t.closest("tr").querySelector("input"), v = Number(inp && inp.value), k = d.mkCadd;
+    if (v > 0) { MK.cart[k] = { tab: catItem(k).tab, qty: v }; MK.cErr = ""; MK.cSent = null; }
+    else if (MK.cart[k]) delete MK.cart[k]; else MK.cErr = k;
+  }
+  else if (d.mkCdel) { delete MK.cart[d.mkCdel]; delete MK.vals["cq|" + d.mkCdel]; }
+  else if (t.hasAttribute("data-mk-csend")) cSend();
   else if (d.mkArcm) MK.arcM = d.mkArcm;
   else if (d.mkArct) MK.arcT = d.mkArct;
   else if (t.hasAttribute("data-mk-back")) { MK.view = R().back; MK.order = null; }
