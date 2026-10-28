@@ -2241,13 +2241,14 @@ function cQty(id, label, items, other, seg) {
       : `<button class="mk-btn sm p" data-mk-cadd="${id}">${ico("plus")}В заявку</button>`}</div>`;
 }
 // сотовый: толщина раскрывает плотности; в строке плотности — размер листа (2100×6000 по умолчанию) и поле количества
-// строка с выбором размера: стандартные размеры из каталога + «Нестандартный размер» (ширина × длина, длина до 12 000 мм)
-function cSzRow(r, label, its) {
+// строка с выбором размера: стандартные размеры из каталога + «Нестандартный размер» (ширина × длина, длина до 12 000 мм);
+// lenOnly — у профиля ширины нет: «Нестандартная длина», только длина
+function cSzRow(r, label, its, lenOnly) {
   const sizes = [...new Set(its.map((x) => x.size))], z = MK.cLenR[r] || sizes[0], cust = z === "custom", got = cartFor(its[0]);
   const le = MK.cLenErr && MK.cLenErr.r === r ? MK.cLenErr.msg : "";
   const num = (k, lab) => `<input class="mk-n${le ? " err" : ""}" type="number" min="1"${k === "l" ? ' max="12000"' : ""} inputmode="numeric" data-${k === "w" ? "wid" : "len"} data-mk-val="c${k}|${r}" value="${MK.vals["c" + k + "|" + r] || ""}" placeholder="${lab.toLowerCase()}" aria-label="${lab}, мм">`;
-  const seg = `<div class="mk-seg cs-seg">${sizes.map((size) => `<button class="${z === size ? "on" : ""}" data-mk-clen="${r}#${size}" title="пример">${size}</button>`).join("")}<button class="${cust ? "on" : ""}" data-mk-clen="${r}#custom">Нестандартный размер</button></div>`
-    + (cust ? `<label class="cs-cl">${num("w", "Ширина")}×${num("l", "Длина")}мм</label>${le ? `<span class="cs-lerr">${le}</span>` : ""}` : "");
+  const seg = `<div class="mk-seg cs-seg">${sizes.map((size) => `<button class="${z === size ? "on" : ""}" data-mk-clen="${r}#${size}" title="пример">${size}</button>`).join("")}<button class="${cust ? "on" : ""}" data-mk-clen="${r}#custom">${lenOnly ? "Нестандартная длина" : "Нестандартный размер"}</button></div>`
+    + (cust ? `<label class="cs-cl">${lenOnly ? num("l", "Длина") : num("w", "Ширина") + "×" + num("l", "Длина")}мм</label>${le ? `<span class="cs-lerr">${le}</span>` : ""}` : "");
   return cust ? cQty(r, label, [Object.assign({}, its[0], { key: "", custom: r, base: its[0].key })], got, seg)
     : cQty(r, label, its.filter((x) => x.size === z), got.filter((x) => x.size !== z), seg);
 }
@@ -2266,14 +2267,15 @@ function cColors(pre, its, attr, anim) {
     return `<div class="cs-c">${cHead(attr, id, cap(c), nTh(byTh(ci).length), inCart(ci), on)}
       ${on ? `<div class="cs-ths${anim === ak ? " cs-anim" : ""}">
         ${byTh(ci).map((th) => { const all = ci.filter((x) => x.th === th);
-          return all[0].tab === "sot" ? cDens(id + "|" + th, th, all, anim) : all[0].tab === "mono" ? cSzRow(id + "|" + th, th + " мм · " + cDen(all[0]), all) : cQty(id + "|" + th, [th + " мм", cDen(all[0])].filter(Boolean).join(" · "), all); }).join("")}</div>` : ""}</div>`; }).join("");
+          return all[0].tab === "sot" ? cDens(id + "|" + th, th, all, anim) : ["mono", "trap"].includes(all[0].tab) ? cSzRow(id + "|" + th, [th + " мм", cDen(all[0])].filter(Boolean).join(" · "), all) : cQty(id + "|" + th, [th + " мм", cDen(all[0])].filter(Boolean).join(" · "), all); }).join("")}</div>` : ""}</div>`; }).join("");
 }
 function cTree(k, anim) {
   const its = CAT[k];
   if (k === "sot") return C_BRANDS.map(([bid, b], i) => { const bi = its.filter((x) => x.brand === b), on = MK.cRow === bid;
     return `<div class="cs-r${i ? " grp" : ""}">${cHead("crow", bid, b, pl(new Set(bi.map((x) => x.color)).size, "цвет", "цвета", "цветов"), inCart(bi), on)}
       ${on ? `<div class="cs-szs${anim === "row" ? " cs-anim" : ""}">${cColors(bid, bi, "ccol", anim)}</div>` : ""}</div>`; }).join("");
-  if (k === "prof" || k === "thermo") return C_COLORS.map((c) => cQty(k + "|" + c, cap(c), its.filter((x) => x.color === c))).join("");
+  if (k === "prof") return C_COLORS.map((c) => cSzRow(k + "|" + c, cap(c), its.filter((x) => x.color === c), true)).join("");
+  if (k === "thermo") return C_COLORS.map((c) => cQty(k + "|" + c, cap(c), its.filter((x) => x.color === c))).join("");
   return cColors(k, its, "crow", anim);
 }
 function pgCat() {
@@ -2282,7 +2284,7 @@ function pgCat() {
     return `<button class="cs-tile${on ? " on" : ""}" data-mk-ccat="${k}" aria-expanded="${on}"><span class="t">${l}${ico("chevron-down")}</span>
       <span class="s">${k === "sot" ? pl(C_BRANDS.length, "марка", "марки", "марок") : pl(C_COLORS.length, "цвет", "цвета", "цветов")}</span>${n ? `<span class="c">${ico("check")}в заявке: ${n}</span>` : ""}</button>`; };
   return `${cHero("Продукция", "Нажмите на вид продукции и выберите: у сотовых листов — марку, цвет и толщину, у монолита и трапеции — цвет и толщину, у профиля и термошайб — цвет. Укажите количество и добавьте в заявку.")}
-    <div class="mk-tools"><span class="mk-muted">Толщины, плотности и размеры — пример.</span>${TODO("толщины, плотности и размеры")}${TODO("нестандартный размер: предел ширины, минимальная длина")}${TODO("цены — показывать?")}</div>
+    <div class="mk-tools"><span class="mk-muted">Толщины, плотности и размеры — пример.</span>${TODO("толщины, плотности и размеры")}${TODO("нестандартный размер: предел ширины, минимальная длина")}${TODO("профиль: предел длины")}${TODO("цены — показывать?")}</div>
     <div class="cs-tiles">${C_TABS.map(tile).join("")}</div>
     ${open ? `<div class="cs-list${anim === "cat" ? " cs-anim" : ""}">${cTree(open, anim)}</div>` : ""}`;
 }
@@ -2497,10 +2499,10 @@ overlay.addEventListener("click", (e) => {
     let any = false; MK.cLenErr = null;
     ins.forEach((i) => { const k = i.dataset.key, v = Number(i.value);
       if (i.dataset.custom) {
-        const r = i.dataset.custom, W = Math.round(Number(row.querySelector("[data-wid]").value)), L = Math.round(Number(row.querySelector("[data-len]").value));
+        const r = i.dataset.custom, wEl = row.querySelector("[data-wid]"), W = wEl ? Math.round(Number(wEl.value)) : 1, L = Math.round(Number(row.querySelector("[data-len]").value));
         if (!(v > 0)) return;
-        if (!(W > 0) || !(L > 0) || L > 12000) { MK.cLenErr = { r, msg: !(W > 0) || !(L > 0) ? "укажите ширину и длину" : "длина не больше 12 000 мм" }; return; }
-        const b = catItem(i.dataset.base), size = W + "×" + L, key = [b.prod, b.th, size, b.color, b.dens].join("|");
+        if (!(W > 0) || !(L > 0) || L > 12000) { MK.cLenErr = { r, msg: !(W > 0) || !(L > 0) ? (wEl ? "укажите ширину и длину" : "укажите длину") : "длина не больше 12 000 мм" }; return; }
+        const b = catItem(i.dataset.base), size = wEl ? W + "×" + L : "длина " + L, key = [b.prod, b.th, size, b.color, b.dens].join("|");
         MK.cart[key] = { tab: b.tab, qty: v, x: Object.assign({}, b, { size, key }) }; delete MK.vals["cq|custom|" + r]; delete MK.vals["cw|" + r]; delete MK.vals["cl|" + r]; any = true;
       } else if (v > 0) { MK.cart[k] = { tab: catItem(k).tab, qty: v }; any = true; } else delete MK.cart[k]; });
     if (any) { MK.cErr = ""; MK.cSent = null; } else if (!had && !MK.cLenErr) MK.cErr = d.mkCadd;
