@@ -555,10 +555,10 @@ footer { color: var(--muted); font-size: 13px }
 .cs-main .cs-in { display: grid; gap: 20px; align-content: start }
 .cs-hero h1 { font: 600 1.75rem var(--font-sans); margin-bottom: 6px }
 .cs-hero p { color: var(--fg-secondary) }
-.cs-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px }
-.cs-tile { display: grid; gap: 4px; padding: 16px 18px; border-radius: 14px; border: 1px solid transparent; background: var(--bg-surface); box-shadow: var(--shadow-sm); text-align: left }
+.cs-tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px }
+.cs-tile { display: grid; gap: 4px; padding: 14px; border-radius: 14px; border: 1px solid transparent; background: var(--bg-surface); box-shadow: var(--shadow-sm); text-align: left }
 .cs-tile:hover { background: var(--bg-sunken) }
-.cs-tile .t { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 1rem; font-weight: 600; color: var(--fg-secondary) }
+.cs-tile .t { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: .875rem; font-weight: 600; color: var(--fg-secondary); white-space: nowrap }
 .cs-tile .t svg.lucide { color: var(--fg-tertiary); transition: transform .2s }
 .cs-tile .s { font-size: .8125rem; color: var(--fg-tertiary) }
 .cs-tile .c, .cs-rh .got { display: inline-flex; align-items: center; gap: 4px; font-size: .8125rem; font-weight: 600; color: var(--success-700) }
