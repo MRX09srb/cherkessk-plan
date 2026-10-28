@@ -2284,7 +2284,6 @@ function pgCat() {
     return `<button class="cs-tile${on ? " on" : ""}" data-mk-ccat="${k}" aria-expanded="${on}"><span class="t">${l}${ico("chevron-down")}</span>
       <span class="s">${k === "sot" ? pl(C_BRANDS.length, "марка", "марки", "марок") : pl(C_COLORS.length, "цвет", "цвета", "цветов")}</span>${n ? `<span class="c">${ico("check")}в заявке: ${n}</span>` : ""}</button>`; };
   return `${cHero("Продукция", "Нажмите на вид продукции и выберите: у сотовых листов — марку, цвет и толщину, у монолита и трапеции — цвет и толщину, у профиля и термошайб — цвет. Укажите количество и добавьте в заявку.")}
-    <div class="mk-tools"><span class="mk-muted">Толщины, плотности и размеры — пример.</span>${TODO("толщины, плотности и размеры")}${TODO("нестандартный размер: предел ширины, минимальная длина")}${TODO("профиль: предел длины")}${TODO("цены — показывать?")}</div>
     <div class="cs-tiles">${C_TABS.map(tile).join("")}</div>
     ${open ? `<div class="cs-list${anim === "cat" ? " cs-anim" : ""}">${cTree(open, anim)}</div>` : ""}`;
 }
