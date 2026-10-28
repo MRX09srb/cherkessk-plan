@@ -586,6 +586,9 @@ footer { color: var(--muted); font-size: 13px }
 .cs-q { display: flex; align-items: center; gap: 8px; font-size: .875rem; color: var(--fg-tertiary) }
 .cs input.mk-n { width: 96px; padding: 6px 8px; font-size: .875rem }
 .cs-anim { animation: csIn .22s ease-out }
+/* строка под курсором подсвечивается; подсветка шире строки на 10px с каждой стороны (тенью — без сдвига разметки) */
+.cs-rh, .cs-sz, .cs-row { border-radius: 8px; transition: background-color 120ms ease, box-shadow 120ms ease }
+.cs-rh:hover, .cs-sz:hover, .cs-row:hover { background: var(--bg-sunken); box-shadow: -10px 0 0 var(--bg-sunken), 10px 0 0 var(--bg-sunken) }
 @keyframes csIn { from { opacity: 0; transform: translateY(-6px) } to { opacity: 1; transform: none } }
 .cs-box { padding: 8px 20px 16px; border-radius: 12px; border: 1px solid var(--border-default); background: var(--bg-surface) }
 .cs-box.mk-empty { padding: 30px }
