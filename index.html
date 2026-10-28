@@ -171,12 +171,6 @@ footer { color: var(--muted); font-size: 13px }
 .b-danger { background: var(--danger-100); color: var(--danger-700) }
 .mk-card { background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: 12px; box-shadow: var(--shadow-panel) }
 .mk-todo { display: inline-flex; align-items: center; gap: 4px; border: 1px dashed var(--warning-500); background: var(--warning-50); color: var(--warning-700); border-radius: 9999px; padding: 1px 9px; font-size: 11px; font-weight: 600; white-space: nowrap }
-.mk-info { padding: 16px 20px; border-radius: 8px; background: color-mix(in oklab, var(--primary-500) 8%, var(--bg-surface)); border: 1px solid color-mix(in oklab, var(--primary-500) 35%, transparent); display: grid; gap: 12px }
-.mk-info-h { display: flex; align-items: center; gap: 10px; font-size: 1.0625rem; font-weight: 700; color: var(--primary-700) }
-.mk-info-h .i { width: 28px; height: 28px; border-radius: 50%; background: var(--primary-600); color: #fff; display: grid; place-items: center; font-size: 14px; font-weight: 700 }
-.mk-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px 16px }
-.mk-step { display: flex; gap: 10px; font-size: .875rem; color: var(--fg-secondary) }
-.mk-step b { width: 22px; height: 22px; border-radius: 50%; background: var(--primary-100); color: var(--primary-700); display: grid; place-items: center; font-size: 12px; flex-shrink: 0 }
 .mk-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px }
 .mk-kpi { padding: 16px }
 .mk-kpi span { display: block; font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--fg-tertiary) }
@@ -371,8 +365,6 @@ footer { color: var(--muted); font-size: 13px }
 .mk-dfoot .mk-note { margin-right: auto }
 .mk-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block }
 /* открытая сменная сводка: блоки по видам в шапке, линии полосами, таблица позиций, сырьё по предприятию */
-.mk-step > div { line-height: 1.45 }
-.mk-step > div > i { display: block; font-style: normal; font-weight: 600; color: var(--fg-primary); margin-bottom: 2px }
 .mk-dcats { padding: 6px 20px 16px; display: flex; flex-wrap: wrap; gap: 12px }
 .mk-dcat { flex: 1 1 260px; padding: 10px 14px; border-radius: 8px; background: var(--bg-sunken); border: 1px solid var(--border-subtle) }
 .mk-dcat > b { display: block; font-size: 11px; font-weight: 700; color: var(--primary-700); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px }
@@ -1280,11 +1272,6 @@ function pgStock() {
   const rows = parts.filter((p) => p.c === tab);
   const tot = tab === "defect" ? `Итого в браке: <b class="dng">${fmt(defs.reduce((s, x) => s + x.qty, 0))} шт</b>` : `Итого: <b>${fmt(rows.reduce((s, p) => s + stAvail(p), 0))} шт</b>`;
   return `${MK.role === "keepers" ? areaSwitch() : ""}
-    ${ed ? infoSteps("Как работать с остатками готовой продукции", [
-      ["Смотрите остатки", "Вся готовая продукция по вкладкам: приход со сменных сводок, расход на отгрузки. Поиск — по клиенту, цвету, толщине, ЗП, СС."],
-      ["Пометьте брак", "Если лист повредился на складе — нажмите ⚠ у партии, укажите количество и причину. Листы уйдут во вкладку «Брак»."],
-      ["Внесите ручной остаток", "Если есть продукция, которая не пришла через сменную сводку (старая, из Excel), — нажмите «Добавить вручную»."],
-      ["Корректируйте остаток", "Ручные партии можно править и удалять. Партии со сменных сводок так не правятся."]]) : ""}
     <div class="mk-tools">${TODO("колонки: структура, плотность, плёнка, скотч, паллета, вес — нужны?")}${TODO("действия: пересорт, порезка — нужны?")}${TODO("кто правит остатки")}${TODO("плёнка — готовая продукция?")}</div>
     <div class="mk-card mk-st"><div class="mk-stbar"><div class="mk-sts">${ico("search")}<input id="stQ" data-mk-stq value="${MK.stQ.replace(/"/g, "&quot;")}" placeholder="Поиск: клиент, ЗП · ЗО · СС · ИН, толщина, цвет…" aria-label="Поиск по остаткам"></div>
         <div class="mk-tools">${ed && tab !== "defect" ? `<button class="mk-btn p" data-mk-noop>${ico("plus")}Добавить вручную</button>` : ""}<button class="mk-btn" data-mk-noop>${ico("file-down")}Экспорт</button><button class="mk-btn" data-mk-noop>${ico("printer")}Печать</button></div></div>
@@ -1405,13 +1392,7 @@ function pgInbox() {
   const nNew = list.filter((o) => st(o) === "new").length;
   const chips = [["all", "Все", list.length], ["new", "Новые", nNew], ["checked", "Проверенные", list.length - nNew]];
   const rows = list.filter((o) => MK.lgFilter === "all" || (MK.lgFilter === "new" ? st(o) === "new" : st(o) !== "new"));
-  const step4 = g === 1 ? "Передайте шефу логистов — он создаст заявку на производство на то, чего нет" : "Чего нет — создайте заявку на производство сами";
-  return `<div class="mk-info"><div class="mk-info-h"><span class="i">i</span>Как работать с заявкой</div><div class="mk-steps">
-      <div class="mk-step"><b>1</b>Шеф логистов раздал вам заявку — откройте: видны только ваши позиции (${g === 1 ? "лист" : "профиль, термошайба, трапеция"})</div>
-      <div class="mk-step"><b>2</b>Сверьте склад: у каждой позиции видно, сколько есть</div>
-      <div class="mk-step"><b>3</b>Отметьте у каждой позиции «Есть» или «Нет»</div>
-      <div class="mk-step"><b>4</b>${step4}</div></div></div>
-    <div class="mk-kpis k3">
+  return `<div class="mk-kpis k3">
       <div class="mk-card mk-kpi"><span>Всего</span><b>${list.length}</b></div>
       <div class="mk-card mk-kpi"><span>Новые</span><b>${nNew}</b></div>
       <div class="mk-card mk-kpi"><span>Проверены</span><b>${list.length - nNew}</b></div></div>
@@ -1476,12 +1457,7 @@ function pgOrders() {
   const cnt = (st) => ORDERS.filter((o) => o.st === st).length;
   const chips = [["all", "Все", ORDERS.length]].concat(Object.entries(O_ST).map(([k, v]) => [k, v[0], cnt(k)]));
   const rows = ORDERS.filter((o) => MK.filter === "all" || o.st === MK.filter);
-  return `<div class="mk-info"><div class="mk-info-h"><span class="i">i</span>Как работает заявка</div><div class="mk-steps">
-      <div class="mk-step"><b>1</b>Создайте заявку: клиент, к какой дате, позиции</div>
-      <div class="mk-step"><b>2</b>Заявка уходит шефу логистов — он раздаёт: лист — логисту №1, профиль, термошайбу и трапецию — логисту №2</div>
-      <div class="mk-step"><b>3</b>Логист сверяет склад; чего нет — уходит в производство</div>
-      <div class="mk-step"><b>4</b>Когда всё готово — создайте заявку на отгрузку</div></div></div>
-    <div class="mk-kpis">
+  return `<div class="mk-kpis">
       <div class="mk-card mk-kpi"><span>Всего</span><b>${ORDERS.length}</b></div>
       <div class="mk-card mk-kpi"><span>У логиста</span><b>${cnt("logist")}</b></div>
       <div class="mk-card mk-kpi"><span>В производстве</span><b>${cnt("prod")}</b></div>
@@ -1603,10 +1579,6 @@ function pgKOrder() {
     <div class="mk-card mk-oph"><div><small>Заявка на производство</small><div class="no">${p.no} ${badge(kOrderSt(p))}</div><div>${p.name}</div></div>
       <div class="facts2"><div><span>Линия</span><b>${p.line} · ${p.sub}</b></div><div><span>Производство</span><b>${p.plan}</b></div><div><span>Готово</span><b>${done}/${its.length}</b></div></div></div>
     ${kBar()}
-    <div class="mk-info"><div class="mk-info-h"><span class="i">i</span>Как работать с заявкой</div><div class="mk-steps">
-      <div class="mk-step"><b>1</b>В конце смены впишите, сколько сделано за смену, и нажмите «Подтвердить»</div>
-      <div class="mk-step"><b>2</b>Когда по позиции сделано всё — нажмите «✓ Готово»</div>
-      <div class="mk-step"><b>3</b>Готовую продукцию принимают кладовщики; ночную — утром</div></div></div>
     <div style="display:grid;gap:10px">${rows}</div>`;
 }
 function pgKShift() {
@@ -1891,11 +1863,6 @@ function pgSSDoc() {
       .map(([l, v, c]) => `<span>${l}<em class="${c || ""}">${fmt(v)}</em></span>`).join("")}</div></div>`;
   }).join("");
   return `${docHead(d, kpis, `<div class="mk-dcats">${cats}</div>`)}
-    ${ro ? "" : infoSteps("Как заполнить сменную сводку", [
-      ["Позиции из киосков", "Позиции и количество приходят из киоска цеха — их внесли бригадиры и операторы. Не хватает позиции — «Добавить позицию»."],
-      ["Внести по факту смены", "Брак и краситель — в строке позиции, отходы — в полосе линии. Цифры из киоска стоят серым — поправьте, если не так."],
-      ["Подтвердить позиции", "Если всё сошлось с тем, что реально произведено, — поставьте галочку «Подтвердить» в каждой строке."],
-      ["Сырьё — у участка сырья", "Расход сырья с линий уходит в сводку участка сырья: там приход, расход и фактический остаток."]])}
     <div class="mk-tools" style="justify-content:space-between"><div class="mk-tools">${TODO("колонки: скотч, плёнка, вес листа — нужны?")}${TODO("виды отходов")}</div>
       <div class="mk-tools"><button class="mk-btn ghost sm" data-mk-ssall="open">Развернуть всё</button><button class="mk-btn ghost sm" data-mk-ssall="close">Свернуть всё</button></div></div>
     ${s.L.map((l) => ssLine(d, l, ro)).join("")}${ssFoot(d)}`;
@@ -1943,11 +1910,6 @@ function pgSSRaw(d, ro) {
   const ent = (id, k, v, lab) => `<input class="mk-vbox" type="number" min="0" id="${id}" data-mk-val="${k}" value="${v === null || v === undefined ? "" : v}" placeholder="-" aria-label="${lab}" ${ro ? "disabled" : ""}>`;
   const box = (v, st) => `<span class="mk-vbox"${st ? ` style="${st}"` : ""}>${v}</span>`;
   return `${docHead(d, [["Приход, кг", fmt(S("inn"))], ["Расход операторов, кг", fmt(S("ops")), "acc"], ["Остаток на конец, кг", fmt(end)]])}
-    ${ro ? "" : infoSteps("Как заполнить сводку сырья", [
-      ["Приход", "Внесите сырьё, которое поступило за смену."],
-      ["Расход операторов", "Приходит сам — из того, что бригадиры и операторы внесли в киосках цехов."],
-      ["Вторичное сырьё", "Расход вторичного сырья по видам за смену."],
-      ["Фактический остаток", "Замер на конец смены. Следующая сводка возьмёт его как остаток на начало."]])}
     <div class="mk-card mk-ent"><div class="mk-ent-h"><div><b>Сырьё по предприятию</b><small>учёт сырья за смену по всему заводу</small>${TODO("виды сырья и откуда приход")}</div>
         <div class="how"><div><strong>Как работает:</strong> остаток на конец смены считается автоматически — <i>начало + приход − расход операторов − расход</i>.</div>
           <div>Фактический остаток — замер кладовщика на конец смены.</div>
@@ -1974,8 +1936,6 @@ function pgSSRaw(d, ro) {
 }
 const ssFoot = (d) => `<div class="mk-card mk-dfoot"><span class="mk-note">${MK.docRO ? "Сводку можно только просматривать — изменения недоступны." : "После сохранения сводка остаётся в журнале и попадает в архив."}</span>
   <button class="mk-btn ghost" data-mk-docback>${ico("arrow-left")}Назад</button>${MK.docRO ? "" : `<button class="mk-btn p" data-mk-dsave="${d.no}">${ico("check")}Сохранить и закрыть</button>`}</div>`;
-const infoSteps = (h, steps) => `<div class="mk-info"><div class="mk-info-h"><span class="i">i</span>${h}</div><div class="mk-steps">${steps.map(([t, s], i) =>
-  `<div class="mk-step"><b>${i + 1}</b><div><i>${t}</i>${s}</div></div>`).join("")}</div></div>`;
 function pgVS() {
   return `${wfBar("vs")}${nowBar("vs")}
     <p class="mk-note">Одна сводка на смену по всему заводу: переработка 1 и 2, грануляторы профильного и плёночного цехов. ${TODO("кто ведёт — предлагаем участок сырья")}</p>
@@ -1988,11 +1948,6 @@ function pgVSDoc() {
   const d = DOCS.vs.find((x) => x.no === MK.doc), ro = MK.docRO, c = vsCalc(d), tab = MK.dTab || "skart";
   const bar = `<div class="mk-dtabs">${VS_TABS.map(([k, l, pt], i) => `${pt && !VS_TABS[i - 1][2] ? `<i class="sep" title="Ручной ввод"></i>` : ""}<button class="${pt ? "man" : ""}${tab === k ? " on" : ""}" data-mk-dtab="${k}"${pt ? ` title="Ручной ввод данных за смену"` : ""}>${pt ? ico("pencil") : ""}${l}</button>`).join("")}</div>`;
   return `${docHead(d, [["Задроблено, кг", fmt(c.sum.drob)], ["Сгранулировано, кг", fmt(c.sum.gran)], ["Помыто, кг", fmt(c.sum.wash)]])}
-    ${ro ? "" : infoSteps("Как заполнить вторичную сводку", [
-      ["«Брак, тех. обрезки» и «Остальное»", "Брак с линий приходит из сменных сводок сам. Побочку — стружку, сметки, плёнку, мешки — внесите вручную."],
-      ["Вкладка «Дробление» → «Вторичные хлопья»", "Внесите, сколько кг задробили. Списывается из брака и приходит в хлопья. У монолита колонка «Мойка, кг»."],
-      ["Вкладка «Гранулирование» → «Вторичные гранулы»", "Внесите, сколько кг награнулировали. Гранулы — во «Вторичные гранулы», обжарки возвращаются в «Брак, тех. обрезки»."],
-      ["Фактический остаток", "«Фактически» следующая сводка возьмёт как «Остаток на начало». Не вписали — возьмёт «Остаток на конец»."]])}
     <div class="mk-tools">${TODO("список сырья")}${TODO("в киоске переработки вносить кг по сырью?")}${TODO("бывает ли обжарка")}${TODO("что моют")}</div>
     ${bar}${tab === "drob" || tab === "gran" ? vsProc(d, c, tab, ro) : vsSec(d, c, tab, ro)}${vsFoot(d)}`;
 }
@@ -2048,11 +2003,6 @@ function pgRSDoc() {
       <tfoot><tr><td class="l">Итого</td><td></td>${[S("st"), S("inn"), S("out"), S("end"), S("fact")].map((v) => `<td>${v ? fmt(v) : "-"}</td>`).join("")}${ro ? "" : "<td></td>"}</tr></tfoot></table></div>`;
   }).join("");
   return `${docHead(d, [["Плёнка, рул", fmt(out("film"))], ["Краситель, кг", fmt(out("paint"))], ["Упаковка, шт", fmt(out("pack"))]])}
-    ${ro ? "" : infoSteps("Как заполнить сводку расходного материала", [
-      ["Приход", "Поступления за смену — новые рулоны плёнки, краситель, скотч, упаковка."],
-      ["Расход", "Что использовали. Краситель списывается сам из сменных сводок — вручную не вводить."],
-      ["Фактически", "Если пересчитали по факту — впишите число. Следующая смена возьмёт его как «остаток на начало»."],
-      ["Новая позиция", "Кнопка «+ Добавить» на карточке — пришёл материал, которого нет в списке."]])}
     <div class="mk-tools">${TODO("список расходников")}${TODO("свойства плёнки: толщина, ширина, вес рулона — нужны?")}</div>
     <div class="mk-dtabs">${MATS.rs.map(([k, l]) => `<button class="${tab === k ? "on" : ""}" data-mk-dtab="${k}">${l}</button>`).join("")}</div>
     ${cards}${MK.docRO ? "" : `<div class="mk-card mk-dfoot"><span class="mk-note">Сохранение зафиксирует приход и расход за смену — следующая сводка стартует с этих остатков.</span>
@@ -2089,10 +2039,7 @@ function pgCIn() {
   const list = cinList(), n = (k) => list.filter((o) => cinSt(o) === k).length;
   const chips = [["all", "Все", list.length], ["new", "Новые", n("new")], ["dealt", "Розданные", n("dealt")]];
   const rows = list.filter((o) => MK.cinFilter === "all" || cinSt(o) === MK.cinFilter);
-  return `${infoSteps("Как раздавать заявки", [["Заявка от менеджера", "Менеджер отправил заявку вам — она здесь, во «Входящих»."],
-      ["Откройте заявку", "Позиции уже разложены: лист — логисту №1, профиль, термошайба и трапеция — логисту №2."],
-      ["Раздайте логистам", "Нажмите «Раздать логистам» — заявка появится у них во «Входящих»."],
-      ["Лист вернётся к вам", "Логист №1 сверит склад и передаст — заявка придёт в «От логиста №1»."]])}
+  return `
     <div class="mk-kpis k3">
       <div class="mk-card mk-kpi"><span>Всего</span><b>${list.length}</b></div>
       <div class="mk-card mk-kpi"><span>Новые</span><b>${n("new")}</b></div>
@@ -2137,12 +2084,7 @@ function pgFromL1() {
   const list = fromL1(), cnt = (k) => list.filter((o) => clInfo(o).k === k).length;
   const chips = [["all", "Все", list.length]].concat(Object.entries(CL_ST).map(([k, v]) => [k, v[0], cnt(k)]));
   const rows = list.filter((o) => MK.clFilter === "all" || clInfo(o).k === MK.clFilter);
-  return `<div class="mk-info"><div class="mk-info-h"><span class="i">i</span>Как работать с листом</div><div class="mk-steps">
-      <div class="mk-step"><b>1</b>Логист №1 проверил склад и передал заявку вам</div>
-      <div class="mk-step"><b>2</b>Откройте заявку — видно, каких позиций листа нет на складе</div>
-      <div class="mk-step"><b>3</b>Создайте заявку на производство на нужную линию</div>
-      <div class="mk-step"><b>4</b>Когда всё готово, менеджер создаёт заявку на отгрузку — вы её одобряете</div></div></div>
-    <div class="mk-kpis">
+  return `<div class="mk-kpis">
       <div class="mk-card mk-kpi"><span>Всего</span><b>${list.length}</b></div>
       <div class="mk-card mk-kpi"><span>Нужна заявка</span><b>${cnt("need")}</b></div>
       <div class="mk-card mk-kpi"><span>Заявка создана</span><b>${cnt("made")}</b></div>
@@ -2343,8 +2285,7 @@ function cSend() {
 // менеджер: «Клиенты» — его клиенты и доступ в кабинет; «Выдать доступ» / «Новый пароль» — окно с логином и паролем
 function pgClients() {
   const rows = [...new Set(ORDERS.map((o) => o.client))].sort((a, b) => a.localeCompare(b, "ru", { numeric: true }));
-  return `${infoSteps("Как клиент попадает в личный кабинет", [["Выдайте доступ", "Нажмите «Выдать доступ» — появятся логин и пароль."],
-      ["Передайте клиенту", "Отправьте клиенту логин и пароль."], ["Клиент заходит на сайт", "Видит продукцию, собирает заявку и отправляет — она придёт вам в «Мои заявки» со статусом «От клиента»."]])}
+  return `
     ${MK.accDone ? `<div class="mk-hint ok">✓ Доступ для ${MK.accDone} выдан — передайте клиенту логин и пароль.</div>` : ""}
     <div class="mk-tools">${TODO("адрес сайта для клиентов")}${TODO("как передавать пароль клиенту")}</div>
     <div class="mk-card mk-tbl"><table><thead><tr><th>Клиент</th><th>Заявок</th><th>Доступ в кабинет</th><th></th></tr></thead><tbody>
