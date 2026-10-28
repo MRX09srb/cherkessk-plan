@@ -583,6 +583,10 @@ footer { color: var(--muted); font-size: 13px }
 .cs-dn .nm { flex: 0 0 110px }
 .cs-dn .cs-q { margin-left: auto }
 .cs-seg button { padding: 4px 10px; font-size: .8125rem }
+.cs-dn { flex-wrap: wrap; row-gap: 6px }
+.cs-cl { display: inline-flex; align-items: center; gap: 6px; font-size: .8125rem; color: var(--fg-tertiary) }
+.cs-cl input.mk-n { width: 84px }
+.cs-lerr { color: var(--danger-700); font-size: .75rem; font-weight: 600 }
 .cs-th .cs-q { gap: 6px }
 .cs-th input.mk-n { width: 80px }
 .cs-q { display: flex; align-items: center; gap: 8px; font-size: .875rem; color: var(--fg-tertiary) }
@@ -2196,7 +2200,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 const pl = (n, a, b, c) => n + " " + (n % 10 === 1 && n % 100 !== 11 ? a : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? b : c);
 const nPos = (n) => pl(n, "позиция", "позиции", "позиций");
 // доступ в кабинет выдаёт менеджер (пример: у клиента 1 уже есть)
-Object.assign(MK, { cart: {}, cOpen: null, cRow: null, cCol: null, cTh: null, cLenR: {}, cAnim: null, cSent: null, cErr: "", cLogged: false, cLoginErr: "", access: { [C_NAME]: { login: "klient1", date: "10.10.2026" } }, accFor: null, accDone: null });
+Object.assign(MK, { cart: {}, cOpen: null, cRow: null, cCol: null, cTh: null, cLenR: {}, cLenErr: null, cAnim: null, cSent: null, cErr: "", cLogged: false, cLoginErr: "", access: { [C_NAME]: { login: "klient1", date: "10.10.2026" } }, accFor: null, accDone: null });
 ROLES.client = { label: "Сайт для клиентов", user: [C_NAME + " (пример)", "", "К1"], start: "cat", back: "cat", nav: [], titles: {} };
 const cLogo = `<div class="cs-logo"><span class="cs-cube">Ч</span><b>Завод Черкесск</b></div>`;
 function cSite(page) {
@@ -2219,18 +2223,20 @@ const cHero = (t, p) => `<section class="cs-hero"><h1>${t}</h1><p>${p}</p></sect
 // Сотовые листы: марка → цвет → толщина; монолит и трапеция: цвет → толщина; профиль и термошайбы: цвет → количество
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const gotMark = `<span class="got">${ico("check")}в заявке</span>`;
-const inCart = (its) => its.some((x) => MK.cart[x.key]);
+const cX = (k) => (MK.cart[k] && MK.cart[k].x) || catItem(k); // позиция заявки: своя длина — из заявки, остальное — из каталога
+const inCart = (its) => its.some((x) => MK.cart[x.key]) || Object.values(MK.cart).some((c) => c.x && its.some((y) => y.prod === c.x.prod && y.th === c.x.th && y.color === c.x.color && y.dens === c.x.dens));
+const cartFor = (b) => Object.keys(MK.cart).map(cX).filter((x) => x.prod === b.prod && x.th === b.th && x.color === b.color && x.dens === b.dens);
 const byTh = (its) => [...new Set(its.map((x) => x.th))];
 const nTh = (n) => pl(n, "толщина", "толщины", "толщин");
 // строка с количеством: у сотового — поля «6 м» и «12 м», у остальных — одно поле; одна кнопка «В заявку» на всю строку
 // seg — у сотового: переключатель размера листа в строке плотности; other — та же плотность другого размера, что уже в заявке
 function cQty(id, label, items, other, seg) {
-  const err = MK.cErr === id;
+  const err = MK.cErr === id, has = items.some((x) => MK.cart[x.key]);
   return `<div class="cs-sz cs-th${seg ? " cs-dn" : ""}"><span class="nm">${label}</span>${seg || ""}${other && other.length ? `<span class="got">${ico("check")}в заявке: ${other.map((x) => x.size).join(", ")}</span>` : ""}
-    ${items.map((x) => { const q = MK.cart[x.key] ? MK.cart[x.key].qty : MK.vals["cq|" + x.key] || "", lab = other ? "" : x.size !== "—" ? x.size : "";
-      return `<label class="cs-q">${lab}<input class="mk-n${err ? " err" : ""}" type="number" min="1" inputmode="numeric" data-key="${x.key}" data-mk-val="cq|${x.key}" value="${q}"${err ? ' placeholder="сколько?"' : ""} aria-label="Количество${lab ? ", " + lab : ""}"></label>`; }).join("")}
+    ${items.map((x) => { const vk = "cq|" + (x.custom ? "custom|" + x.custom : x.key), q = MK.cart[x.key] ? MK.cart[x.key].qty : MK.vals[vk] || "", lab = other ? "" : x.size !== "—" ? x.size : "";
+      return `<label class="cs-q">${lab}<input class="mk-n${err ? " err" : ""}" type="number" min="1" inputmode="numeric" data-key="${x.key}"${x.custom ? ` data-custom="${x.custom}" data-base="${x.base}"` : ""} data-mk-val="${vk}" value="${q}"${err ? ' placeholder="сколько?"' : ""} aria-label="Количество${lab ? ", " + lab : ""}"></label>`; }).join("")}
     <span class="mk-muted">${cUnit(items[0].tab)}</span>
-    ${inCart(items) ? `<button class="mk-btn sm g" data-mk-cadd="${id}" title="Изменить количество">${ico("check")}В заявке</button>`
+    ${has ? `<button class="mk-btn sm g" data-mk-cadd="${id}" title="Изменить количество">${ico("check")}В заявке</button>`
       : `<button class="mk-btn sm p" data-mk-cadd="${id}">${ico("plus")}В заявку</button>`}</div>`;
 }
 // сотовый: толщина раскрывает плотности; в строке плотности — размер листа (2100×6000 по умолчанию) и поле количества
@@ -2238,9 +2244,11 @@ function cDens(id, th, all, anim) {
   const ds = [...new Set(all.map((x) => x.dens))], on = MK.cTh === id;
   return `<div class="cs-c">${cHead("cth", id, th + " мм", pl(ds.length, "плотность", "плотности", "плотностей"), inCart(all), on)}
     ${on ? `<div class="cs-ds${anim === "th" ? " cs-anim" : ""}">${ds.map((d) => { const di = all.filter((x) => x.dens === d);
-      const r = id + "|" + d, z = MK.cLenR[r] || C_SIZES[0];
-      const seg = `<div class="mk-seg cs-seg">${C_SIZES.map((size) => `<button class="${z === size ? "on" : ""}" data-mk-clen="${r}#${size}" title="пример">${size}</button>`).join("")}</div>`;
-      return cQty(r, d + " кг/м²", di.filter((x) => x.size === z), di.filter((x) => x.size !== z && MK.cart[x.key]), seg); }).join("")}</div>` : ""}</div>`;
+      const r = id + "|" + d, z = MK.cLenR[r] || C_SIZES[0], cust = z === "custom", got = cartFor(di[0]), le = MK.cLenErr && MK.cLenErr.r === r ? MK.cLenErr.msg : "";
+      const seg = `<div class="mk-seg cs-seg">${C_SIZES.map((size) => `<button class="${z === size ? "on" : ""}" data-mk-clen="${r}#${size}" title="пример">${size}</button>`).join("")}<button class="${cust ? "on" : ""}" data-mk-clen="${r}#custom">Своя длина</button></div>`
+        + (cust ? `<label class="cs-cl">2100 ×<input class="mk-n${le ? " err" : ""}" type="number" min="1" max="12000" inputmode="numeric" data-len data-mk-val="cl|${r}" value="${MK.vals["cl|" + r] || ""}" aria-label="Длина листа, мм">мм</label>${le ? `<span class="cs-lerr">${le}</span>` : ""}` : "");
+      return cust ? cQty(r, d + " кг/м²", [Object.assign({}, di[0], { key: "", custom: r, base: di[0].key })], got, seg)
+        : cQty(r, d + " кг/м²", di.filter((x) => x.size === z), got.filter((x) => x.size !== z), seg); }).join("")}</div>` : ""}</div>`;
 }
 const cHead = (attr, id, name, right, got, on) => `<button class="cs-rh${attr !== "crow" ? " cs-ch" : ""}${on ? " on" : ""}" data-mk-${attr}="${id}" aria-expanded="${on}"><span class="nm">${name}</span>
   ${got ? gotMark : ""}<span class="mk-muted">${right}</span>${ico("chevron-down")}</button>`;
@@ -2267,14 +2275,14 @@ function pgCat() {
     return `<button class="cs-tile${on ? " on" : ""}" data-mk-ccat="${k}" aria-expanded="${on}"><span class="t">${l}${ico("chevron-down")}</span>
       <span class="s">${k === "sot" ? pl(C_BRANDS.length, "марка", "марки", "марок") : pl(C_COLORS.length, "цвет", "цвета", "цветов")}</span>${n ? `<span class="c">${ico("check")}в заявке: ${n}</span>` : ""}</button>`; };
   return `${cHero("Продукция", "Нажмите на вид продукции и выберите: у сотовых листов — марку, цвет и толщину, у монолита и трапеции — цвет и толщину, у профиля и термошайб — цвет. Укажите количество и добавьте в заявку.")}
-    <div class="mk-tools"><span class="mk-muted">Толщины, плотности и размеры — пример.</span>${TODO("толщины, плотности и размеры")}${TODO("цены — показывать?")}</div>
+    <div class="mk-tools"><span class="mk-muted">Толщины, плотности и размеры — пример.</span>${TODO("толщины, плотности и размеры")}${TODO("минимальная своя длина")}${TODO("цены — показывать?")}</div>
     <div class="cs-tiles">${C_TABS.map(tile).join("")}</div>
     ${open ? `<div class="cs-list${anim === "cat" ? " cs-anim" : ""}">${cTree(open, anim)}</div>` : ""}`;
 }
 function pgCart() {
   const keys = Object.keys(MK.cart), head = cHero("Моя заявка", "Проверьте позиции, укажите, к какой дате нужно, и отправьте менеджеру.");
   if (!keys.length) return head + `<div class="cs-box mk-empty">${ico("shopping-cart")}В заявке пока ничего нет.<button class="mk-btn p" data-mk-nav="cat">${ico("layers")}Перейти к продукции</button></div>`;
-  return `${head}<div class="cs-box">${keys.map((k) => { const x = catItem(k);
+  return `${head}<div class="cs-box">${keys.map((k) => { const x = cX(k);
       return `<div class="cs-row"><div class="nm"><b>${cName(x)}</b><span>${cSub(x)}</span></div><b>${fmt(MK.cart[k].qty)} ${cUnit(x.tab)}</b>
         <button class="mk-x0" data-mk-cdel="${k}" title="Убрать из заявки" aria-label="Убрать из заявки">${ico("x")}</button></div>`; }).join("")}
       <button class="mk-btn ghost" data-mk-nav="cat">${ico("plus")}Добавить ещё</button></div>
@@ -2297,7 +2305,7 @@ function cSend() {
   const need = (document.getElementById("cNeed") || {}).value || "2026-10-24", note = (document.getElementById("cNote") || {}).value || "";
   const no = "З-2026-" + String(Math.max(...ORDERS.map((o) => +o.no.slice(7))) + 1).padStart(3, "0");
   ORDERS.unshift({ no, client: C_NAME, created: "12.10.2026", need: need.split("-").reverse().join("."), st: "client", from: "client", note,
-    items: Object.entries(MK.cart).map(([k, c]) => { const x = catItem(k); return it(/лист/.test(x.prod) ? 1 : 2, x.prod, x.th, [x.size, cDen(x)].filter(Boolean).join(" · "), x.color, fmt(c.qty) + " " + cUnit(x.tab), "wait"); }) });
+    items: Object.entries(MK.cart).map(([k, c]) => { const x = cX(k); return it(/лист/.test(x.prod) ? 1 : 2, x.prod, x.th, [x.size, cDen(x)].filter(Boolean).join(" · "), x.color, fmt(c.qty) + " " + cUnit(x.tab), "wait"); }) });
   MK.cart = {}; Object.keys(MK.vals).filter((k) => /^cq?\|/.test(k)).forEach((k) => delete MK.vals[k]);
   MK.cSent = no; MK.view = "corders";
 }
@@ -2392,7 +2400,7 @@ let lastHot = null;
 function mkOpen(role, from, shop) {
   lastHot = from;
   if (shop) { MK.shop = shop; MK.kPart = "a"; }
-  MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cOpen = null; MK.cRow = null; MK.cCol = null; MK.cTh = null; MK.cLenR = {}; MK.cSent = null; MK.cErr = ""; MK.cLogged = false; MK.cLoginErr = ""; MK.accDone = null;
+  MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cOpen = null; MK.cRow = null; MK.cCol = null; MK.cTh = null; MK.cLenR = {}; MK.cLenErr = null; MK.cSent = null; MK.cErr = ""; MK.cLogged = false; MK.cLoginErr = ""; MK.accDone = null;
   MK.role = role; MK.view = role === "kiosk" && !KSHOPS[MK.shop].orders ? "kShift" : ROLES[role].start; MK.order = null; MK.modal = null; MK.pre = null;
   MK.filter = MK.lgFilter = MK.ppFilter = MK.clFilter = MK.cinFilter = "all";
   document.getElementById("mkTitle").textContent = "Макет · " + (role === "kiosk" ? "Киоск · " + KSHOPS[MK.shop].name : ROLES[role].label);
@@ -2475,13 +2483,20 @@ overlay.addEventListener("click", (e) => {
   else if (d.mkCcat) { MK.cOpen = MK.cOpen === d.mkCcat ? null : d.mkCcat; MK.cRow = MK.cCol = MK.cTh = null; MK.cAnim = "cat"; MK.cErr = ""; }
   else if (d.mkCrow) { MK.cRow = MK.cRow === d.mkCrow ? null : d.mkCrow; MK.cCol = MK.cTh = null; MK.cAnim = "row"; MK.cErr = ""; }
   else if (d.mkCcol) { MK.cCol = MK.cCol === d.mkCcol ? null : d.mkCcol; MK.cTh = null; MK.cAnim = "col"; MK.cErr = ""; }
-  else if (d.mkClen) { const [r, z] = d.mkClen.split("#"); MK.cLenR[r] = z; MK.cErr = ""; }
+  else if (d.mkClen) { const [r, z] = d.mkClen.split("#"); MK.cLenR[r] = z; MK.cErr = ""; MK.cLenErr = null; }
   else if (d.mkCth) { MK.cTh = MK.cTh === d.mkCth ? null : d.mkCth; MK.cAnim = "th"; MK.cErr = ""; }
-  else if (d.mkCadd) { // клиент: «В заявку» берёт количество из полей строки (у сотового — 6 м и 12 м); пустое поле у позиции в заявке — убрать её
-    const ins = [...t.closest(".cs-sz").querySelectorAll("input")], had = ins.some((i) => MK.cart[i.dataset.key]);
-    let any = false;
-    ins.forEach((i) => { const k = i.dataset.key, v = Number(i.value); if (v > 0) { MK.cart[k] = { tab: catItem(k).tab, qty: v }; any = true; } else delete MK.cart[k]; });
-    if (any) { MK.cErr = ""; MK.cSent = null; } else if (!had) MK.cErr = d.mkCadd;
+  else if (d.mkCadd) { // клиент: «В заявку» берёт количество из строки; пустое поле у позиции в заявке — убрать её; своя длина — ширина 2100, длина до 12 000 мм
+    const row = t.closest(".cs-sz"), ins = [...row.querySelectorAll("input[data-key]")], had = ins.some((i) => MK.cart[i.dataset.key]);
+    let any = false; MK.cLenErr = null;
+    ins.forEach((i) => { const k = i.dataset.key, v = Number(i.value);
+      if (i.dataset.custom) {
+        const r = i.dataset.custom, L = Math.round(Number(row.querySelector("[data-len]").value));
+        if (!(v > 0)) return;
+        if (!(L > 0) || L > 12000) { MK.cLenErr = { r, msg: L > 12000 ? "не больше 12 000 мм" : "укажите длину" }; return; }
+        const b = catItem(i.dataset.base), size = "2100×" + L, key = [b.prod, b.th, size, b.color, b.dens].join("|");
+        MK.cart[key] = { tab: b.tab, qty: v, x: Object.assign({}, b, { size, key }) }; delete MK.vals["cq|custom|" + r]; delete MK.vals["cl|" + r]; any = true;
+      } else if (v > 0) { MK.cart[k] = { tab: catItem(k).tab, qty: v }; any = true; } else delete MK.cart[k]; });
+    if (any) { MK.cErr = ""; MK.cSent = null; } else if (!had && !MK.cLenErr) MK.cErr = d.mkCadd;
   }
   else if (d.mkCdel) { delete MK.cart[d.mkCdel]; delete MK.vals["cq|" + d.mkCdel]; }
   else if (t.hasAttribute("data-mk-csend")) cSend();
