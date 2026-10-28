@@ -240,6 +240,23 @@ footer { color: var(--muted); font-size: 13px }
 .mk-modal.sm { width: 380px } /* окно PIN — как в киоске образца */
 .mk-modal.md { width: 480px }
 .mk-modal.lg { width: 720px }
+.mk-nb { margin-left: auto; min-width: 20px; padding: 1px 7px; border-radius: 9999px; background: var(--primary-600); color: #fff; font-style: normal; font-size: 11px; font-weight: 700; text-align: center }
+.mk-stk { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: .8125rem; white-space: nowrap }
+.mk-stk::before { content: ""; width: 8px; height: 8px; border-radius: 50% }
+.mk-stk.ok { color: var(--success-700) } .mk-stk.ok::before { background: var(--success-500) }
+.mk-stk.part { color: var(--warning-700) } .mk-stk.part::before { background: var(--warning-500) }
+.mk-stk.none { color: var(--danger-700) } .mk-stk.none::before { background: var(--danger-500) }
+.mk-chk td { white-space: normal; vertical-align: middle }
+.mk-chk td small { white-space: nowrap }
+.mk-dl { display: flex; align-items: center; gap: 6px; flex-wrap: wrap }
+.mk-chip.sm { padding: 3px 9px; font-size: .75rem }
+.mk-dl input[type=date] { padding: 3px 6px; font: inherit; font-size: .75rem; color: var(--fg-primary); background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: 6px; color-scheme: dark }
+.mk-dl .ok { color: var(--success-700); font-size: .8125rem; white-space: nowrap } .mk-dl .need { color: var(--warning-700); font-size: .75rem; font-weight: 600; white-space: nowrap }
+.mk-prog { display: flex; align-items: center; gap: 10px; font-size: .8125rem; color: var(--fg-secondary) }
+.mk-prog i { width: 160px; height: 6px; border-radius: 9999px; background: var(--bg-sunken); overflow: hidden; display: block }
+.mk-prog b { display: block; height: 100%; background: var(--primary-600); transition: width 200ms ease }
+.mk-seg button:disabled { opacity: .35; cursor: not-allowed }
+.mk-assign { display: inline-flex; align-items: center; gap: 6px; margin-left: auto }
 .mk-modal.lg .mk-modal-b { max-height: 70vh; overflow: auto }
 .mk-f2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px }
 .mk-kpi small { display: block; font-size: .75rem; color: var(--fg-tertiary); margin-top: 2px }
@@ -994,13 +1011,14 @@ const SEC_NOTE = {
   2: "Логист №2 — сверяет склад и сам создаёт заявку на производство"
 };
 const O_ST = {
-  client: ["От клиента", "b-primary"], draft: ["Черновик", "b-slate"], chef: ["У логистов", "b-primary"], prod: ["В производстве", "b-warning"],
+  client: ["От клиента", "b-primary"], draft: ["Черновик", "b-slate"], chef: ["У логистов", "b-primary"], checked: ["Сроки получены", "b-primary"], prod: ["В производстве", "b-warning"],
   ready: ["Готово к отгрузке", "b-success"], shipped: ["Отгружено", "b-danger"]
 };
 // менеджер работает с шефом логистов; пока заявка не ушла в производство, у менеджера она «У логистов» (как шеф делит её со своими логистами — его дело)
 const oKey = (o) => (o.st === "logist" ? "chef" : o.st);
 const oSt = (o) => O_ST[oKey(o)];
 const I_ST = { wait: ["У логистов", "b-slate"], stock: ["Есть на складе", "b-success"], prod: ["В производстве", "b-warning"] };
+const iSt = (x) => (x.dl ? [x.from ? `Со склада ${fmt(x.from)} + ${fmt(qN(x) - x.from)} до ${x.dl}` : `Производство · до ${x.dl}`, "b-warning"] : I_ST[x.st]);
 const it = (s, prod, th, size, color, qty, st, pp) => ({ s, prod, th, size, color, qty, st, pp });
 const ORDERS = [
   { no: "З-2026-009", client: "МВ-Строй", created: "12.10.2026", need: "26.10.2026", st: "chef", items: [
@@ -1079,11 +1097,11 @@ const ROLES = {
       { title: "Склад", items: [["stock", "Остатки готовой продукции", "boxes"]] }].concat(NAV_END),
     titles: LG_TITLES(2) }
 };
-ROLES.cheflog = { label: "Шеф логистов", grp: 1, user: ["Шеф логистов (пример)", "Шеф логистов и кладовщиков", "ШЛ"], start: "cin", back: "fromL1",
+ROLES.cheflog = { label: "Шеф логистов", grp: 1, user: ["Шеф логистов (пример)", "Шеф логистов и кладовщиков", "ШЛ"], start: "cin", back: "cin",
   nav: [{ items: [["chat", "Сообщения", "message-square"]] },
-    { title: "Производство", items: [["cin", "Входящие заявки", "inbox"], ["fromL1", "От логиста №1", "corner-down-left"], ["plan", "Заявки на производство", "factory"], ["ships", "Заявки на отгрузку", "square-kanban"]] },
+    { title: "Производство", items: [["cin", "Входящие заявки", "inbox", false, () => inTodo()], ["plan", "Заявки на производство", "factory"], ["ships", "Заявки на отгрузку", "square-kanban"]] },
     { title: "Склад", items: [["keepers", "Кладовщики", "users"], ["stock", "Остатки готовой продукции", "boxes"]] }].concat(NAV_END),
-  titles: { cin: ["Входящие заявки", "От менеджеров — раздаю логистам"], fromL1: ["От логиста №1", "Лист — чего нет на складе"], plan: ["Заявки на производство", "Лист — сотовый и монолитный"],
+  titles: { cin: ["Входящие заявки", "От менеджеров — сверка со складом и сроки"], plan: ["Заявки на производство", "Лист — сотовый и монолитный"],
     ships: ["Заявки на отгрузку", "Одобряю — дальше берут грузчики и кладовщики"], keepers: ["Кладовщики", ""],
     stock: ["Остатки готовой продукции", ""], chat: ["Сообщения", ""], dicts: ["Справочник", ""] } };
 const MK = { role: "manager", view: "orders", order: null, filter: "all", seg: "active", modal: null, pre: null,
@@ -1373,7 +1391,7 @@ function pgRaw() {
 }
 const R = () => ROLES[MK.role];
 const TITLE = () => {
-  const v = MK.view === "order" ? "orders" : MK.view === "lorder" ? "inbox" : MK.view === "corder" ? "fromL1" : MK.view === "cinorder" ? "cin" : MK.view === "kOrder" ? "kOrders" : docNav() || MK.view;
+  const v = MK.view === "order" ? "orders" : MK.view === "lorder" ? "inbox" : MK.view === "sverka" ? "cin" : MK.view === "kOrder" ? "kOrders" : docNav() || MK.view;
   const T = typeof R().titles === "function" ? R().titles() : R().titles;
   return T[v] || [R().label, ""];
 };
@@ -1382,12 +1400,12 @@ const badge = (st, dot = true) => `<span class="mk-badge ${st[1]}">${dot ? "<i><
 const TODO = (t) => `<span class="mk-todo">уточнить: ${t}</span>`;
 
 function mkSide() {
-  const act = MK.view === "order" ? "orders" : MK.view === "lorder" ? "inbox" : MK.view === "corder" ? "fromL1" : MK.view === "cinorder" ? "cin" : MK.view === "kOrder" ? "kOrders" : docNav() || MK.view;
+  const act = MK.view === "order" ? "orders" : MK.view === "lorder" ? "inbox" : MK.view === "sverka" ? "cin" : MK.view === "kOrder" ? "kOrders" : docNav() || MK.view;
   return `<aside class="mk-side">
     <div class="mk-logo"><div class="mk-cube">Ч</div><div class="mk-logo-t"><b>Завод Черкесск</b><span>ERP</span></div>
       <span class="mk-collapse">${ico("chevrons-left")}</span></div>
-    <nav class="mk-nav">${R().nav.map((g) => `${g.title ? `<div class="mk-grp">${g.title}</div>` : ""}${g.items.map(([id, l, ic, ro]) =>
-      `<button class="mk-item${act === id ? " on" : ""}" data-mk-nav="${id}"><span class="ic">${ico(ic)}</span>${l}${ro ? `<span class="mk-ro">${ico("eye")}Чтение</span>` : ""}</button>`).join("")}`).join("")}</nav>
+    <nav class="mk-nav">${R().nav.map((g) => `${g.title ? `<div class="mk-grp">${g.title}</div>` : ""}${g.items.map(([id, l, ic, ro, nb]) =>
+      `<button class="mk-item${act === id ? " on" : ""}" data-mk-nav="${id}"><span class="ic">${ico(ic)}</span>${l}${nb && nb() ? `<em class="mk-nb">${nb()}</em>` : ""}${ro ? `<span class="mk-ro">${ico("eye")}Чтение</span>` : ""}</button>`).join("")}`).join("")}</nav>
     ${MK.role === "kiosk" ? "" : `<button class="mk-exit" type="button">${ico("log-out")}Выход</button>`}
   </aside>`;
 }
@@ -1400,7 +1418,7 @@ function mkTop() {
 
 /* --- логисты --- */
 const mineIdx = (o, g) => o.items.map((x, i) => [x, i]).filter(([x]) => x.s === g);
-const dealtOut = (o) => !["draft", "client", "chef"].includes(o.st); // заявки, которые шеф логистов уже раздал
+const dealtOut = (o) => !["draft", "client", "chef", "checked"].includes(o.st); // заявки, которые шеф логистов уже раздал
 const inboxOf = (g) => ORDERS.filter((o) => dealtOut(o) && o.items.some((x) => x.s === g));
 function have(x, i) {
   const n = parseInt(x.qty, 10), u = x.qty.replace(/^\d+\s*/, "");
@@ -1500,7 +1518,7 @@ function pgOrders() {
 }
 function pgOrder() {
   const o = ORDERS.find((x) => x.no === MK.order);
-  const body = o.items.map((x, i) => `<tr><td>${i + 1}</td><td>${x.prod}</td><td>${x.th}</td><td>${x.size}</td><td>${x.color}</td><td>${x.qty}</td><td class="mk-muted">—</td><td>${badge(I_ST[x.st])}</td></tr>`).join("");
+  const body = o.items.map((x, i) => `<tr><td>${i + 1}</td><td>${x.prod}</td><td>${x.th}</td><td>${x.size}</td><td>${x.color}</td><td>${x.qty}</td><td class="mk-muted">—</td><td>${badge(iSt(x))}</td></tr>`).join("");
   const tools = o.st === "client" ? `<button class="mk-btn">${ico("printer")}Печать</button><button class="mk-btn p" data-mk-tochef="${o.no}">${ico("send")}Передать шефу логистов</button>`
     : o.st === "draft"
     ? `<button class="mk-btn">${ico("pencil")}Редактировать</button><button class="mk-btn p" data-mk-tochef="${o.no}">${ico("send")}Отправить шефу логистов</button>`
@@ -1508,11 +1526,12 @@ function pgOrder() {
     : `<button class="mk-btn">${ico("printer")}Печать</button>`;
   return `<div class="mk-tools"><button class="mk-btn" data-mk-back>${ico("arrow-left")}Назад</button>${tools}</div>
     ${o.from === "client" ? `<div class="mk-hint">ⓘ Заявка пришла из личного кабинета клиента ${o.created}.${o.note ? " Комментарий клиента: «" + esc(o.note) + "»" : ""}</div>` : ""}
+    ${o.st === "checked" ? `<div class="mk-hint ok">✓ Шеф логистов сверил заявку ${o.sentAt}: со склада ${o.items.filter((x) => !x.dl).length}, в производство ${o.items.filter((x) => x.dl).length}. ${o.ready ? "Вся заявка будет готова до " + o.ready + "." : "Всё есть на складе."}</div>` : ""}
     <div class="mk-card mk-head">
       <div><span>Заявка</span><b class="mk-no">${o.no}</b></div><div><span>Клиент</span><b>${o.client}</b></div>
       <div><span>Статус</span><b><span class="mk-pill ${oSt(o)[1]}">${oSt(o)[0]}</span></b></div>
       <div><span>Позиций</span><b>${o.items.length}</b></div><div><span>Создана</span><b>${o.created}</b></div>
-      <div><span>Нужна к</span><b>${o.need}</b></div></div>
+      <div><span>Нужна к</span><b>${o.need}</b></div>${o.st === "checked" ? `<div><span>Будет готова</span><b>${o.ready ? "до " + o.ready : "всё со склада"}</b></div>` : ""}</div>
     <div class="mk-sec"><h3>Позиции заявки <small>· ${o.items.length}</small></h3>${TODO("поля позиции и статусы позиций")}</div>
     <div class="mk-card mk-tbl dense"><table><thead><tr><th>№</th><th>Продукция</th><th>Толщ., мм</th><th>Размер, мм</th><th>Цвет</th><th>Кол-во</th><th>Примечание</th><th>Что с позицией</th></tr></thead>
       <tbody>${body}</tbody></table></div>`;
@@ -2053,96 +2072,90 @@ function pgArc() {
 }
 const KDOC_PAGES = { ss: pgSS, ssDoc: pgSSDoc, vs: pgVS, vsDoc: pgVSDoc, rs: pgRS, rsDoc: pgRSDoc, arc: pgArc };
 
-/* --- шеф логистов: входящие заявки от менеджеров — раздаёт: лист — логисту №1, профиль, термошайбу и трапецию — логисту №2 --- */
-Object.assign(MK, { dealt: {}, cinFilter: "all" });
-const CIN_ST = { new: ["Новая", "b-primary"], dealt: ["Роздана логистам", "b-success"] };
-const cinList = () => ORDERS.filter((o) => o.st === "chef" || MK.dealt[o.no]);
-const cinSt = (o) => (o.st === "chef" ? "new" : "dealt");
-const nOf = (o, g) => o.items.filter((x) => x.s === g).length;
+/* --- шеф логистов: входящие заявки от менеджеров — сверка со складом. Сверяет сам или передаёт логисту; логист возвращает шефу;
+   менеджеру со сроками отправляет только шеф (юзер 29.10). Склад подставляется сам из остатков, решение — само, срок — кнопками или датой --- */
+const TODAY = "12.10.2026";
+const dNum = (d) => { const [dd, mm, yy] = d.split("."); return Date.UTC(+yy, +mm - 1, +dd); };
+const addD = (n) => { const t = new Date(dNum(TODAY) + n * 86400000); return String(t.getUTCDate()).padStart(2, "0") + "." + String(t.getUTCMonth() + 1).padStart(2, "0"); };
+const LG_NAME = { chef: "Шеф логистов (пример)", l1: "Логист №1 (пример)", l2: "Логист №2 (пример)" };
+const ord = (no) => ORDERS.find((o) => o.no === no);
+const qN = (x) => parseInt(String(x.qty).replace(/\s/g, ""), 10), qU = (x) => String(x.qty).replace(/^[\d\s]+/, "");
+// на складе — из остатков готовой продукции: партии той же продукции, толщины, размера и цвета
+// (в остатках макета марок и плотностей нет — позиция с маркой со склада не подбирается)
+const onStock = (x) => STOCK_P.filter((p) => x.prod === p.prod && p.th === x.th && x.size.startsWith(p.size) && p.color === x.color).reduce((s, p) => s + stAvail(p), 0);
+// решение по позиции подставляется само: хватает — со склада, часть — частично, нет — в производство
+function chkOf(o) {
+  if (!o.chk) o.chk = o.items.map((x) => { const have = onStock(x), need = qN(x); return { have, dec: have >= need ? "stock" : have > 0 ? "part" : "prod", dl: null }; });
+  return o.chk;
+}
+const needDl = (c) => c.dec !== "stock";
+const chkDone = (o) => chkOf(o).filter((c) => !needDl(c) || c.dl).length;
+const readyBy = (o) => chkOf(o).filter((c) => needDl(c) && c.dl).map((c) => c.dl).sort((a, b) => dNum(a + ".2026") - dNum(b + ".2026")).pop() || null;
+// где заявка у шефа: новая / у логиста / вернул логист / отправлена менеджеру
+const inSt = (o) => (["checked", "prod", "ready", "shipped"].includes(o.st) ? "sent" : !["chef", "logist"].includes(o.st) ? null : o.ret ? "ret" : o.at ? "lg" : "new");
+const IN_ST = { new: ["Новая — сверить", "b-primary"], lg: ["У логиста — сверяет", "b-slate"], ret: ["Вернул логист — проверить", "b-warning"], sent: ["Отправлена менеджеру", "b-success"] };
+const IN_F = [["todo", "Ждут меня"], ["lg", "У логистов"], ["sent", "Отправлены менеджеру"], ["all", "Все"]];
+const inList = () => ORDERS.filter((o) => inSt(o));
+const inF = (o, f) => f === "all" || (f === "todo" ? ["new", "ret"].includes(inSt(o)) : inSt(o) === f);
+const inTodo = () => inList().filter((o) => inF(o, "todo")).length;
+Object.assign(MK, { inF: "todo" });
+// пример: З-2026-007 сверяет логист №2, З-2026-006 вернул логист №1 со сроками
+(() => { ord("З-2026-007").at = "l2"; const o6 = ord("З-2026-006"); o6.ret = "l1"; chkOf(o6).forEach((c, i) => { if (needDl(c)) c.dl = addD(i % 2 ? 7 : 3); }); })();
 function pgCIn() {
-  const list = cinList(), n = (k) => list.filter((o) => cinSt(o) === k).length;
-  const chips = [["all", "Все", list.length], ["new", "Новые", n("new")], ["dealt", "Розданные", n("dealt")]];
-  const rows = list.filter((o) => MK.cinFilter === "all" || cinSt(o) === MK.cinFilter);
-  return `
-    <div class="mk-kpis k3">
-      <div class="mk-card mk-kpi"><span>Всего</span><b>${list.length}</b></div>
-      <div class="mk-card mk-kpi"><span>Новые</span><b>${n("new")}</b></div>
-      <div class="mk-card mk-kpi"><span>Розданы</span><b>${n("dealt")}</b></div></div>
-    <div class="mk-sec"><h3>Входящие заявки <small>· ${list.length}</small></h3></div>
-    <div class="mk-chips">${chips.map(([k, l, c]) => `<button class="mk-chip${MK.cinFilter === k ? " on" : ""}" data-mk-cinfilter="${k}">${l}<em>${c}</em></button>`).join("")}
-      ${TODO("статусы")}</div>
-    <div class="mk-card mk-tbl"><table><thead><tr><th>№ заявки</th><th>Менеджер</th><th>Клиент</th><th>Нужна к</th><th>Логисту №1</th><th>Логисту №2</th><th>Статус</th></tr></thead><tbody>
-      ${rows.length ? rows.map((o) => `<tr class="click" data-mk-cinorder="${o.no}"><td class="mk-no">${o.no}</td><td>Менеджер (пример)</td><td>${o.client}</td><td>${o.need}</td>
-        <td>${nOf(o, 1) || "—"}</td><td>${nOf(o, 2) || "—"}</td><td><span class="mk-pill ${CIN_ST[cinSt(o)][1]}">${CIN_ST[cinSt(o)][0]}</span></td></tr>`).join("")
-        : `<tr><td colspan="7" class="mk-muted">Заявок нет.</td></tr>`}
-    </tbody></table></div>`;
-}
-function pgCInOrder() {
-  const o = ORDERS.find((x) => x.no === MK.order), k = cinSt(o);
-  const sec = (g) => { const mine = mineIdx(o, g); return mine.length ? `<tr class="secrow"><td colspan="6">Логисту №${g} · ${SEC[g]}<span>${SEC_NOTE[g]}</span></td></tr>` +
-    mine.map(([x], i) => `<tr><td>${i + 1}</td><td>${x.prod}</td><td>${x.th}</td><td>${x.size}</td><td>${x.color}</td><td>${x.qty}</td></tr>`).join("") : ""; };
-  return `<div class="mk-tools"><button class="mk-btn" data-mk-nav="cin">${ico("arrow-left")}Назад</button><button class="mk-btn">${ico("printer")}Печать</button>
-      ${k === "new" ? `<button class="mk-btn p" data-mk-deal="${o.no}">${ico("send")}Раздать логистам</button>` : `<span class="mk-badge b-success"><i></i>Роздана логистам</span>`}</div>
-    ${o.from === "client" ? `<div class="mk-hint">ⓘ Заявка пришла от клиента с сайта, менеджер её проверил.</div>` : ""}
-    <div class="mk-card mk-head">
-      <div><span>Заявка</span><b class="mk-no">${o.no}</b></div><div><span>Клиент</span><b>${o.client}</b></div>
-      <div><span>Менеджер</span><b>Менеджер (пример)</b></div><div><span>Нужна к</span><b>${o.need}</b></div>
-      <div><span>Логисту №1</span><b>${nOf(o, 1)} поз.</b></div><div><span>Логисту №2</span><b>${nOf(o, 2)} поз.</b></div>
-      <div><span>Статус</span><b><span class="mk-pill ${CIN_ST[k][1]}">${CIN_ST[k][0]}</span></b></div></div>
-    <div class="mk-sec"><h3>Позиции <small>· ${o.items.length}</small></h3>${TODO("может ли шеф переложить позицию другому логисту")}</div>
-    <div class="mk-card mk-tbl dense"><table><thead><tr><th>№</th><th>Продукция</th><th>Толщ., мм</th><th>Размер, мм</th><th>Цвет</th><th>Кол-во</th></tr></thead>
-      <tbody>${sec(1)}${sec(2)}</tbody></table></div>`;
-}
-
-/* --- шеф логистов: заявки, переданные логистом №1 --- */
-function clInfo(o) {
-  const mine = mineIdx(o, 1);
-  const no = mine.filter(([x, i]) => x.st === "prod" || (x.st === "wait" && MK.marks[o.no + ":" + i] === "no"));
-  const needPP = no.filter(([x]) => !x.pp).length;
-  const k = !no.length ? "all" : needPP ? "need" : "made";
-  return { mine, no: no.length, needPP, k };
-}
-const CL_ST = { need: ["Нужна заявка на производство", "b-warning"], made: ["Заявка на производство создана", "b-success"], all: ["Всё на складе", "b-slate"] };
-const fromL1 = () => ORDERS.filter((o) => dealtOut(o) && o.items.some((x) => x.s === 1) && lgState(o, 1).k === "passed");
-function pgFromL1() {
-  const list = fromL1(), cnt = (k) => list.filter((o) => clInfo(o).k === k).length;
-  const chips = [["all", "Все", list.length]].concat(Object.entries(CL_ST).map(([k, v]) => [k, v[0], cnt(k)]));
-  const rows = list.filter((o) => MK.clFilter === "all" || clInfo(o).k === MK.clFilter);
+  const list = inList(), rows = list.filter((o) => inF(o, MK.inF)), n = (s) => list.filter((o) => inSt(o) === s).length;
   return `<div class="mk-kpis">
-      <div class="mk-card mk-kpi"><span>Всего</span><b>${list.length}</b></div>
-      <div class="mk-card mk-kpi"><span>Нужна заявка</span><b>${cnt("need")}</b></div>
-      <div class="mk-card mk-kpi"><span>Заявка создана</span><b>${cnt("made")}</b></div>
-      <div class="mk-card mk-kpi"><span>Всё на складе</span><b>${cnt("all")}</b></div></div>
-    <div class="mk-sec"><h3>От логиста №1 <small>· ${list.length}</small></h3></div>
-    <div class="mk-chips">${chips.map(([k, l, n]) => `<button class="mk-chip${MK.clFilter === k ? " on" : ""}" data-mk-clfilter="${k}">${l}<em>${n}</em></button>`).join("")}
-      ${TODO("статусы")}</div>
-    <div class="mk-card mk-tbl"><table><thead><tr><th>№ заявки</th><th>Клиент</th><th>Нужна к</th><th>Позиций листа</th><th>Не хватает</th><th>Статус</th></tr></thead><tbody>
-      ${rows.map((o) => { const c = clInfo(o); return `<tr class="click" data-mk-corder="${o.no}"><td class="mk-no">${o.no}</td><td>${o.client}</td><td>${o.need}</td>
-        <td>${c.mine.length}</td><td class="${c.no ? "mk-short" : ""}">${c.no}</td><td><span class="mk-pill ${CL_ST[c.k][1]}">${CL_ST[c.k][0]}</span></td></tr>`; }).join("")}
-    </tbody></table></div>
-    <p class="mk-note">Здесь только заявки, которые логист №1 уже передал. Пока он их проверяет, их здесь нет.</p>`;
+      <div class="mk-card mk-kpi"><span>Новые</span><b>${n("new")}</b></div>
+      <div class="mk-card mk-kpi"><span>Вернули логисты</span><b>${n("ret")}</b></div>
+      <div class="mk-card mk-kpi"><span>У логистов</span><b>${n("lg")}</b></div>
+      <div class="mk-card mk-kpi"><span>Отправлены менеджеру</span><b>${n("sent")}</b></div></div>
+    <div class="mk-sec"><h3>Входящие заявки <small>· ${list.length}</small></h3></div>
+    <div class="mk-chips">${IN_F.map(([k, l]) => `<button class="mk-chip${MK.inF === k ? " on" : ""}" data-mk-inf="${k}">${l}<em>${list.filter((o) => inF(o, k)).length}</em></button>`).join("")}${TODO("статусы")}</div>
+    <div class="mk-card mk-tbl"><table><thead><tr><th>№ заявки</th><th>Клиент</th><th>Менеджер</th><th>Нужна к</th><th>Позиций</th><th>Кто сверяет</th><th>Статус</th><th></th></tr></thead><tbody>
+      ${rows.length ? rows.map((o) => { const s = inSt(o), who = o.ret || o.at || (s === "new" ? "" : o.chkBy || "chef");
+        return `<tr class="click" data-mk-chk="${o.no}"><td class="mk-no">${o.no}</td><td>${o.client}</td><td>Менеджер (пример)</td><td>${o.need}</td><td>${o.items.length}</td>
+          <td>${who ? LG_NAME[who] : `<span class="mk-muted">-</span>`}</td><td><span class="mk-pill ${IN_ST[s][1]}">${IN_ST[s][0]}</span></td>
+          <td class="r">${s === "new" || s === "ret" ? `<button class="mk-btn sm p" data-mk-chk="${o.no}">${ico("list-checks")}${s === "new" ? "Сверить" : "Проверить"}</button>` : ""}</td></tr>`; }).join("")
+        : `<tr><td colspan="8" class="mk-muted">Заявок нет.</td></tr>`}
+    </tbody></table></div>`;
 }
-function pgCOrder() {
-  const o = ORDERS.find((x) => x.no === MK.order), c = clInfo(o), other = o.items.length - c.mine.length;
-  const lgMark = (x, i) => {
-    const v = x.st === "stock" ? "yes" : x.st === "prod" ? "no" : MK.marks[o.no + ":" + i];
-    return v === "yes" ? badge(["Есть", "b-success"]) : badge(["Нет", "b-warning"]);
-  };
-  const ppCell = (x, i) => x.pp ? `<span class="mk-tag">${x.pp}</span>`
-    : (x.st === "wait" && MK.marks[o.no + ":" + i] === "no") ? `<span class="mk-badge b-warning"><i></i>нужна</span>` : `<span class="mk-muted">—</span>`;
-  return `<div class="mk-tools"><button class="mk-btn" data-mk-back>${ico("arrow-left")}Назад</button><button class="mk-btn">${ico("printer")}Печать</button>
-      ${c.needPP ? `<button class="mk-btn p" data-mk-modal="pp" data-mk-pre="${o.no}">${ico("factory")}Создать заявку на производство</button>` : ""}</div>
+const decText = (c, x) => (c.dec === "stock" ? "Со склада" : c.dec === "part" ? `Со склада ${fmt(c.have)} + ${fmt(qN(x) - c.have)} в производство` : "В производство");
+function pgSverka() {
+  const o = ord(MK.order), s = inSt(o), ro = s === "sent" || s === "lg", ch = chkOf(o), done = chkDone(o), all = o.items.length, rb = readyBy(o);
+  const n = (k) => ch.filter((c) => c.dec === k).length, can = done === all;
+  const stockCell = (c, x) => { const need = qN(x), u = qU(x);
+    return c.have >= need ? `<span class="mk-stk ok">${fmt(c.have)} ${u} — хватает</span>` : c.have > 0 ? `<span class="mk-stk part">${fmt(c.have)} ${u} — не хватает ${fmt(need - c.have)}</span>` : `<span class="mk-stk none">нет на складе</span>`; };
+  const decCell = (c, i, x) => (ro ? decText(c, x) : `<div class="mk-seg cs-seg">${[["stock", "Со склада"], ["part", "Частично"], ["prod", "В производство"]].map(([k, l]) =>
+    `<button class="${c.dec === k ? "on" : ""}" data-mk-dec="${o.no}|${i}|${k}"${k === "part" && !(c.have > 0 && c.have < qN(x)) ? " disabled" : ""}>${l}</button>`).join("")}</div>`);
+  const dlCell = (c, i) => (!needDl(c) ? `<span class="mk-muted">-</span>` : ro ? `до ${c.dl}` : `<div class="mk-dl">${[[2, "2 дня"], [3, "3 дня"], [7, "Неделя"]].map(([d, l]) =>
+    `<button class="mk-chip sm${c.dl === addD(d) ? " on" : ""}" data-mk-dl="${o.no}|${i}|${d}">${l}</button>`).join("")}<input type="date" data-mk-cdate="${o.no}|${i}" aria-label="Срок — дата">
+      ${c.dl ? `<b class="ok">→ до ${c.dl}</b>` : `<span class="need">выберите срок</span>`}</div>`);
+  const hint = s === "ret" ? `<div class="mk-hint">ⓘ Сверил ${LG_NAME[o.ret]} — проверьте решения и сроки и отправьте менеджеру.</div>`
+    : s === "lg" ? `<div class="mk-hint">ⓘ Заявку сверяет ${LG_NAME[o.at]} — вернёт вам, когда закончит.</div>`
+    : s === "sent" ? `<div class="mk-hint ok">✓ Отправлена менеджеру${o.sentAt ? " " + o.sentAt : ""}. ${rb ? "Вся заявка будет готова до " + rb + "." : "Всё есть на складе."}</div>` : "";
+  return `<div class="mk-tools"><button class="mk-btn" data-mk-nav="cin">${ico("arrow-left")}Назад</button><button class="mk-btn">${ico("printer")}Печать</button>
+      ${s === "new" ? `<span class="mk-assign"><span class="mk-muted">Передать на сверку:</span><button class="mk-btn sm" data-mk-assign="${o.no}|l1">${ico("user")}Логисту №1</button><button class="mk-btn sm" data-mk-assign="${o.no}|l2">${ico("user")}Логисту №2</button></span>`
+        : s === "lg" ? `<button class="mk-btn" style="margin-left:auto" data-mk-assign="${o.no}|">${ico("undo-2")}Забрать себе</button>` : ""}</div>
+    ${o.from === "client" ? `<div class="mk-hint">ⓘ Заявка пришла от клиента с сайта, менеджер её проверил.</div>` : ""}${hint}
     <div class="mk-card mk-head">
       <div><span>Заявка</span><b class="mk-no">${o.no}</b></div><div><span>Клиент</span><b>${o.client}</b></div>
-      <div><span>Менеджер</span><b>Менеджер (пример)</b></div><div><span>Нужна к</span><b>${o.need}</b></div>
-      <div><span>Позиций листа</span><b>${c.mine.length}</b></div><div><span>Не хватает</span><b>${c.no}</b></div>
-      <div><span>Статус</span><b><span class="mk-pill ${CL_ST[c.k][1]}">${CL_ST[c.k][0]}</span></b></div></div>
-    ${other ? `<div class="mk-plashka">${ico("info")}В заявке ещё ${other} поз. — профиль, термошайба, трапеция; их ведёт логист №2.</div>` : ""}
-    <div class="mk-sec"><h3>Позиции листа <small>· ${c.mine.length}</small></h3></div>
-    <div class="mk-card mk-tbl dense"><table><thead><tr><th>№</th><th>Продукция</th><th>Толщ., мм</th><th>Размер, мм</th><th>Цвет</th><th>Нужно</th><th>На складе</th><th>Логист №1</th><th>Заявка на производство</th></tr></thead><tbody>
-      ${c.mine.map(([x, i], n) => { const h = have(x, i); return `<tr><td>${n + 1}</td><td>${x.prod}</td><td>${x.th}</td><td>${x.size}</td><td>${x.color}</td><td>${x.qty}</td>
-        <td class="${h.ok ? "mk-okq" : "mk-short"}">${h.txt}</td><td>${lgMark(x, i)}</td><td>${ppCell(x, i)}</td></tr>`; }).join("")}
-    </tbody></table></div>`;
+      <div><span>Менеджер</span><b>Менеджер (пример)</b></div><div><span>Нужна к</span><b>${o.need}</b></div><div><span>Позиций</span><b>${all}</b></div>
+      <div><span>${s === "new" ? "Сверяет" : "Сверил"}</span><b>${LG_NAME[o.ret || o.at || o.chkBy || "chef"]}</b></div>
+      <div><span>Статус</span><b><span class="mk-pill ${IN_ST[s][1]}">${IN_ST[s][0]}</span></b></div></div>
+    <div class="mk-sec"><h3>Сверка со складом</h3><div class="mk-prog"><span>проверено ${done} из ${all}</span><i><b style="width:${Math.round((done / all) * 100)}%"></b></i></div></div>
+    <div class="mk-card mk-tbl dense mk-chk"><table><thead><tr><th>№</th><th>Продукция</th><th>Нужно</th><th>На складе</th><th>Решение</th><th>Срок</th></tr></thead><tbody>
+      ${o.items.map((x, i) => { const c = ch[i]; return `<tr><td>${i + 1}</td><td><b>${x.prod}</b><small>${[x.th !== "—" ? x.th + " мм" : "", x.size !== "—" ? x.size : "", x.color].filter(Boolean).join(" · ")}</small></td>
+        <td>${x.qty}</td><td>${stockCell(c, x)}</td><td>${decCell(c, i, x)}</td><td>${dlCell(c, i)}</td></tr>`; }).join("")}
+    </tbody></table></div>
+    <div class="mk-card mk-dfoot"><span class="mk-note">Со склада: ${n("stock")} · частично: ${n("part")} · в производство: ${n("prod")}${rb ? ` · <b>вся заявка будет готова до ${rb}</b>` : n("stock") === all ? " · <b>всё есть на складе</b>" : ""}</span>
+      ${!ro && n("part") + n("prod") ? `<button class="mk-btn" data-mk-modal="pp" data-mk-pre="${o.no}">${ico("factory")}Создать заявки на производство (${n("part") + n("prod")})</button>` : ""}
+      ${!ro ? `<button class="mk-btn p" data-mk-chksend="${o.no}"${can ? "" : ' disabled title="Поставьте срок у всех позиций, которых нет на складе"'}>${ico("send")}Отправить менеджеру со сроками</button>` : ""}</div>`;
+}
+// отправка менеджеру: у позиций — «со склада» или срок, у заявки — когда будет готова вся
+function chkSend(o) {
+  const ch = chkOf(o);
+  o.items.forEach((x, i) => { const c = ch[i]; x.st = c.dec === "stock" ? "stock" : "prod"; x.dl = needDl(c) ? c.dl : null; x.from = c.dec === "part" ? c.have : null; });
+  Object.assign(o, { st: "checked", chkBy: o.ret || "chef", ready: readyBy(o), sentAt: TODAY });
+  delete o.at;
 }
 
 function pgShips() {
@@ -2342,7 +2355,6 @@ const CL_STAT = { active: ["Активный", "b-success"], prospect: ["Пот�
 Object.assign(MK, { clTab: "active", clQ: "", clEdit: null });
 const clOrders = (c) => ORDERS.filter((o) => o.client === c);
 const clStatus = (c) => (clOrders(c).length ? "active" : "prospect"); // в примере: с заявками — активный, без — потенциальный
-const dNum = (d) => { const [dd, mm, yy] = d.split("."); return Date.UTC(+yy, +mm - 1, +dd); };
 // активность — по последней заявке от «сегодня» макета (12.10.2026), как в образце: сегодня / N дн. назад / N мес. назад
 function clAct(c) {
   const os = clOrders(c);
@@ -2449,7 +2461,7 @@ function mkModal() {
 }
 function mkRender() {
   const pages = MK.role === "manager" ? { orders: pgOrders, order: pgOrder, ships: pgShips, invoices: pgInvoices, clients: pgClients }
-    : MK.role === "cheflog" ? { cin: pgCIn, cinorder: pgCInOrder, fromL1: pgFromL1, corder: pgCOrder, plan: pgPlan, ships: pgShips, stock: pgStock }
+    : MK.role === "cheflog" ? { cin: pgCIn, sverka: pgSverka, plan: pgPlan, ships: pgShips, stock: pgStock }
     : MK.role === "kiosk" ? { kOrders: pgKOrders, kOrder: pgKOrder, kShift: pgKShift }
     : MK.role === "loaderchief" ? { lships: pgLShips } : MK.role === "loaders" ? { noaccess: pgNoAccess } : MK.role === "checker" ? { check: pgCheck }
     : MK.role === "client" ? { cat: pgCat, cart: pgCart, corders: pgCOrders }
@@ -2469,7 +2481,7 @@ function mkOpen(role, from, shop) {
   if (shop) { MK.shop = shop; MK.kPart = "a"; }
   MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cOpen = null; MK.cRow = null; MK.cCol = null; MK.cTh = null; MK.cLenR = {}; MK.cLenErr = null; MK.cSent = null; MK.cErr = ""; MK.cLogged = false; MK.cLoginErr = ""; MK.accDone = null;
   MK.role = role; MK.view = role === "kiosk" && !KSHOPS[MK.shop].orders ? "kShift" : ROLES[role].start; MK.order = null; MK.modal = null; MK.pre = null;
-  MK.filter = MK.lgFilter = MK.ppFilter = MK.clFilter = MK.cinFilter = "all"; MK.clTab = "active"; MK.clQ = "";
+  MK.filter = MK.lgFilter = MK.ppFilter = MK.clFilter = "all"; MK.inF = "todo"; MK.clTab = "active"; MK.clQ = "";
   document.getElementById("mkTitle").textContent = "Макет · " + (role === "kiosk" ? "Киоск · " + KSHOPS[MK.shop].name : ROLES[role].label);
   overlay.setAttribute("aria-label", "Макет рабочего места: " + ROLES[role].label);
   overlay.hidden = false; document.body.style.overflow = "hidden"; mkRender(); fitMk(); document.getElementById("mkClose").focus();
@@ -2491,7 +2503,7 @@ document.querySelectorAll(".hot[data-role]").forEach((g) => {
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-nav],[data-mk-order],[data-mk-lorder],[data-mk-corder],[data-mk-clfilter],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-cinorder],[data-mk-cinfilter],[data-mk-deal],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-lgfilter],[data-mk-ppfilter],[data-mk-seg],[data-mk-mark],[data-mk-send],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-nav],[data-mk-order],[data-mk-lorder],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-chk],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-lgfilter],[data-mk-ppfilter],[data-mk-seg],[data-mk-mark],[data-mk-send],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
@@ -2502,8 +2514,6 @@ overlay.addEventListener("click", (e) => {
   else if (d.mkNav) { MK.view = d.mkNav; MK.order = null; }
   else if (d.mkOrder) { MK.view = "order"; MK.order = d.mkOrder; }
   else if (d.mkLorder) { MK.view = "lorder"; MK.order = d.mkLorder; }
-  else if (d.mkCorder) { MK.view = "corder"; MK.order = d.mkCorder; }
-  else if (d.mkClfilter) MK.clFilter = d.mkClfilter;
   else if (d.mkApprove) MK.approved[d.mkApprove] = true;
   else if (d.mkArea) { MK.area = d.mkArea; MK.stTab = null; }
   else if (d.mkSttab) MK.stTab = d.mkSttab;
@@ -2568,9 +2578,12 @@ overlay.addEventListener("click", (e) => {
   else if (d.mkCdel) { delete MK.cart[d.mkCdel]; delete MK.vals["cq|" + d.mkCdel]; }
   else if (t.hasAttribute("data-mk-csend")) cSend();
   else if (d.mkTochef) ORDERS.find((o) => o.no === d.mkTochef).st = "chef";
-  else if (d.mkCinorder) { MK.view = "cinorder"; MK.order = d.mkCinorder; }
-  else if (d.mkCinfilter) MK.cinFilter = d.mkCinfilter;
-  else if (d.mkDeal) { ORDERS.find((o) => o.no === d.mkDeal).st = "logist"; MK.dealt[d.mkDeal] = true; }
+  else if (d.mkChk) { MK.view = "sverka"; MK.order = d.mkChk; }
+  else if (d.mkInf) MK.inF = d.mkInf;
+  else if (d.mkDec) { const [no, i, k] = d.mkDec.split("|"), c = chkOf(ord(no))[+i]; c.dec = k; if (k === "stock") c.dl = null; }
+  else if (d.mkDl) { const [no, i, n] = d.mkDl.split("|"); chkOf(ord(no))[+i].dl = addD(+n); }
+  else if (t.hasAttribute("data-mk-assign")) { const [no, who] = d.mkAssign.split("|"), o = ord(no); if (who) { o.at = who; MK.view = "cin"; } else delete o.at; }
+  else if (d.mkChksend) chkSend(ord(d.mkChksend));
   else if (t.hasAttribute("data-mk-clogin")) { // в макете подходят любые логин и пароль
     const l = (document.getElementById("cLogin") || {}).value || "", p = (document.getElementById("cPass") || {}).value || "";
     if (l.trim() && p) Object.assign(MK, { cLogged: true, cLoginErr: "", view: "cat" }); else MK.cLoginErr = "Введите логин и пароль";
@@ -2596,6 +2609,8 @@ overlay.addEventListener("click", (e) => {
 });
 // пересчёт в машине: значение сохраняется при выходе из поля; фокус возвращаем туда, куда перешёл человек
 overlay.addEventListener("change", (e) => {
+  const cd = e.target.dataset && e.target.dataset.mkCdate; // срок сверки датой
+  if (cd) { const [no, i] = cd.split("|"), val = e.target.value; if (val) { const [, m, dd] = val.split("-"); chkOf(ord(no))[+i].dl = dd + "." + m; } mkRender(); return; }
   const v = e.target.dataset && e.target.dataset.mkVal;
   if (v) { MK.vals[v] = e.target.value; return; } // поля киоска: только запоминаем, без перерисовки (иначе не сработает нажатие «Подтвердить»)
   const k = e.target.dataset && e.target.dataset.mkCount;
