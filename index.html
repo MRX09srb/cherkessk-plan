@@ -126,7 +126,7 @@ footer { color: var(--muted); font-size: 13px }
 .mk-logo-t { flex: 1; min-width: 0 }
 .mk-logo-t b { display: block; font-size: 1.0625rem; font-weight: 700; color: var(--primary-800); letter-spacing: -0.01em }
 .mk-logo-t span { display: block; font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; color: var(--fg-tertiary) }
-.mk-collapse { width: 28px; height: 24px; border-radius: 4px; background: var(--bg-sunken); border: 1px solid var(--border-subtle); display: grid; place-items: center; color: var(--fg-secondary) }
+.mk-collapse { width: 28px; height: 24px; padding: 0; flex-shrink: 0; border-radius: 4px; background: var(--bg-sunken); border: 1px solid var(--border-subtle); display: grid; place-items: center; color: var(--fg-secondary) }
 .mk-collapse svg.lucide { width: 14px; height: 14px }
 .mk-nav { padding: 8px 8px 12px; display: flex; flex-direction: column; gap: 2px; flex: 1 }
 .mk-grp { padding: 6px 12px 4px; margin-top: 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--fg-tertiary) }
@@ -137,6 +137,23 @@ footer { color: var(--muted); font-size: 13px }
 .mk-item.on .ic { background: var(--primary-100) }
 .mk-exit { margin: 0 8px 10px; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 10px; background: var(--bg-canvas); border: 1px solid var(--border-subtle); border-radius: 8px; font-size: .75rem; font-weight: 500; color: var(--fg-secondary) }
 .mk-exit svg.lucide { width: 12px; height: 12px }
+/* свёрнутое меню: 64 px, знак и кнопка столбиком, только значки, вместо названий групп — линия; ширина меняется плавно */
+.mk-side { overflow: hidden }
+.mk-side.c { width: 64px }
+.mk-side.anim { animation: mkSideE 160ms ease }
+.mk-side.c.anim { animation-name: mkSideC }
+@keyframes mkSideC { from { width: 292px } }
+@keyframes mkSideE { from { width: 64px } }
+.mk-item { white-space: nowrap }
+.mk-item .ic { position: relative }
+.mk-side.c .mk-logo { flex-direction: column; justify-content: center; gap: 8px; padding: 10px 8px }
+.mk-side.c .mk-cube { width: 32px; height: 32px; font-size: 16px }
+.mk-side.c .mk-item { justify-content: center; gap: 0; padding: 6px 0 }
+.mk-sep { height: 1px; margin: 16px 8px 6px; background: var(--border-subtle) }
+.mk-dot { position: absolute; top: -1px; right: -1px; width: 9px; height: 9px; border-radius: 50%; background: var(--primary-600); border: 2px solid var(--bg-surface) }
+.mk-side.c .mk-exit { width: 32px; height: 32px; padding: 0; margin: 0 auto 10px }
+.mk-side.c .mk-exit svg.lucide { width: 14px; height: 14px }
+@media (prefers-reduced-motion: reduce) { .mk-side.anim { animation: none } }
 
 /* шапка (TopBar.jsx) */
 .mk-col { flex: 1; min-width: 0; display: flex; flex-direction: column }
@@ -1401,14 +1418,22 @@ const ico = (n) => `<i data-lucide="${n}"></i>`;
 const badge = (st, dot = true) => `<span class="mk-badge ${st[1]}">${dot ? "<i></i>" : ""}${st[0]}</span>`;
 const TODO = (t) => `<span class="mk-todo">уточнить: ${t}</span>`;
 
+// свёрнуто / раскрыто — общее для всех макетов и запоминается в браузере, как в образце
+const SIDE_KEY = "chk.sidebar.collapsed";
+MK.sideC = (() => { try { return localStorage.getItem(SIDE_KEY) === "1"; } catch (e) { return false; } })();
+MK.sideAnim = false;
 function mkSide() {
   const act = MK.view === "order" ? "orders" : MK.view === "lorder" ? "inbox" : MK.view === "sverka" ? "cin" : MK.view === "kOrder" ? "kOrders" : docNav() || MK.view;
-  return `<aside class="mk-side">
-    <div class="mk-logo"><div class="mk-cube">Ч</div><div class="mk-logo-t"><b>Завод Черкесск</b><span>ERP</span></div>
-      <span class="mk-collapse">${ico("chevrons-left")}</span></div>
-    <nav class="mk-nav">${R().nav.map((g) => `${g.title ? `<div class="mk-grp">${g.title}</div>` : ""}${g.items.map(([id, l, ic, ro, nb]) =>
-      `<button class="mk-item${act === id ? " on" : ""}" data-mk-nav="${id}"><span class="ic">${ico(ic)}</span>${l}${nb && nb() ? `<em class="mk-nb">${nb()}</em>` : ""}${ro ? `<span class="mk-ro">${ico("eye")}Чтение</span>` : ""}</button>`).join("")}`).join("")}</nav>
-    ${MK.role === "kiosk" ? "" : `<button class="mk-exit" type="button">${ico("log-out")}Выход</button>`}
+  const c = MK.sideC, tip = c ? "Развернуть меню" : "Свернуть меню", anim = MK.sideAnim; MK.sideAnim = false; // плавно — только сразу после нажатия
+  // свёрнутое: у пункта только значок, название — в подсказке; число ждущих — точка на значке; вместо названия группы — линия
+  const item = ([id, l, ic, ro, nb]) => c
+    ? `<button class="mk-item${act === id ? " on" : ""}" data-mk-nav="${id}" title="${l}" aria-label="${l}"><span class="ic">${ico(ic)}${nb && nb() ? `<i class="mk-dot"></i>` : ""}</span></button>`
+    : `<button class="mk-item${act === id ? " on" : ""}" data-mk-nav="${id}"><span class="ic">${ico(ic)}</span>${l}${nb && nb() ? `<em class="mk-nb">${nb()}</em>` : ""}${ro ? `<span class="mk-ro">${ico("eye")}Чтение</span>` : ""}</button>`;
+  return `<aside class="mk-side${c ? " c" : ""}${anim ? " anim" : ""}">
+    <div class="mk-logo"><div class="mk-cube">Ч</div>${c ? "" : `<div class="mk-logo-t"><b>Завод Черкесск</b><span>ERP</span></div>`}
+      <button class="mk-collapse" type="button" data-mk-side title="${tip}" aria-label="${tip}" aria-expanded="${!c}">${ico(c ? "chevrons-right" : "chevrons-left")}</button></div>
+    <nav class="mk-nav">${R().nav.map((g, gi) => `${g.title ? (c ? (gi ? `<div class="mk-sep"></div>` : "") : `<div class="mk-grp">${g.title}</div>`) : ""}${g.items.map(item).join("")}`).join("")}</nav>
+    ${MK.role === "kiosk" ? "" : `<button class="mk-exit" type="button"${c ? ' title="Выход" aria-label="Выход"' : ""}>${ico("log-out")}${c ? "" : "Выход"}</button>`}
   </aside>`;
 }
 function mkTop() {
@@ -2511,7 +2536,7 @@ document.querySelectorAll(".hot[data-role]").forEach((g) => {
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-nav],[data-mk-order],[data-mk-lorder],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-chk],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-ppl2],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-lgfilter],[data-mk-ppfilter],[data-mk-seg],[data-mk-mark],[data-mk-send],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-lorder],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-chk],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-ppl2],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-lgfilter],[data-mk-ppfilter],[data-mk-seg],[data-mk-mark],[data-mk-send],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
@@ -2597,6 +2622,7 @@ overlay.addEventListener("click", (e) => {
     const l = (document.getElementById("cLogin") || {}).value || "", p = (document.getElementById("cPass") || {}).value || "";
     if (l.trim() && p) Object.assign(MK, { cLogged: true, cLoginErr: "", view: "cat" }); else MK.cLoginErr = "Введите логин и пароль";
   }
+  else if (t.hasAttribute("data-mk-side")) { MK.sideC = !MK.sideC; MK.sideAnim = true; try { localStorage.setItem(SIDE_KEY, MK.sideC ? "1" : "0"); } catch (err) {} }
   else if (t.hasAttribute("data-mk-clogout")) Object.assign(MK, { cLogged: false, cSent: null, cErr: "" });
   else if (d.mkCltab) MK.clTab = d.mkCltab;
   else if (t.hasAttribute("data-mk-clform")) { MK.modal = "client"; MK.clEdit = d.mkClform || null; }
