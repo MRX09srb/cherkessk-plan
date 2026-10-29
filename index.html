@@ -2653,7 +2653,7 @@ function pgCOrders() {
     <div class="cs-box">${rows.map((o) => { const on = !!MK.cOrd[o.no];
       return `<div class="cs-row click${on ? " on" : ""}" data-mk-cord="${o.no}"><div class="nm"><b class="mk-no">${o.no}</b><span>отправлен ${o.created} · нужен к ${o.need} · ${nPos(o.items.length)}</span>${o.edited ? `<span>изменён менеджером ${o.edited}</span>` : ""}
       ${o.st === "rejected" ? `<span class="cs-why">Причина: ${esc(o.rejWhy)}</span>` : ""}</div>
-      <span class="mk-pill ${cSt(o)[1]}">${cSt(o)[0]}</span><button type="button" class="mk-btn sm">${ico(on ? "chevron-up" : "chevron-down")}${on ? "Свернуть" : "Состав"}</button></div>${on ? cOrdItems(o) : ""}`; }).join("")}</div>`;
+      <span class="mk-pill ${cSt(o)[1]}">${cSt(o)[0]}</span><button type="button" class="mk-btn sm">${ico(on ? "chevron-up" : "chevron-down")}${on ? "Свернуть" : "Раскрыть"}</button></div>${on ? cOrdItems(o) : ""}`; }).join("")}</div>`;
 }
 // отправка: заявка встаёт первой в «Мои заявки» менеджера со статусом «От клиента»; лист — секция 1, профиль и термошайбы — секция 2
 function cSend() {
