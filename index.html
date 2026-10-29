@@ -319,6 +319,12 @@ footer { color: var(--muted); font-size: 13px }
 .mk-combo span.ph { color: var(--fg-tertiary) }
 .mk-combo:disabled { opacity: .6; cursor: not-allowed }
 .mk-f-note { font-size: .75rem; color: var(--fg-tertiary) }
+.mk-fset { display: grid; gap: 10px; padding: 14px 0; border-top: 1px solid var(--border-default); border-bottom: 1px solid var(--border-default) }
+.mk-fset > b { font-size: .875rem }
+.mk-fset .mk-why { justify-content: flex-start }
+.mk-cb { display: flex; align-items: flex-start; gap: 8px; font-size: .875rem; cursor: pointer }
+.mk-cb input { width: 18px; height: 18px; margin: 0; flex-shrink: 0 }
+.mk-cb.off { color: var(--fg-tertiary); cursor: not-allowed }
 .mk-f input.err, .mk-f textarea.err, .mk-head input.err { border-color: var(--danger-600) }
 .mk-tbl input.mk-n { width: 80px; padding: 4px 8px; font-size: .875rem; text-align: left }
 .mk-head input[type=date] { padding: 4px 8px; font: inherit; font-size: .875rem; color: var(--fg-primary); background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: 6px }
@@ -2502,7 +2508,9 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 const pl = (n, a, b, c) => n + " " + (n % 10 === 1 && n % 100 !== 11 ? a : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? b : c);
 const nPos = (n) => pl(n, "позиция", "позиции", "позиций");
 // доступ в кабинет выдаёт менеджер (пример: у клиента 1 уже есть)
-Object.assign(MK, { cOrd: {}, cart: {}, cOpen: null, cRow: null, cCol: null, cTh: null, cLenR: {}, cLenErr: null, cAnim: null, cSent: null, cErr: "", cLogged: false, cLoginErr: "", access: { [C_NAME]: { login: lat(C_NAME), date: "10.10.2026" } }, accFor: null, accDone: null });
+// частичная отгрузка по клиенту: { on, what: "ready" | "any" } — включает менеджер (этап 3); по умолчанию выключена
+const CP_WHAT = { ready: ["Только готовое", "только готовое", "Выбрать можно только то, что уже готово к отгрузке"], any: ["Любые позиции", "любые позиции", "Неготовое клиент заберёт, когда будет готово"] };
+Object.assign(MK, { cPart: {}, clPart: null, cOrd: {}, cart: {}, cOpen: null, cRow: null, cCol: null, cTh: null, cLenR: {}, cLenErr: null, cAnim: null, cSent: null, cErr: "", cLogged: false, cLoginErr: "", access: { [C_NAME]: { login: lat(C_NAME), date: "10.10.2026" } }, accFor: null, accDone: null });
 ROLES.client = { label: "Сайт для клиентов", user: [C_NAME + " (пример)", "", "К1"], start: "cat", back: "cat", nav: [], titles: {} };
 const cLogo = `<div class="cs-logo">${borrexLogo("cs-bx")}<b>Borrex</b></div>`;
 function cSite(page) {
@@ -2653,6 +2661,15 @@ function clAct(c) {
   const [l, tone] = days < 1 ? ["сегодня", "fresh"] : days < 90 ? [days + " дн. назад", days < 7 ? "fresh" : days < 30 ? "warm" : "stale"] : [Math.floor(days / 30) + " мес. назад", "cold"];
   return `<span class="mk-act ${tone}">${ico("clock")}${l}</span>`;
 }
+// окно клиента → «Сайт клиента»: частичная отгрузка (только с доступом в кабинет) и что можно выбирать
+function clPartBox(c) {
+  const acc = !!MK.access[c], p = MK.clPart;
+  return `<div class="mk-fset"><b>Сайт клиента</b>
+    <label class="mk-cb${acc ? "" : " off"}"><input type="checkbox" id="mkfClPart" data-mk-clpart${p.on ? " checked" : ""}${acc ? "" : " disabled"}>Частичная отгрузка — клиент сам выбирает на сайте, какие позиции и сколько забрать</label>
+    ${acc ? "" : `<div class="mk-why">${ico("info")}Сначала выдайте клиенту доступ в кабинет</div>`}
+    ${acc && p.on ? `<div class="mk-f"><label>Что можно выбирать</label><div class="mk-seg">${Object.entries(CP_WHAT).map(([k, v]) =>
+      `<button type="button" class="${p.what === k ? "on" : ""}" data-mk-clpwhat="${k}">${v[0]}</button>`).join("")}</div><small class="mk-f-note">${CP_WHAT[p.what][2]}</small></div>` : ""}</div>`;
+}
 const clAll = () => [...new Set(ORDERS.map((o) => o.client).concat(C_EXTRA))].sort((a, b) => a.localeCompare(b, "ru", { numeric: true }));
 function pgClients() {
   const all = clAll(); // «Все» — все клиенты, у каждого подписан его менеджер (юзер 29.10)
@@ -2677,7 +2694,7 @@ function pgClients() {
       ${rows.length ? rows.map((c) => { const a = MK.access[c];
         return `<tr><td><b>${esc(c)}</b> ${badge(CL_STAT[clStatus(c)])}</td><td>${dash}</td><td>${dash}</td><td>${dash}</td><td>${mgrOfClient(c)}</td><td>${clAct(c)}</td><td>${dash}</td><td>${dash}</td>
           <td>${clOrders(c).length}</td>
-          <td>${a ? `<span class="mk-pill b-success">Доступ выдан</span><small>логин ${esc(a.login)} · ${a.date}</small>` : `<span class="mk-muted">нет доступа</span>`}</td>
+          <td>${a ? `<span class="mk-pill b-success">Доступ выдан</span><small>логин ${esc(a.login)} · ${a.date}</small>` : `<span class="mk-muted">нет доступа</span>`}${MK.cPart[c] ? `<small class="cl-part">Частичная отгрузка · ${CP_WHAT[MK.cPart[c].what][1]}</small>` : ""}</td>
           <td class="r">${mgrOfClient(c) !== MK.mgr ? "" : `<span class="mk-acts"><button class="mk-ib0" data-mk-clform="${esc(c)}" title="Изменить" aria-label="Изменить">${ico("pencil")}</button><button class="mk-ib0" data-mk-noop title="В архив" aria-label="В архив">${ico("trash-2")}</button>
             <button class="mk-btn sm${a ? "" : " p"}" data-mk-cacc="${esc(c)}">${ico(a ? "key" : "user-plus")}${a ? "Новый пароль" : "Выдать доступ"}</button></span>`}</td></tr>`; }).join("") // чужой клиент — только просмотр
         : `<tr><td colspan="11" class="mk-muted">${q ? "Клиенты не найдены — попробуйте другой запрос" : "Пусто"}</td></tr>`}
@@ -2730,7 +2747,8 @@ function mkModal() {
           ${f("mkfClDate", "Дата договора", `<input type="date" id="mkfClDate">`)}${f("mkfClStatus", "Статус", combo("mkfClStatus", CL_STAT[c ? clStatus(c) : "active"][0], ""))}
           ${inp("mkfClSeg", "Сегмент", "", "напр. оптовик / розница")}${f("mkfClMgr", "Менеджер", `<button type="button" class="mk-combo" id="mkfClMgr" disabled><span>${c ? mgrOfClient(c) : MK.mgr}</span>${ico("chevron-down")}</button>
             <small class="mk-f-note">Сменить менеджера клиента может только руководитель</small>`)}</div>
-        ${f("mkfClNote", "Заметки", `<textarea id="mkfClNote" placeholder="Любые заметки по клиенту…"></textarea>`)}`, c ? "Сохранить" : "Создать", c ? "" : 'data-mk-clsave="1"'];
+        ${c ? clPartBox(c) : ""}
+        ${f("mkfClNote", "Заметки", `<textarea id="mkfClNote" placeholder="Любые заметки по клиенту…"></textarea>`)}`, c ? "Сохранить" : "Создать", c ? 'data-mk-clupd="1"' : 'data-mk-clsave="1"'];
     })(),
     access: (() => {
       if (MK.modal !== "access") return null;
@@ -2799,7 +2817,7 @@ document.querySelectorAll(".hot[data-role]").forEach((g) => {
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-asmgr],[data-mk-clsave],[data-mk-oedit],[data-mk-oecancel],[data-mk-oedel],[data-mk-oesave],[data-mk-orej],[data-mk-cord],[data-mk-topool],[data-mk-pptab],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-asmgr],[data-mk-clsave],[data-mk-oedit],[data-mk-oecancel],[data-mk-oedel],[data-mk-oesave],[data-mk-orej],[data-mk-cord],[data-mk-clpart],[data-mk-clpwhat],[data-mk-clupd],[data-mk-topool],[data-mk-pptab],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
@@ -2903,7 +2921,10 @@ overlay.addEventListener("click", (e) => {
   else if (t.hasAttribute("data-mk-clogout")) Object.assign(MK, { cLogged: false, cSent: null, cErr: "", cOrd: {} });
   else if (d.mkCord) MK.cOrd[d.mkCord] = !MK.cOrd[d.mkCord]; // заказ клиента: раскрыть / свернуть состав
   else if (d.mkCltab) MK.clTab = d.mkCltab;
-  else if (t.hasAttribute("data-mk-clform")) { MK.modal = "client"; MK.clEdit = d.mkClform || null; MK.clErr = null; MK.clDraft = ""; }
+  else if (t.hasAttribute("data-mk-clform")) { MK.modal = "client"; MK.clEdit = d.mkClform || null; MK.clErr = null; MK.clDraft = ""; MK.clPart = Object.assign({ on: false, what: "ready" }, MK.cPart[MK.clEdit] || {}); }
+  else if (t.hasAttribute("data-mk-clpart")) MK.clPart.on = t.checked; // частичная отгрузка — сохранится по «Сохранить»
+  else if (d.mkClpwhat) MK.clPart.what = d.mkClpwhat;
+  else if (t.hasAttribute("data-mk-clupd")) { if (MK.clPart.on && MK.access[MK.clEdit]) MK.cPart[MK.clEdit] = { on: true, what: MK.clPart.what }; else delete MK.cPart[MK.clEdit]; MK.modal = null; }
   else if (t.hasAttribute("data-mk-clsave")) { // новый клиент — за тем менеджером, кто завёл; повтор по названию не пускаем (в ERP — и по ИНН)
     const name = ((document.getElementById("mkfClName") || {}).value || "").trim().replace(/\s+/g, " ");
     const had = clAll().find((c) => c.toLowerCase() === name.toLowerCase());
