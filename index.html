@@ -691,6 +691,8 @@ footer { color: var(--muted); font-size: 13px }
 .mk-ppg { padding: 12px 14px; border: 1px solid var(--border-default); border-radius: 8px; display: grid; gap: 8px }
 .mk-ppi { font-size: .8125rem; color: var(--fg-secondary) }
 .mk-pplines { flex-wrap: wrap }
+.mk-why { flex-basis: 100%; display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-size: .8125rem; color: var(--warning-700) }
+.mk-why svg.lucide { width: 14px; height: 14px; flex-shrink: 0 }
 .mk-tbl td small.mk-ask { color: var(--warning-700); font-weight: 600 }
 </style>
 </head>
@@ -2213,14 +2215,23 @@ function inFoot(o, v, mine) {
   if (!inWork(o)) return "";
   const ch = chkOf(o), n = (k) => mine.filter((i) => ch[i].dec === k).length, done = mine.filter((i) => isDone(ch[i])).length, rb = readyBy(o);
   const note = mine.length ? `<span class="mk-note">Моё: проверено ${done} из ${mine.length} · со склада ${n("stock")} · частично ${n("part")} · в производство ${n("prod")}${v === "chef" && rb ? ` · <b>вся заявка будет готова до ${rb}</b>` : ""}</span>` : `<span class="mk-note">Моих позиций нет</span>`;
-  let btn = "";
+  // why — почему кнопка серая и что сделать; видно текстом под кнопкой
+  let btn = "", why = "";
+  const off = () => (why ? ` disabled title="${why}"` : "");
   if (v === "chef") {
-    const why = o.at ? "Лист сверяет логист №1" : !partDone(o, "chef") ? "Поставьте решение и срок у всех позиций листа" : "Ждёт логиста №2";
+    const l2p = [...new Set(o.items.filter((x) => partOf(x) === "l2").map((x) => x.prod.toLowerCase()))].join(", ").replace(/, ([^,]*)$/, " и $1");
+    why = sendable(o) ? "" : o.at ? "Лист сверяет логист №1 — кнопка загорится, когда он вернёт заявку." : !partDone(o, "chef") ? "Поставьте решение и срок у всех позиций листа."
+      : `Ждёт логиста №2 — он ещё сверяет ${l2p}. Кнопка загорится, когда он нажмёт «Готово — передать шефу».`;
     btn = (hasPart(o, "chef") ? (o.at ? `<button class="mk-btn" data-mk-assign="${o.no}|">${ico("undo-2")}Забрать себе</button>` : `<button class="mk-btn" data-mk-assign="${o.no}|l1">${ico("user")}Передать логисту №1</button>`) : "")
-      + `<button class="mk-btn p" data-mk-chksend="${o.no}"${sendable(o) ? "" : ` disabled title="${why}"`}>${ico("send")}Отправить менеджеру</button>`;
-  } else if (v === "l1" && o.at === "l1") btn = `<button class="mk-btn p" data-mk-l1ret="${o.no}"${partDone(o, "chef") ? "" : ' disabled title="Поставьте решение и срок у всех позиций листа"'}>${ico("undo-2")}Вернуть шефу</button>`;
-  else if (v === "l2" && !o.l2ok) btn = `<button class="mk-btn p" data-mk-l2ok="${o.no}"${partDone(o, "l2") ? "" : ' disabled title="Поставьте решение и срок у всех своих позиций"'}>${ico("check")}Готово — передать шефу</button>`;
-  return `<div class="mk-dfoot">${note}${btn}</div>`;
+      + `<button class="mk-btn p" data-mk-chksend="${o.no}"${off()}>${ico("send")}Отправить менеджеру</button>`;
+  } else if (v === "l1" && o.at === "l1") {
+    why = partDone(o, "chef") ? "" : "Поставьте решение и срок у всех позиций листа.";
+    btn = `<button class="mk-btn p" data-mk-l1ret="${o.no}"${off()}>${ico("undo-2")}Вернуть шефу</button>`;
+  } else if (v === "l2" && !o.l2ok) {
+    why = partDone(o, "l2") ? "" : "Поставьте решение и срок у всех своих позиций.";
+    btn = `<button class="mk-btn p" data-mk-l2ok="${o.no}"${off()}>${ico("check")}Готово — передать шефу</button>`;
+  }
+  return `<div class="mk-dfoot">${note}${btn}${why ? `<div class="mk-why">${ico("hourglass")}${why}</div>` : ""}</div>`;
 }
 // раскрытая заявка: подсказки, позиции, кнопки
 function inBlock(o, v) {
