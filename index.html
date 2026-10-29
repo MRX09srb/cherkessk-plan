@@ -2157,7 +2157,7 @@ function pgSverka() {
     return c.have >= need ? `<span class="mk-stk ok">${fmt(c.have)} ${u} — хватает</span>` : c.have > 0 ? `<span class="mk-stk part">${fmt(c.have)} ${u} — не хватает ${fmt(need - c.have)}</span>` : `<span class="mk-stk none">нет на складе</span>`; };
   const who = (c, x) => (needDl(c) ? `<small class="mk-ppw">заявку на производство делает: <b>${ppWho(x)}</b></small>` : "");
   const decCell = (c, i, x) => (ro ? decText(c, x) + who(c, x) : `<div class="mk-seg cs-seg">${[["stock", "Со склада"], ["part", "Частично"], ["prod", "В производство"]].map(([k, l]) =>
-    `<button class="${c.dec === k ? "on" : ""}" data-mk-dec="${o.no}|${i}|${k}"${k === "part" && !(c.have > 0 && c.have < qN(x)) ? " disabled" : ""}>${l}</button>`).join("")}</div>${who(c, x)}`);
+    `<button class="${c.dec === k ? "on" : ""}" data-mk-dec="${o.no}|${i}|${k}"${k === "part" && !(c.have > 0 && c.have < qN(x)) ? " disabled" : k === "stock" && c.have < qN(x) ? ' disabled title="на складе не хватает"' : ""}>${l}</button>`).join("")}</div>${who(c, x)}`);
   const dlCell = (c, i) => (!needDl(c) ? `<span class="mk-muted">-</span>` : ro ? `до ${c.dl}` : `<div class="mk-dl">${[[2, "2 дня"], [3, "3 дня"], [7, "Неделя"]].map(([d, l]) =>
     `<button class="mk-chip sm${c.dl === addD(d) ? " on" : ""}" data-mk-dl="${o.no}|${i}|${d}">${l}</button>`).join("")}<input type="date" data-mk-cdate="${o.no}|${i}" aria-label="Срок — дата">
       ${c.dl ? `<b class="ok">→ до ${c.dl}</b>` : `<span class="need">выберите срок</span>`}</div>`);
