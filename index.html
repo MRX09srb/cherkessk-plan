@@ -2151,7 +2151,7 @@ function inList(v) {
 }
 const inF = (o, f, v) => f === "all" || stOf(o, v)[2] === f;
 const inTodo = (v) => inList(v).filter((o) => inF(o, "todo", v)).length;
-Object.assign(MK, { inF: "todo" });
+Object.assign(MK, { inF: "todo", inKeep: null }); // inKeep — заявки, уже показанные в списке: не пропадают, пока с ними работают
 // отправка менеджеру: у позиций — «со склада» или срок, у заявки — когда будет готова вся
 function chkSend(o) {
   const ch = chkOf(o);
@@ -2220,12 +2220,13 @@ function inFoot(o, v, mine) {
   return `<div class="mk-dfoot">${note}${btn}</div>`;
 }
 function inBlock(o, v) {
-  const s = stOf(o, v), ids = o.items.map((x, i) => i), mine = ids.filter((i) => mineOf(o.items[i], v)), other = ids.filter((i) => !mineOf(o.items[i], v));
+  const s = stOf(o, v), F = IN_F[v], toF = (F.find(([k]) => k === s[2]) || [null, ""])[1], ids = o.items.map((x, i) => i), mine = ids.filter((i) => mineOf(o.items[i], v)), other = ids.filter((i) => !mineOf(o.items[i], v));
   const to = ["chef", "l2"].filter((p) => hasPart(o, p)).map((p) => `${PART_NM[p]} (${o.items.filter((x) => partOf(x) === p).length})`).join(" · ");
   const hint = [o.from === "client" ? "ⓘ Заявка пришла от клиента с сайта, менеджер её проверил." : "",
     inWork(o) && v === "chef" && o.at ? "ⓘ Лист сверяет логист №1 — вернёт вам, когда закончит." : "",
     inWork(o) && v === "chef" && !o.at && o.ret === "l1" ? `ⓘ Лист сверил ${LG_NAME.l1} — проверьте решения и сроки.` : "",
     inWork(o) && v === "l1" && o.at === "l1" ? "ⓘ Шеф логистов передал вам лист этой заявки на сверку." : ""].filter(Boolean).map((t) => `<div class="mk-hint">${t}</div>`).join("")
+    + (MK.inF !== "all" && !inF(o, MK.inF, v) ? `<div class="mk-hint ok">✓ ${s[2] === "todo" ? "Заявка снова ждёт вас — перешла" : s[2] === "sent" ? "Заявка перешла" : v === "chef" && o.at ? "Передана логисту №1 — заявка перешла" : "Ваша часть готова — заявка перешла"} в «${toF}». Из этого списка она уйдёт, когда откроете его заново.</div>` : "")
     + (sentOut(o) && o.sentAt ? `<div class="mk-hint ok">✓ Отправлена менеджеру ${o.sentAt}. ${o.ready ? "Вся заявка будет готова до " + o.ready + "." : "Всё есть на складе."}</div>` : "");
   return `<section class="mk-card mk-ob" data-mk-ob="${o.no}">
     <div class="mk-head">
@@ -2239,7 +2240,9 @@ function inBlock(o, v) {
 }
 function pgIn() {
   const v = viewer(), list = inList(v), F = IN_F[v], cnt = (k) => list.filter((o) => inF(o, k, v)).length;
-  const rows = list.filter((o) => inF(o, MK.inF, v));
+  // заявка, с которой работаете, не пропадает, когда сменился статус, — уйдёт, когда откроете список заново
+  const keep = MK.inKeep || [], rows = list.filter((o) => inF(o, MK.inF, v) || keep.includes(o.no));
+  MK.inKeep = rows.map((o) => o.no);
   return `<div class="mk-kpis">${F.map(([k, l]) => `<div class="mk-card mk-kpi"><span>${k === "all" ? "Всего" : l}</span><b>${cnt(k)}</b></div>`).join("")}</div>
     <div class="mk-sec"><h3>Входящие заявки <small>· ${list.length}</small></h3></div>
     <div class="mk-chips">${F.map(([k, l]) => `<button class="mk-chip${MK.inF === k ? " on" : ""}" data-mk-inf="${k}">${l}<em>${cnt(k)}</em></button>`).join("")}${TODO("статусы")}</div>
@@ -2614,7 +2617,7 @@ function mkOpen(role, from, shop) {
   if (shop) { MK.shop = shop; MK.kPart = "a"; }
   MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cOpen = null; MK.cRow = null; MK.cCol = null; MK.cTh = null; MK.cLenR = {}; MK.cLenErr = null; MK.cSent = null; MK.cErr = ""; MK.cLogged = false; MK.cLoginErr = ""; MK.accDone = null;
   MK.role = role; MK.view = role === "kiosk" && !KSHOPS[MK.shop].orders ? "kShift" : ROLES[role].start; MK.order = null; MK.modal = null; MK.pre = null;
-  MK.filter = MK.ppFilter = MK.clFilter = "all"; MK.inF = "todo"; MK.ppTab = null; MK.ppSel = {}; MK.ppLine = {}; MK.ppDone = null; MK.clTab = "active"; MK.clQ = "";
+  MK.filter = MK.ppFilter = MK.clFilter = "all"; MK.inF = "todo"; MK.inKeep = null; MK.ppTab = null; MK.ppSel = {}; MK.ppLine = {}; MK.ppDone = null; MK.clTab = "active"; MK.clQ = "";
   document.getElementById("mkTitle").textContent = "Макет · " + (role === "kiosk" ? "Киоск · " + KSHOPS[MK.shop].name : ROLES[role].label);
   overlay.setAttribute("aria-label", "Макет рабочего места: " + ROLES[role].label);
   overlay.hidden = false; document.body.style.overflow = "hidden"; mkRender(); fitMk(); document.getElementById("mkClose").focus();
@@ -2644,7 +2647,7 @@ overlay.addEventListener("click", (e) => {
     MK.modal = null; MK.pre = null; mkRender(); return;
   }
   if (d.mkModal) { MK.modal = d.mkModal; MK.pre = d.mkPre || null; }
-  else if (d.mkNav) { MK.view = d.mkNav; MK.order = null; }
+  else if (d.mkNav) { MK.view = d.mkNav; MK.order = null; MK.inKeep = null; }
   else if (d.mkOrder) { MK.view = "order"; MK.order = d.mkOrder; }
   else if (d.mkApprove) MK.approved[d.mkApprove] = true;
   else if (d.mkArea) { MK.area = d.mkArea; MK.stTab = null; }
@@ -2710,7 +2713,7 @@ overlay.addEventListener("click", (e) => {
   else if (d.mkCdel) { delete MK.cart[d.mkCdel]; delete MK.vals["cq|" + d.mkCdel]; }
   else if (t.hasAttribute("data-mk-csend")) cSend();
   else if (d.mkTochef) ORDERS.find((o) => o.no === d.mkTochef).st = "chef";
-  else if (d.mkInf) MK.inF = d.mkInf;
+  else if (d.mkInf) { MK.inF = d.mkInf; MK.inKeep = null; }
   else if (d.mkDec) { const [no, i, k] = d.mkDec.split("|"), o = ord(no), c = chkOf(o)[+i]; c.take = k === "part" ? freeFor(o, +i) : 0; c.dec = k; if (k === "stock") c.dl = null; }
   else if (d.mkDl) { const [no, i, n] = d.mkDl.split("|"); chkOf(ord(no))[+i].dl = addD(+n); }
   else if (t.hasAttribute("data-mk-assign")) { const [no, who] = d.mkAssign.split("|"), o = ord(no); if (who) { o.at = who; delete o.ret; } else delete o.at; } // лист — логисту №1 на сверку / забрать себе
