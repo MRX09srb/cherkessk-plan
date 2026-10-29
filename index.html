@@ -674,6 +674,8 @@ footer { color: var(--muted); font-size: 13px }
 .cs-row .nm { flex: 1; display: grid; gap: 2px }
 .cs-row .nm span { font-size: .8125rem; color: var(--fg-tertiary) }
 .cs-row .nm span.cs-why { color: var(--fg-primary) }
+.cs-row.click { cursor: pointer }
+.cs-items { margin: 4px 0 14px }
 .cs-box > .mk-btn.ghost { margin-top: 10px }
 .cs-form { display: grid; grid-template-columns: 220px 1fr; gap: 16px; padding: 16px 20px }
 .cs-send { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap }
@@ -2500,7 +2502,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 const pl = (n, a, b, c) => n + " " + (n % 10 === 1 && n % 100 !== 11 ? a : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? b : c);
 const nPos = (n) => pl(n, "позиция", "позиции", "позиций");
 // доступ в кабинет выдаёт менеджер (пример: у клиента 1 уже есть)
-Object.assign(MK, { cart: {}, cOpen: null, cRow: null, cCol: null, cTh: null, cLenR: {}, cLenErr: null, cAnim: null, cSent: null, cErr: "", cLogged: false, cLoginErr: "", access: { [C_NAME]: { login: lat(C_NAME), date: "10.10.2026" } }, accFor: null, accDone: null });
+Object.assign(MK, { cOrd: {}, cart: {}, cOpen: null, cRow: null, cCol: null, cTh: null, cLenR: {}, cLenErr: null, cAnim: null, cSent: null, cErr: "", cLogged: false, cLoginErr: "", access: { [C_NAME]: { login: lat(C_NAME), date: "10.10.2026" } }, accFor: null, accDone: null });
 ROLES.client = { label: "Сайт для клиентов", user: [C_NAME + " (пример)", "", "К1"], start: "cat", back: "cat", nav: [], titles: {} };
 const cLogo = `<div class="cs-logo">${borrexLogo("cs-bx")}<b>Borrex</b></div>`;
 function cSite(page) {
@@ -2513,7 +2515,7 @@ function cSite(page) {
       <div class="mk-hint">В макете подойдут любые логин и пароль.</div></div></div>`;
   const n = Object.keys(MK.cart).length;
   return `<div class="cs"><header class="cs-top"><div class="cs-in">${cLogo}
-      <nav class="cs-nav">${[["cat", "Продукция"], ["cart", "Корзина"], ["corders", "Мои заявки"]].map(([v, l]) =>
+      <nav class="cs-nav">${[["cat", "Продукция"], ["cart", "Корзина"], ["corders", "Мои заказы"]].map(([v, l]) =>
         `<button class="${MK.view === v ? "on" : ""}" data-mk-nav="${v}">${l}${v === "cart" && n ? `<em>${n}</em>` : ""}</button>`).join("")}</nav>
       <div class="cs-user">${ico("user")}${C_NAME} (пример)<button class="mk-btn sm ghost" data-mk-clogout>${ico("log-out")}Выйти</button></div></div></header>
     <main class="cs-main"><div class="cs-in">${page()}</div></main></div>`;
@@ -2596,17 +2598,36 @@ function pgCart() {
     <div class="cs-box cs-form">
       <div class="mk-f"><label for="cNeed">Нужна к</label><input type="date" id="cNeed" data-mk-val="c|need" value="${MK.vals["c|need"] || "2026-10-24"}"></div>
       <div class="mk-f"><label for="cNote">Комментарий (необязательно)</label><textarea id="cNote" data-mk-val="c|note">${esc(MK.vals["c|note"] || "")}</textarea></div></div>
-    <div class="cs-send"><span class="mk-note">Заявку получит ваш менеджер.</span><button class="mk-btn p cs-wide" data-mk-csend>${ico("send")}Отправить заявку менеджеру</button></div>`;
+    <div class="cs-send"><span class="mk-note">Заказ получит ваш менеджер.</span><button class="mk-btn p cs-wide" data-mk-csend>${ico("send")}Отправить заказ менеджеру</button></div>`;
 }
-const cSt = (o) => o.st === "client" ? ["Отправлена менеджеру", "b-primary"] : oSt(o);
+// статусы для клиента (юзер 30.10): внутренние слова логистов клиенту не показываем; цвета — как у менеджера
+const C_ST = { client: ["Отправлен менеджеру", "b-primary"], chef: ["Принят в работу", "b-primary"], prod: ["В производстве", "b-warning"],
+  ready: ["Готов к отгрузке", "b-success"], shipped: ["Отгружен", "b-danger"], rejected: ["Отклонён", "b-slate"] };
+const cSt = (o) => (oKey(o) === "checked" ? ["Подтверждён · " + (o.ready ? "будет готов до " + o.ready : "всё есть на складе"), "b-primary"] : C_ST[oKey(o)]);
+// позиция для клиента: заказано / отгружено / осталось (отгружено пока по целому заказу — частичная отгрузка на этапе 5)
+const cShip = (o, x) => (o.st === "shipped" ? qN(x) : x.shipped || 0);
+function cItSt(o, x) {
+  if (o.st === "rejected") return null;
+  if (o.st === "shipped") return ["Отгружено", "b-danger"];
+  if (o.st === "ready") return ["Готово", "b-success"];
+  if (x.dl) return [x.from ? `${fmt(x.from)} готово, ${fmt(qN(x) - x.from)} — до ${x.dl}` : "В производстве · до " + x.dl, "b-warning"];
+  return x.st === "stock" && o.st !== "chef" && o.st !== "logist" && o.st !== "client" ? ["Готово", "b-success"] : x.st === "prod" ? ["В производстве", "b-warning"] : ["Проверяем наличие", "b-slate"];
+}
+function cOrdItems(o) {
+  const u = (x, n) => fmt(n) + " " + qU(x);
+  return `<div class="mk-card mk-tbl dense cs-items"><table><thead><tr><th>Продукция</th><th>Цвет</th><th>Толщ., мм</th><th>Размер, мм</th><th>Заказано</th><th>Отгружено</th><th>Осталось</th><th>Статус</th></tr></thead><tbody>
+    ${o.items.map((x) => { const s = cItSt(o, x), sh = cShip(o, x);
+      return `<tr><td>${x.prod}</td><td>${x.color}</td><td>${x.th}</td><td>${x.size}</td><td>${x.qty}</td><td>${u(x, sh)}</td><td>${u(x, qN(x) - sh)}</td><td>${s ? badge(s) : `<span class="mk-muted">—</span>`}</td></tr>`; }).join("")}
+  </tbody></table></div>`;
+}
 function pgCOrders() {
   const rows = ORDERS.filter((o) => o.client === C_NAME && o.st !== "draft");
-  return `${cHero("Мои заявки", "Отправленные заявки и что с ними.")}
-    ${MK.cSent ? `<div class="mk-hint ok">✓ Заявка <b>${MK.cSent}</b> отправлена менеджеру.</div>` : ""}
-    <div class="mk-tools">${TODO("какие заявки и статусы видит клиент")}</div>
-    <div class="cs-box">${rows.map((o) => `<div class="cs-row"><div class="nm"><b class="mk-no">${o.no}</b><span>отправлена ${o.created} · нужна к ${o.need} · ${nPos(o.items.length)}</span>${o.edited ? `<span>изменена менеджером ${o.edited}</span>` : ""}
+  return `${cHero("Мои заказы", "Отправленные заказы и что с ними.")}
+    ${MK.cSent ? `<div class="mk-hint ok">✓ Заказ <b>${MK.cSent}</b> отправлен менеджеру.</div>` : ""}
+    <div class="cs-box">${rows.map((o) => { const on = !!MK.cOrd[o.no];
+      return `<div class="cs-row click${on ? " on" : ""}" data-mk-cord="${o.no}"><div class="nm"><b class="mk-no">${o.no}</b><span>отправлен ${o.created} · нужен к ${o.need} · ${nPos(o.items.length)}</span>${o.edited ? `<span>изменён менеджером ${o.edited}</span>` : ""}
       ${o.st === "rejected" ? `<span class="cs-why">Причина: ${esc(o.rejWhy)}</span>` : ""}</div>
-      <span class="mk-pill ${cSt(o)[1]}">${cSt(o)[0]}</span></div>`).join("")}</div>`;
+      <span class="mk-pill ${cSt(o)[1]}">${cSt(o)[0]}</span><button type="button" class="mk-btn sm">${ico(on ? "chevron-up" : "chevron-down")}${on ? "Свернуть" : "Состав"}</button></div>${on ? cOrdItems(o) : ""}`; }).join("")}</div>`;
 }
 // отправка: заявка встаёт первой в «Мои заявки» менеджера со статусом «От клиента»; лист — секция 1, профиль и термошайбы — секция 2
 function cSend() {
@@ -2682,7 +2703,7 @@ function mkModal() {
       ${f("mkfOrder", "Заявка", combo("mkfOrder", MK.pre ? `${MK.pre} · ${ORDERS.find((o) => o.no === MK.pre).client} · готово к отгрузке` : "", "Выберите готовую заявку…"))}
       ${f("mkfDate", "Дата отгрузки", `<input type="date" id="mkfDate" value="2026-10-14">`)}
       ${f("mkfShipNote", "Примечание (необязательно)", `<textarea id="mkfShipNote"></textarea>`)}`, "Создать заявку"],
-    orej: MK.modal !== "orej" ? null : ["Отклонить заявку " + MK.pre, `<div class="mk-hint">ⓘ Клиент увидит отказ и причину на сайте в «Мои заявки».</div>
+    orej: MK.modal !== "orej" ? null : ["Отклонить заявку " + MK.pre, `<div class="mk-hint">ⓘ Клиент увидит отказ и причину на сайте в «Мои заказы».</div>
       ${f("mkfRejWhy", "Причина *", `<textarea id="mkfRejWhy"${MK.rejErr ? ' class="err"' : ""} placeholder="Напишите, почему отклоняете"></textarea>${MK.rejErr ? `<div class="mk-err">${MK.rejErr}</div>` : ""}`)}`, "Отклонить", 'data-mk-orej="1"'],
     inv: ["Инвойс по машине", `<div class="mk-hint">ⓘ Создаётся только по отгрузке, которую подтвердил проверяющий.</div>
       ${f("mkfShip", "Заявка на отгрузку", combo("mkfShip", "ЗО-2026-002 · МВ-Строй · ✓ подтверждена", ""))}
@@ -2754,7 +2775,7 @@ let lastHot = null;
 function mkOpen(role, from, shop) {
   lastHot = from;
   if (shop) { MK.shop = shop; MK.kPart = "a"; }
-  MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cOpen = null; MK.cRow = null; MK.cCol = null; MK.cTh = null; MK.cLenR = {}; MK.cLenErr = null; MK.cSent = null; MK.cErr = ""; MK.cLogged = false; MK.cLoginErr = ""; MK.accDone = MK.clNew = MK.clErr = MK.oEd = MK.rejErr = null; MK.clDraft = "";
+  MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cOpen = null; MK.cOrd = {}; MK.cRow = null; MK.cCol = null; MK.cTh = null; MK.cLenR = {}; MK.cLenErr = null; MK.cSent = null; MK.cErr = ""; MK.cLogged = false; MK.cLoginErr = ""; MK.accDone = MK.clNew = MK.clErr = MK.oEd = MK.rejErr = null; MK.clDraft = "";
   MK.role = role; MK.view = role === "kiosk" && !KSHOPS[MK.shop].orders ? "kShift" : ROLES[role].start; MK.order = null; MK.modal = null; MK.pre = null;
   MK.mgr = MGRS[0]; MK.filter = MK.ppFilter = MK.clFilter = "all"; MK.inF = "todo"; MK.inKeep = null; MK.inOpen = {}; MK.ppTab = null; MK.ppLineOf = {}; MK.ppDate = {}; MK.ppDone = null; MK.clTab = "active"; MK.clQ = "";
   document.getElementById("mkTitle").textContent = "Макет · " + (role === "kiosk" ? "Киоск · " + KSHOPS[MK.shop].name : ROLES[role].label);
@@ -2778,7 +2799,7 @@ document.querySelectorAll(".hot[data-role]").forEach((g) => {
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-asmgr],[data-mk-clsave],[data-mk-oedit],[data-mk-oecancel],[data-mk-oedel],[data-mk-oesave],[data-mk-orej],[data-mk-topool],[data-mk-pptab],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-asmgr],[data-mk-clsave],[data-mk-oedit],[data-mk-oecancel],[data-mk-oedel],[data-mk-oesave],[data-mk-orej],[data-mk-cord],[data-mk-topool],[data-mk-pptab],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
@@ -2879,7 +2900,8 @@ overlay.addEventListener("click", (e) => {
     if (l.trim() && p) Object.assign(MK, { cLogged: true, cLoginErr: "", view: "cat" }); else MK.cLoginErr = "Введите логин и пароль";
   }
   else if (t.hasAttribute("data-mk-side")) { MK.sideC = !MK.sideC; MK.sideAnim = true; try { localStorage.setItem(SIDE_KEY, MK.sideC ? "1" : "0"); } catch (err) {} }
-  else if (t.hasAttribute("data-mk-clogout")) Object.assign(MK, { cLogged: false, cSent: null, cErr: "" });
+  else if (t.hasAttribute("data-mk-clogout")) Object.assign(MK, { cLogged: false, cSent: null, cErr: "", cOrd: {} });
+  else if (d.mkCord) MK.cOrd[d.mkCord] = !MK.cOrd[d.mkCord]; // заказ клиента: раскрыть / свернуть состав
   else if (d.mkCltab) MK.clTab = d.mkCltab;
   else if (t.hasAttribute("data-mk-clform")) { MK.modal = "client"; MK.clEdit = d.mkClform || null; MK.clErr = null; MK.clDraft = ""; }
   else if (t.hasAttribute("data-mk-clsave")) { // новый клиент — за тем менеджером, кто завёл; повтор по названию не пускаем (в ERP — и по ИНН)
