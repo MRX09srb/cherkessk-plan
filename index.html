@@ -2146,7 +2146,7 @@ function stOf(o, v) {
   if (o.at) return ["У логиста №1 — сверяет", "b-slate", "lg"];
   // готова к отправке: шеф уже нажимал «Готово» (или листа нет) — отправляет из «На обработке», иначе — там, где сверял
   if (sendable(o)) return ["Готово — отправить менеджеру", "b-primary", o.chefOk || !hasPart(o, "chef") ? "lg" : "todo"];
-  // лист готов, но шеф ещё не нажал «Готово — лист сверен» — заявка остаётся у него (юзер 29.10)
+  // лист готов, но шеф ещё не нажал «Готово — позиции обработаны» — заявка остаётся у него (юзер 29.10)
   if (!partDone(o, "chef") || !o.chefOk) return o.ret ? ["Вернул логист №1 — проверить", "b-warning", "todo"] : partDone(o, "chef") ? ["Сверено — нажмите «Готово»", "b-primary", "todo"] : ["Новая — сверить", "b-primary", "todo"];
   return ["Ждёт логиста №2", "b-slate", "lg"];
 }
@@ -2241,7 +2241,7 @@ function inFoot(o, v, mine) {
     const asg = hasPart(o, "chef") ? (o.at ? `<button class="mk-btn" data-mk-assign="${o.no}|">${ico("undo-2")}Забрать себе</button>` : `<button class="mk-btn" data-mk-assign="${o.no}|l1">${ico("user")}Передать логисту №1</button>`) : "";
     if (hasPart(o, "chef") && hasPart(o, "l2") && !o.l2ok && !o.at && !o.chefOk) { // логист №2 ещё не передал — шеф подтверждает лист кнопкой
       why = partDone(o, "chef") ? "" : "Поставьте решение и срок у всех позиций листа.";
-      btn = asg + `<button class="mk-btn p" data-mk-chefok="${o.no}"${off()}>${ico("check")}Готово — лист сверен</button>`;
+      btn = asg + `<button class="mk-btn p" data-mk-chefok="${o.no}"${off()}>${ico("check")}Готово — позиции обработаны</button>`;
     } else {
       why = sendable(o) ? "" : o.at ? "Лист сверяет логист №1 — кнопка загорится, когда он вернёт заявку." : !partDone(o, "chef") ? "Поставьте решение и срок у всех позиций листа."
         : `Ждёт логиста №2 — он ещё сверяет ${l2p}. Кнопка загорится, когда он нажмёт «Готово — передать шефу».`;
