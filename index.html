@@ -2598,14 +2598,15 @@ function clAct(c) {
   return `<span class="mk-act ${tone}">${ico("clock")}${l}</span>`;
 }
 function pgClients() {
-  const all = [...new Set(ORDERS.filter(myOrder).map((o) => o.client).concat(C_EXTRA.filter((c) => mgrOfClient(c) === MK.mgr)))].sort((a, b) => a.localeCompare(b, "ru", { numeric: true })); // только свои клиенты
-  const n = (k) => (k === "all" ? all.length : k === "archive" ? 0 : all.filter((c) => clStatus(c) === k).length);
+  const all = [...new Set(ORDERS.map((o) => o.client).concat(C_EXTRA))].sort((a, b) => a.localeCompare(b, "ru", { numeric: true })); // «Все» — все клиенты, у каждого подписан его менеджер (юзер 29.10)
+  const mine = all.filter((c) => mgrOfClient(c) === MK.mgr); // вкладки по статусу и цифры — только свои
+  const n = (k) => (k === "all" ? all.length : k === "archive" ? 0 : mine.filter((c) => clStatus(c) === k).length);
   const q = MK.clQ.trim().toLowerCase(), act = n("active"), dash = `<span class="mk-muted">-</span>`;
-  const rows = all.filter((c) => (MK.clTab === "all" || clStatus(c) === MK.clTab) && (!q || c.toLowerCase().includes(q)));
+  const rows = (MK.clTab === "all" ? all : mine).filter((c) => (MK.clTab === "all" || clStatus(c) === MK.clTab) && (!q || c.toLowerCase().includes(q)));
   return `${MK.accDone ? `<div class="mk-hint ok">✓ Доступ для ${MK.accDone} выдан — передайте клиенту логин и пароль.</div>` : ""}
     <div class="mk-kpis">
-      <div class="mk-card mk-kpi"><span>Всего клиентов</span><b>${all.length}</b></div>
-      <div class="mk-card mk-kpi"><span>Активных</span><b>${act}</b><small>${Math.round((act / all.length) * 100)}% базы</small></div>
+      <div class="mk-card mk-kpi"><span>Всего клиентов</span><b>${mine.length}</b></div>
+      <div class="mk-card mk-kpi"><span>Активных</span><b>${act}</b><small>${mine.length ? Math.round((act / mine.length) * 100) : 0}% базы</small></div>
       <div class="mk-card mk-kpi"><span>Потенциальных</span><b>${n("prospect")}</b></div>
       <div class="mk-card mk-kpi"><span>Дебиторка</span><b class="mk-muted">-</b><small>будет позже</small></div></div>
     <div class="mk-sttabs mk-cltabs">${CL_TABS.map(([k, l, ic]) => `<button class="mk-stp${MK.clTab === k ? " on" : ""}" data-mk-cltab="${k}">${ico(ic)}<span>${l}</span><em>${n(k)}</em></button>`).join("")}</div>
@@ -2619,8 +2620,8 @@ function pgClients() {
         return `<tr><td><b>${c}</b> ${badge(CL_STAT[clStatus(c)])}</td><td>${dash}</td><td>${dash}</td><td>${dash}</td><td>${mgrOfClient(c)}</td><td>${clAct(c)}</td><td>${dash}</td><td>${dash}</td>
           <td>${clOrders(c).length}</td>
           <td>${a ? `<span class="mk-pill b-success">Доступ выдан</span><small>логин ${esc(a.login)} · ${a.date}</small>` : `<span class="mk-muted">нет доступа</span>`}</td>
-          <td class="r"><span class="mk-acts"><button class="mk-ib0" data-mk-clform="${c}" title="Изменить" aria-label="Изменить">${ico("pencil")}</button><button class="mk-ib0" data-mk-noop title="В архив" aria-label="В архив">${ico("trash-2")}</button>
-            <button class="mk-btn sm${a ? "" : " p"}" data-mk-cacc="${c}">${ico(a ? "key" : "user-plus")}${a ? "Новый пароль" : "Выдать доступ"}</button></span></td></tr>`; }).join("")
+          <td class="r">${mgrOfClient(c) !== MK.mgr ? "" : `<span class="mk-acts"><button class="mk-ib0" data-mk-clform="${c}" title="Изменить" aria-label="Изменить">${ico("pencil")}</button><button class="mk-ib0" data-mk-noop title="В архив" aria-label="В архив">${ico("trash-2")}</button>
+            <button class="mk-btn sm${a ? "" : " p"}" data-mk-cacc="${c}">${ico(a ? "key" : "user-plus")}${a ? "Новый пароль" : "Выдать доступ"}</button></span>`}</td></tr>`; }).join("") // чужой клиент — только просмотр
         : `<tr><td colspan="11" class="mk-muted">${q ? "Клиенты не найдены — попробуйте другой запрос" : "Пусто"}</td></tr>`}
     </tbody></table></div>`;
 }
