@@ -1471,7 +1471,7 @@ function stDefTable(defs) {
 }
 Object.assign(MK, { stTab: null, stQ: "", stG: {}, stOpen: {} });
 function pgRaw() {
-  return `${areaSwitch()}<div class="mk-card mk-stub">${ico("package")}<b>${AREAS.raw}</b>
+  return `${areaSwitch()}<div class="mk-card mk-stub">${ico("package")}<b>${AREAS.raw}</b>${DEV()}
     <p class="mk-note">Что кладовщики сырья делают в системе — приход, выдача в цеха, учёт — ещё не обсуждали.</p>${TODO("работа участка сырья")}</div>`;
 }
 const R = () => ROLES[MK.role];
@@ -2630,12 +2630,11 @@ function pgClients() {
         : `<tr><td colspan="11" class="mk-muted">${q ? "Клиенты не найдены — попробуйте другой запрос" : "Пусто"}</td></tr>`}
     </tbody></table></div>`;
 }
+const DEV = () => badge(["В разработке", "b-warning"]); // заглушка раздела (юзер 30.10)
 function pgStub() {
-  if (MK.view === "keepers") return `<div class="mk-card mk-stub">${ico("users")}<b>Кладовщики</b>
+  if (MK.view === "keepers") return `<div class="mk-card mk-stub">${ico("users")}<b>Кладовщики</b>${DEV()}
     <p class="mk-note">Как шеф логистов руководит кладовщиками в системе — ещё не обсуждали.</p>${TODO("что здесь нужно")}</div>`;
-  const why = MK.role === "manager" ? "Смотрим заявки, отгрузки и инвойсы." : "Смотрим входящие заявки и заявки на производство.";
-  return `<div class="mk-card mk-stub">${ico("layout-dashboard")}<b>${TITLE()[0]}</b>
-    <p class="mk-note">В этом макете раздел не показан. ${why}</p></div>`;
+  return `<div class="mk-card mk-stub">${ico("layout-dashboard")}<b>${TITLE()[0]}</b>${DEV()}</div>`;
 }
 function mkModal() {
   if (!MK.modal) return "";
