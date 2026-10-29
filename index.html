@@ -2145,9 +2145,12 @@ function stOf(o, v) {
   if (v === "l1") return o.at === "l1" ? ["Передал шеф — сверить", "b-primary", "todo"] : ["Вернул шефу", "b-success", "passed"];
   if (o.at) return ["У логиста №1 — сверяет", "b-slate", "lg"];
   if (sendable(o)) return ["Готово — отправить менеджеру", "b-primary", "todo"];
-  if (!partDone(o, "chef")) return o.ret ? ["Вернул логист №1 — проверить", "b-warning", "todo"] : ["Новая — сверить", "b-primary", "todo"];
+  // лист готов, но шеф ещё не нажал «Готово — лист сверен» — заявка остаётся у него (юзер 29.10)
+  if (!partDone(o, "chef") || !o.chefOk) return o.ret ? ["Вернул логист №1 — проверить", "b-warning", "todo"] : partDone(o, "chef") ? ["Сверено — нажмите «Готово»", "b-primary", "todo"] : ["Новая — сверить", "b-primary", "todo"];
   return ["Ждёт логиста №2", "b-slate", "lg"];
 }
+// правка решения или срока по листу снимает «Готово» шефа
+const unconfirm = (o, i) => { if (partOf(o.items[i]) === "chef") delete o.chefOk; };
 // открывается «Нужно сделать» — сразу видно, что ждёт; «Все» — последним (юзер 29.10)
 const IN_F = { chef: [["todo", "Нужно сделать"], ["lg", "У логистов"], ["sent", "Отправлены менеджеру"], ["all", "Все"]],
   l1: [["todo", "Нужно сделать"], ["passed", "Вернул шефу"], ["sent", "Отправлены менеджеру"], ["all", "Все"]],
@@ -2219,7 +2222,7 @@ function inRow(o, i, v) {
 }
 // чужая часть: затемнена; когда другой закончил — видно его решение; под ней — кто обрабатывает
 function inLocked(o, idx, v) {
-  const p = v === "l2" ? "chef" : "l2", done = sentOut(o) || (p === "l2" ? !!o.l2ok : partDone(o, "chef") && !o.at);
+  const p = v === "l2" ? "chef" : "l2", done = sentOut(o) || (p === "l2" ? !!o.l2ok : partDone(o, "chef") && !o.at && !!o.chefOk);
   const res = (i) => (!o.chk ? badge(iSt(o.items[i])) : done ? decText(o.chk[i], o.items[i]) + (o.chk[i].dl ? " · до " + o.chk[i].dl : "") : "-");
   const st = sentOut(o) ? "заявка отправлена менеджеру" : done ? (p === "l2" ? "✓ сверил и передал шефу" : "✓ сверил") : "ещё сверяет";
   return idx.map((i) => `<tr class="lock"><td>${i + 1}</td><td>${inName(o.items[i])}</td><td>${o.items[i].qty}</td><td colspan="3">${res(i)}</td></tr>`).join("")
@@ -2234,10 +2237,15 @@ function inFoot(o, v, mine) {
   const off = () => (why ? ` disabled title="${why}"` : "");
   if (v === "chef") {
     const l2p = [...new Set(o.items.filter((x) => partOf(x) === "l2").map((x) => x.prod.toLowerCase()))].join(", ").replace(/, ([^,]*)$/, " и $1");
-    why = sendable(o) ? "" : o.at ? "Лист сверяет логист №1 — кнопка загорится, когда он вернёт заявку." : !partDone(o, "chef") ? "Поставьте решение и срок у всех позиций листа."
-      : `Ждёт логиста №2 — он ещё сверяет ${l2p}. Кнопка загорится, когда он нажмёт «Готово — передать шефу».`;
-    btn = (hasPart(o, "chef") ? (o.at ? `<button class="mk-btn" data-mk-assign="${o.no}|">${ico("undo-2")}Забрать себе</button>` : `<button class="mk-btn" data-mk-assign="${o.no}|l1">${ico("user")}Передать логисту №1</button>`) : "")
-      + `<button class="mk-btn p" data-mk-chksend="${o.no}"${off()}>${ico("send")}Отправить менеджеру</button>`;
+    const asg = hasPart(o, "chef") ? (o.at ? `<button class="mk-btn" data-mk-assign="${o.no}|">${ico("undo-2")}Забрать себе</button>` : `<button class="mk-btn" data-mk-assign="${o.no}|l1">${ico("user")}Передать логисту №1</button>`) : "";
+    if (hasPart(o, "chef") && hasPart(o, "l2") && !o.l2ok && !o.at && !o.chefOk) { // логист №2 ещё не передал — шеф подтверждает лист кнопкой
+      why = partDone(o, "chef") ? "" : "Поставьте решение и срок у всех позиций листа.";
+      btn = asg + `<button class="mk-btn p" data-mk-chefok="${o.no}"${off()}>${ico("check")}Готово — лист сверен</button>`;
+    } else {
+      why = sendable(o) ? "" : o.at ? "Лист сверяет логист №1 — кнопка загорится, когда он вернёт заявку." : !partDone(o, "chef") ? "Поставьте решение и срок у всех позиций листа."
+        : `Ждёт логиста №2 — он ещё сверяет ${l2p}. Кнопка загорится, когда он нажмёт «Готово — передать шефу».`;
+      btn = asg + `<button class="mk-btn p" data-mk-chksend="${o.no}"${off()}>${ico("send")}Отправить менеджеру</button>`;
+    }
   } else if (v === "l1" && o.at === "l1") {
     why = partDone(o, "chef") ? "" : "Поставьте решение и срок у всех позиций листа.";
     btn = `<button class="mk-btn p" data-mk-l1ret="${o.no}"${off()}>${ico("undo-2")}Вернуть шефу</button>`;
@@ -2682,7 +2690,7 @@ document.querySelectorAll(".hot[data-role]").forEach((g) => {
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-inopen],[data-mk-topool],[data-mk-pptab],[data-mk-ppsel],[data-mk-ppmk],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-topool],[data-mk-pptab],[data-mk-ppsel],[data-mk-ppmk],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
@@ -2757,9 +2765,10 @@ overlay.addEventListener("click", (e) => {
   else if (t.hasAttribute("data-mk-csend")) cSend();
   else if (d.mkTochef) ORDERS.find((o) => o.no === d.mkTochef).st = "chef";
   else if (d.mkInf) { MK.inF = d.mkInf; MK.inKeep = null; }
-  else if (d.mkDec) { const [no, i, k] = d.mkDec.split("|"), o = ord(no), c = chkOf(o)[+i]; c.take = k === "part" ? freeFor(o, +i) : 0; c.dec = k; if (k === "stock") c.dl = null; }
-  else if (d.mkDl) { const [no, i, n] = d.mkDl.split("|"); chkOf(ord(no))[+i].dl = addD(+n); }
-  else if (t.hasAttribute("data-mk-assign")) { const [no, who] = d.mkAssign.split("|"), o = ord(no); if (who) { o.at = who; delete o.ret; } else delete o.at; } // лист — логисту №1 на сверку / забрать себе
+  else if (d.mkDec) { const [no, i, k] = d.mkDec.split("|"), o = ord(no), c = chkOf(o)[+i]; c.take = k === "part" ? freeFor(o, +i) : 0; c.dec = k; if (k === "stock") c.dl = null; unconfirm(o, +i); }
+  else if (d.mkDl) { const [no, i, n] = d.mkDl.split("|"), o = ord(no); chkOf(o)[+i].dl = addD(+n); unconfirm(o, +i); }
+  else if (d.mkChefok) ord(d.mkChefok).chefOk = true; // шеф подтвердил лист — заявка ждёт логиста №2
+  else if (t.hasAttribute("data-mk-assign")) { const [no, who] = d.mkAssign.split("|"), o = ord(no); delete o.chefOk; if (who) { o.at = who; delete o.ret; } else delete o.at; } // лист — логисту №1 на сверку / забрать себе
   else if (d.mkChksend) chkSend(ord(d.mkChksend));
   else if (d.mkL1ret) { const o = ord(d.mkL1ret); o.ret = "l1"; delete o.at; } // логист №1 вернул лист шефу
   else if (t.hasAttribute("data-mk-topool")) Object.assign(MK, { view: "plan", ppTab: "pool", ppDone: null, inKeep: null, inOpen: {} }); // из заявки — в «Нужно произвести»
@@ -2797,7 +2806,7 @@ overlay.addEventListener("click", (e) => {
 // пересчёт в машине: значение сохраняется при выходе из поля; фокус возвращаем туда, куда перешёл человек
 overlay.addEventListener("change", (e) => {
   const cd = e.target.dataset && e.target.dataset.mkCdate; // срок сверки датой
-  if (cd) { const [no, i] = cd.split("|"), val = e.target.value; if (val) { const [, m, dd] = val.split("-"); chkOf(ord(no))[+i].dl = dd + "." + m; } mkRender(); return; }
+  if (cd) { const [no, i] = cd.split("|"), val = e.target.value; if (val) { const [, m, dd] = val.split("-"); chkOf(ord(no))[+i].dl = dd + "." + m; unconfirm(ord(no), +i); } mkRender(); return; }
   const v = e.target.dataset && e.target.dataset.mkVal;
   if (v) { MK.vals[v] = e.target.value; return; } // поля киоска: только запоминаем, без перерисовки (иначе не сработает нажатие «Подтвердить»)
   const k = e.target.dataset && e.target.dataset.mkCount;
