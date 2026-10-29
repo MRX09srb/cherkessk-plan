@@ -1499,7 +1499,7 @@ function mkSide() {
     ? `<button class="mk-item${act === id ? " on" : ""}" data-mk-nav="${id}" title="${l}" aria-label="${l}"><span class="ic">${ico(ic)}${nb && nb() ? `<i class="mk-nbdot"></i>` : ""}</span></button>`
     : `<button class="mk-item${act === id ? " on" : ""}" data-mk-nav="${id}"><span class="ic">${ico(ic)}</span>${l}${nb && nb() ? `<em class="mk-nb">${nb()}</em>` : ""}${ro ? `<span class="mk-ro">${ico("eye")}Чтение</span>` : ""}</button>`;
   return `<aside class="mk-side${c ? " c" : ""}${anim ? " anim" : ""}">
-    <div class="mk-logo">${borrexLogo("mk-bx")}${c ? "" : `<div class="mk-logo-t"><b>Borrex</b><span>ERP</span></div>`}
+    <div class="mk-logo">${borrexLogo("mk-bx")}${c ? "" : `<div class="mk-logo-t"><b>Borrex</b><span>ERP/CRM</span></div>`}
       <button class="mk-collapse" type="button" data-mk-side title="${tip}" aria-label="${tip}" aria-expanded="${!c}">${ico(c ? "chevrons-right" : "chevrons-left")}</button></div>
     <nav class="mk-nav">${R().nav.map((g, gi) => `${g.title ? (c ? (gi ? `<div class="mk-sep"></div>` : "") : `<div class="mk-grp">${g.title}</div>`) : ""}${g.items.map(item).join("")}`).join("")}</nav>
     ${MK.role === "kiosk" ? "" : `<button class="mk-exit" type="button"${c ? ' title="Выход" aria-label="Выход"' : ""}>${ico("log-out")}${c ? "" : "Выход"}</button>`}
