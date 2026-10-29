@@ -686,11 +686,14 @@ footer { color: var(--muted); font-size: 13px }
 .mk-ob > .mk-dfoot { border-top: 1px solid var(--border-subtle) }
 /* «Нужно произвести»: вкладки, строки с галочкой; окно — группы будущих заявок, выбор линии */
 .mk-pptabs { margin-bottom: 14px; width: max-content }
-.mk-pool input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--primary-600); pointer-events: none }
 .mk-pool tr.sel td { background: color-mix(in oklab, var(--primary-500) 10%, var(--bg-surface)) }
-.mk-ppg { padding: 12px 14px; border: 1px solid var(--border-default); border-radius: 8px; display: grid; gap: 8px }
-.mk-ppi { font-size: .8125rem; color: var(--fg-secondary) }
-.mk-pplines { flex-wrap: wrap }
+.mk-pool .mk-pplines { flex-wrap: wrap; max-width: 400px }
+.mk-pool .mk-pplines button { padding: 4px 9px; font-size: .75rem }
+.mk-ppgroups { padding: 12px 16px; border-top: 1px solid var(--border-subtle); display: grid; gap: 8px; font-size: .875rem }
+.mk-ppg { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1px solid var(--border-default); border-radius: 8px }
+.mk-ppg small { display: block; font-size: .75rem; color: var(--fg-tertiary); margin-top: 2px }
+.mk-ppg label { display: flex; align-items: center; gap: 8px; font-size: .8125rem; color: var(--fg-secondary) }
+.mk-ppg input[type=date] { padding: 4px 8px; font: inherit; font-size: .8125rem; color: var(--fg-primary); background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: 6px; color-scheme: dark }
 .mk-topool { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px }
 .mk-topool .mk-btn { margin-left: auto }
 .mk-chk td small.mk-dech { white-space: normal; max-width: 330px; margin-top: 6px }
@@ -1102,7 +1105,7 @@ const SHIPS = [
 const PP = [
   { no: "ПП-2026-014", grp: 1, shop: "monolit", line: "Монолитный цех", sub: "синяя линия", name: "ТСК Империя", created: "10.10.2026", plan: "17.10.2026", pos: 1, st: "inprog", author: "Шеф логистов", order: "З-2026-006" },
   { no: "ПП-2026-009", grp: 1, shop: "sot", line: "Сотовый, старый цех", sub: "линия 2", name: "Уникум Дон", created: "03.10.2026", plan: "05.10.2026", pos: 2, st: "done", author: "Шеф логистов", order: "З-2026-004" },
-  { no: "ПП-2026-013", grp: 2, shop: "monolit", line: "Трапеция", sub: "новая", name: "Уникум Пласт Северо-Запад", created: "08.10.2026", plan: "16.10.2026", pos: 1, st: "inprog", author: "Логист №2", order: "З-2026-005" },
+  { no: "ПП-2026-013", grp: 2, shop: "monolit", line: "Монолитный цех · трапеция", sub: "новая", name: "Уникум Пласт Северо-Запад", created: "08.10.2026", plan: "16.10.2026", pos: 1, st: "inprog", author: "Логист №2", order: "З-2026-005" },
   { no: "ПП-2026-012", grp: 2, shop: "profile", line: "Профильный цех", sub: "линия 3", name: "Уникум Пласт Северо-Запад", created: "08.10.2026", plan: "15.10.2026", pos: 1, st: "inprog", author: "Логист №2", order: "З-2026-005" },
   { no: "ПП-2026-010", grp: 2, shop: "thermo", line: "Термошайбы", sub: "линия 1", name: "Протэк", created: "01.10.2026", plan: "03.10.2026", pos: 1, st: "done", author: "Логист №2", order: "З-2026-003" },
   // плёнка: заявку даёт шеф производства (пример; бывают ли у плёнки заявки — уточнить)
@@ -1117,7 +1120,7 @@ const PPI = {
 };
 // статусы заявок на производство
 const PP_ST = { draft: ["Черновик", "b-slate"], issued: ["Выдано на производство", "b-warning"], inprog: ["В процессе", "b-success"], done: ["Завершён", "b-danger"] };
-const PP_LINES = { 1: ["Сотовый", "Монолитный цех"], 2: ["Профильный цех", "Термошайбы", "Трапеция"] };
+const PP_LINES = { 1: ["Сотовый", "Монолитный цех"], 2: ["Профильный цех", "Термошайбы", "Монолитный цех · трапеция"] }; // трапеция — линии монолитного цеха (карта завода)
 const NAV_END = [{ title: "Общее", items: [["dicts", "Справочник", "book-open"]] }];
 const LG_TITLES = (g) => ({
   inbox: ["Заявки от менеджеров", g === 1 ? "Лист, который шеф логистов передал мне на сверку" : "Профиль, термошайбы, трапеция — сверяю я"],
@@ -1478,24 +1481,29 @@ function pgPlan() {
   return tabs + (tab === "pool" ? ppPool(pool, v) : ppList(all, ro));
 }
 function ppPool(pool, v) {
-  const sel = pool.filter((p) => MK.ppSel[ppKey(p)]), n = sel.length, one = n > 0 && ppOneShop(sel), what = v === "l2" ? "профиль, термошайбы, трапеция" : "сотовый и монолитный лист";
+  const what = v === "l2" ? "профиль, термошайбы, трапеция" : "сотовый и монолитный лист", groups = ppGroups(v);
   if (!pool.length) return `<div class="mk-card mk-stub">${ico("factory")}<b>Пока нечего производить</b>
     <p class="mk-note">Сверьте заявку → поставьте «Частично» или «В производство» и срок → ${v === "l2" ? "«Готово — передать шефу»" : "«Готово — позиции обработаны» (или «Отправить менеджеру»)"} — позиции придут сюда.</p></div>`;
-  return `<div class="mk-sec"><h3>Нужно произвести <small>· ${pool.length}</small></h3><span class="mk-note">Из сверки заявок менеджеров — ${what}</span></div>
-    <div class="mk-card mk-tbl dense mk-pool"><table><thead><tr><th></th><th>Продукция</th><th>Сколько</th><th>Из заявки</th><th>Срок</th><th>Цех</th></tr></thead><tbody>
-      ${pool.map((p) => { const k = ppKey(p), on = !!MK.ppSel[k];
-        return `<tr class="click${on ? " sel" : ""}" data-mk-ppsel="${k}"><td><input type="checkbox" tabindex="-1" aria-label="Выбрать"${on ? " checked" : ""}></td><td>${inName(p.x)}</td>
-          <td>${qtyT(ppQty(p), qU(p.x))}</td><td><span class="mk-no">${p.o.no}</span><small>${p.o.client}</small></td><td>до ${p.c.dl}</td><td>${shopOf(p.x)}</td></tr>`; }).join("")}
+  const pick = (p) => { const k = ppKey(p), cur = MK.ppLineOf[k];
+    return `<div class="mk-seg mk-pplines">${LINES[shopOf(p.x)].map((ln, j) => `<button class="${cur === j ? "on" : ""}" data-mk-ppline="${k}#${j}" title="${ln[0]} · ${ln[1]}">${lineShort(ln)}</button>`).join("")}</div>`; };
+  return `<div class="mk-sec"><h3>Нужно произвести <small>· ${pool.length}</small></h3><span class="mk-note">Из сверки заявок менеджеров — ${what}. Выберите линию у позиций: с одной линией соберутся в одну заявку</span></div>
+    <div class="mk-card mk-tbl dense mk-pool"><table><thead><tr><th>Продукция</th><th>Сколько</th><th>Из заявки</th><th>Срок</th><th>Цех</th><th>Линия</th></tr></thead><tbody>
+      ${pool.map((p) => `<tr${MK.ppLineOf[ppKey(p)] !== undefined ? ' class="sel"' : ""}><td>${inName(p.x)}</td><td>${qtyT(ppQty(p), qU(p.x))}</td>
+        <td><span class="mk-no">${p.o.no}</span><small>${p.o.client}</small></td><td>до ${p.c.dl}</td><td>${shopOf(p.x)}</td><td>${pick(p)}</td></tr>`).join("")}
     </tbody></table>
-    <div class="mk-dfoot"><span class="mk-note">выбрано ${n}</span>
-      <button class="mk-btn" data-mk-ppmk="one"${one ? "" : ` disabled${n ? ' title="Одна заявка — одна линия: выбраны разные цеха"' : ""}`}>${ico("layers")}Создать одну заявку из выбранных (${n})</button>
-      <button class="mk-btn" data-mk-ppmk="each"${n ? "" : " disabled"}>${ico("copy")}Создать отдельные — по одной на позицию (${n})</button></div></div>`;
+    <div class="mk-ppgroups"><b>Соберутся заявки на производство</b>
+      ${groups.length ? groups.map((g) => `<div class="mk-ppg"><span><b>${g.line} · ${g.sub}</b><small>${nPos(g.its.length)} (${[...new Set(g.its.map((p) => p.o.no))].join(", ")}) · ${qtyT(g.its.reduce((s, p) => s + ppQty(p), 0), qU(g.its[0].x))}</small></span>
+        <label>производство <input type="date" data-mk-ppdate="${g.k}" value="${g.date}" aria-label="Плановая дата производства"></label></div>`).join("") : `<span class="mk-muted">Пока ничего — выберите линию у позиций.</span>`}</div>
+    <div class="mk-dfoot"><span class="mk-note">Позиция без линии остаётся ждать здесь.</span>
+      <button class="mk-btn p" data-mk-ppcreate${groups.length ? "" : ' disabled title="Выберите линию у позиций"'}>${ico("factory")}Создать заявки на производство (${groups.length})</button>
+      ${groups.length ? "" : `<div class="mk-why">${ico("hourglass")}Выберите линию у позиций.</div>`}</div></div>`;
 }
 function ppList(all, ro) {
   const cnt = (st) => all.filter((p) => p.st === st).length;
   const lines = viewer() === "chef" ? PP_LINES[1].concat(PP_LINES[2]) : PP_LINES[R().grp];
-  const chips = [["all", "Все", all.length]].concat(lines.map((l) => [l, l, all.filter((p) => p.line.startsWith(l)).length]));
-  const rows = all.filter((p) => MK.ppFilter === "all" || p.line.startsWith(MK.ppFilter));
+  const onLine = (p, l) => (l === "Сотовый" ? p.line.startsWith(l) : p.line === l); // «Сотовый» — старый и новый цех
+  const chips = [["all", "Все", all.length]].concat(lines.map((l) => [l, l, all.filter((p) => onLine(p, l)).length]));
+  const rows = all.filter((p) => MK.ppFilter === "all" || onLine(p, MK.ppFilter));
   return `${ro ? `<div class="mk-plashka">${ico("eye")}<b>Только просмотр.</b> Заявки на производство листа создаёт шеф логистов. ${TODO("видит ли логист №1")}</div>` : ""}
     ${MK.ppDone ? `<div class="mk-hint ok">✓ Создано черновиком: ${MK.ppDone.join(", ")}.</div>` : ""}
     <div class="mk-kpis">
@@ -2304,16 +2312,19 @@ function pgIn() {
 }
 /* --- «Нужно произвести» (юзер 29.10): сверка заявок сама заявок на производство не создаёт — позиции «Частично»
    и «В производство» приходят сюда, когда каждый закончил свою часть: лист — по «Готово — позиции обработаны» шефа
-   (или при отправке менеджеру), профиль, термошайбы, трапеция — по «Готово — передать шефу» логиста №2. Шеф (лист) и логист №2 (своё)
-   отмечают позиции и создают одну заявку на производство из выбранных или отдельные. Заявка — на одну линию,
-   у каждой линии своя (юзер 29.10): в одну заявку — только позиции одного цеха. Создаётся черновиком (в киоски не уходит) --- */
-const SHOP_OF = [[/^Сотовый/, "Сотовый цех"], [/^Монолитный/, "Монолитный цех"], [/^Профиль/, "Профильный цех"], [/^Термошайбы/, "Термошайбы"], [/^Трапеция/, "Трапеция"]];
+   (или при отправке менеджеру), профиль, термошайбы, трапеция — по «Готово — передать шефу» логиста №2.
+   Шеф (лист) и логист №2 (своё) сами решают, что, где и когда: у позиции — линия её цеха по карте завода, позиции
+   с одной линией собираются в одну заявку, у каждой будущей заявки — своя плановая дата. Заявка — на одну линию,
+   у каждой линии своя. Создаётся черновиком (в киоски не уходит). Трапеция — линии монолитного цеха (по карте) --- */
+const SHOP_OF = [[/^Сотовый/, "Сотовый цех"], [/^Монолитный/, "Монолитный цех"], [/^Профиль/, "Профильный цех"], [/^Термошайбы/, "Термошайбы"], [/^Трапеция/, "Монолитный цех · трапеция"]];
 const shopOf = (x) => (SHOP_OF.find(([re]) => re.test(x.prod)) || [null, "—"])[1];
 // линии цехов по карте завода: [линия в списке заявок, линия, киоск]
 const nl = (label, names, kiosk) => names.map((n) => [label, n, kiosk]);
 const LINES = { "Сотовый цех": nl("Сотовый, старый цех", ["линия 1", "линия 2", "линия 3", "линия 4"], "sot").concat(nl("Сотовый, новый цех", ["линия 2", "линия 6", "линия 7"], "sot")),
   "Монолитный цех": nl("Монолитный цех", ["масляная линия", "синяя линия"], "monolit"), "Профильный цех": nl("Профильный цех", ["линия 1", "линия 2", "линия 3", "линия 4", "линия 5"], "profile"),
-  "Термошайбы": nl("Термошайбы", ["линия 1", "линия 2"], "thermo"), "Трапеция": nl("Трапеция", ["старая", "новая"], "monolit") };
+  "Термошайбы": nl("Термошайбы", ["линия 1", "линия 2"], "thermo"), "Монолитный цех · трапеция": nl("Монолитный цех · трапеция", ["старая", "новая"], "monolit") };
+// коротко для выбора в строке: «стар. 1», «нов. 6», «масляная», «лин. 3», «старая»
+const lineShort = ([label, sub]) => (/старый цех/.test(label) ? "стар. " + sub.slice(6) : /новый цех/.test(label) ? "нов. " + sub.slice(6) : sub.replace(" линия", "").replace("линия ", "лин. "));
 // позиция ждёт заявку на производство: нужно произвести, решение окончательное, ещё ни в одной заявке
 function poolOf(v) {
   return ORDERS.flatMap((o) => (o.chk ? o.items.map((x, i) => ({ o, x, i, c: o.chk[i] })) : []))
@@ -2321,18 +2332,26 @@ function poolOf(v) {
 }
 const ppKey = (p) => p.o.no + "|" + p.i;
 const ppQty = (p) => (p.c.dec === "part" ? qN(p.x) - p.c.take : qN(p.x)); // «Частично» — только недостающее
-const ppPicked = (v) => poolOf(v).filter((p) => MK.ppSel[ppKey(p)]);
-const ppOneShop = (its) => new Set(its.map((p) => shopOf(p.x))).size === 1;
-// группы будущих заявок: одна из выбранных (только один цех) или по одной на позицию
-const ppGroups = (its, one) => (one ? [its] : its.map((p) => [p])).filter((g) => g.length);
-Object.assign(MK, { ppTab: null, ppSel: {}, ppLine: {}, ppOne: false, ppDone: null });
-function ppMake(one, plan) {
-  const v = viewer(), groups = ppGroups(ppPicked(v), one);
-  return groups.map((g, k) => {
-    const no = "ПП-2026-" + String(Math.max(...PP.map((p) => +p.no.slice(8))) + 1).padStart(3, "0"), [line, sub, shop] = LINES[shopOf(g[0].x)][MK.ppLine[k]];
-    PP.unshift({ no, grp: v === "l2" ? 2 : 1, shop, line, sub, name: [...new Set(g.map((p) => p.o.client))].join(", "), created: TODAY, plan, pos: g.length, st: "draft",
-      author: v === "l2" ? "Логист №2" : "Шеф логистов", order: [...new Set(g.map((p) => p.o.no))].join(", ") });
-    g.forEach((p) => { p.c.pp = no; });
+// ppLineOf — линия, выбранная у позиции; ppDate — плановая дата будущей заявки (по линии)
+Object.assign(MK, { ppTab: null, ppLineOf: {}, ppDate: {}, ppDone: null });
+// будущие заявки: позиции с выбранной линией, по одной заявке на линию; дата по умолчанию — ближайший срок её позиций
+function ppGroups(v) {
+  const g = {};
+  poolOf(v).forEach((p) => { const j = MK.ppLineOf[ppKey(p)]; if (j !== undefined) (g[shopOf(p.x) + "|" + j] = g[shopOf(p.x) + "|" + j] || []).push(p); });
+  return Object.entries(g).map(([k, its]) => {
+    const [line, sub, shop] = LINES[shopOf(its[0].x)][+k.split("|")[1]];
+    const [dd, mm] = its.map((p) => p.c.dl).sort((a, b) => dNum(a + ".2026") - dNum(b + ".2026"))[0].split(".");
+    return { k, its, line, sub, shop, date: MK.ppDate[k] || "2026-" + mm + "-" + dd };
+  });
+}
+function ppMake() {
+  const v = viewer();
+  return ppGroups(v).map((g) => {
+    const no = "ПП-2026-" + String(Math.max(...PP.map((p) => +p.no.slice(8))) + 1).padStart(3, "0");
+    PP.unshift({ no, grp: v === "l2" ? 2 : 1, shop: g.shop, line: g.line, sub: g.sub, name: [...new Set(g.its.map((p) => p.o.client))].join(", "), created: TODAY,
+      plan: g.date.split("-").reverse().join("."), pos: g.its.length, st: "draft", author: v === "l2" ? "Логист №2" : "Шеф логистов", order: [...new Set(g.its.map((p) => p.o.no))].join(", ") });
+    g.its.forEach((p) => { p.c.pp = no; delete MK.ppLineOf[ppKey(p)]; });
+    delete MK.ppDate[g.k];
     return no;
   });
 }
@@ -2600,18 +2619,6 @@ function mkModal() {
       ${f("mkfPpName", "Название заявки", combo("mkfPpName", MK.pre ? ORDERS.find((o) => o.no === MK.pre).client : "", "Клиент или свой текст"))}
       ${f("mkfPpDate", "Плановая дата производства", `<input type="date" id="mkfPpDate" value="2026-10-17">`)}
       <div class="mk-hint">Заявка будет создана как <b>черновик</b>. Позиции добавьте в карточке заявки.</div>`, "+ Создать"],
-    // из «Нужно произвести»: одна заявка из выбранных (один цех) или по одной на позицию; у каждой заявки — своя линия
-    ppmk: (() => {
-      if (MK.modal !== "ppmk") return null;
-      const one = MK.ppOne, groups = ppGroups(ppPicked(viewer()), one), ready = groups.every((g, k) => MK.ppLine[k] !== undefined);
-      return [one ? "Новая заявка на производство" : "Новые заявки на производство · " + groups.length, `<div class="mk-hint">ⓘ Заявка на производство — на одну линию.</div>
-        ${groups.map((g, k) => `<div class="mk-ppg"><b>${groups.length > 1 ? "Заявка " + (k + 1) + " · " : ""}${shopOf(g[0].x)}</b>
-          ${g.map((p) => `<div class="mk-ppi">${p.x.prod}${p.x.th !== "—" ? " " + p.x.th + " мм" : ""} · ${p.x.size !== "—" ? p.x.size + " · " : ""}${p.x.color} — <b>${qtyT(ppQty(p), qU(p.x))}</b> · ${p.o.no} · до ${p.c.dl}</div>`).join("")}
-          <div class="mk-f"><label>Линия</label><div class="mk-seg mk-pplines">${LINES[shopOf(g[0].x)].map(([lb, ln], j) =>
-            `<button type="button" class="${MK.ppLine[k] === j ? "on" : ""}" data-mk-ppline="${k}|${j}">${/^Сотовый/.test(lb) ? lb.replace("Сотовый, ", "") + " · " : ""}${ln}</button>`).join("")}</div></div></div>`).join("")}
-        ${f("mkfPpDate", "Плановая дата производства", `<input type="date" id="mkfPpDate" data-mk-val="pp|date" value="${MK.vals["pp|date"] || "2026-10-17"}">`)}
-        <div class="mk-hint">Заявка будет создана как <b>черновик</b>.</div>`, one ? "+ Создать" : "+ Создать " + groups.length, `data-mk-ppcreate="1"${ready ? "" : ' disabled title="Выберите линию"'}`];
-    })(),
     pin: ["Вход в смену", `<div style="text-align:center"><div class="mk-muted" style="font-size:13px;text-transform:uppercase;letter-spacing:.06em">Вход в смену</div>
       <div style="font-size:22px;font-weight:700;color:var(--primary-800)">${MK.pinFor || ""}</div></div>
       <input type="password" inputmode="numeric" maxlength="4" id="mkPin" class="mk-pin${MK.pinErr ? " err" : ""}" placeholder="••••" autocomplete="off" aria-label="PIN">
@@ -2644,7 +2651,7 @@ function mkModal() {
       return ["Подтверждение завершения", `${msg}<div>Подтвердить позицию как «Готово»? После подтверждения изменить нельзя.</div>`, "✓ Да, подтвердить", 'data-mk-kdoneok="1"'];
     })()
   }[MK.modal];
-  return `<div class="mk-back" data-mk-close-modal><div class="mk-modal${MK.modal === "pin" ? " sm" : MK.modal === "kdone" ? " md" : MK.modal === "client" || MK.modal === "ppmk" ? " lg" : ""}" role="dialog" aria-modal="true" aria-label="${M[0]}">
+  return `<div class="mk-back" data-mk-close-modal><div class="mk-modal${MK.modal === "pin" ? " sm" : MK.modal === "kdone" ? " md" : MK.modal === "client" ? " lg" : ""}" role="dialog" aria-modal="true" aria-label="${M[0]}">
     <div class="mk-modal-h"><h4>${M[0]}</h4><button class="mk-modal-x" data-mk-close-modal aria-label="Закрыть">${ico("x")}</button></div>
     <div class="mk-modal-b">${M[1]}</div>
     <div class="mk-modal-f"><button class="mk-btn" data-mk-close-modal>Отмена</button><button class="mk-btn p" ${M[3] || "data-mk-close-modal"}>${M[2]}</button></div></div></div>`;
@@ -2671,7 +2678,7 @@ function mkOpen(role, from, shop) {
   if (shop) { MK.shop = shop; MK.kPart = "a"; }
   MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cOpen = null; MK.cRow = null; MK.cCol = null; MK.cTh = null; MK.cLenR = {}; MK.cLenErr = null; MK.cSent = null; MK.cErr = ""; MK.cLogged = false; MK.cLoginErr = ""; MK.accDone = null;
   MK.role = role; MK.view = role === "kiosk" && !KSHOPS[MK.shop].orders ? "kShift" : ROLES[role].start; MK.order = null; MK.modal = null; MK.pre = null;
-  MK.filter = MK.ppFilter = MK.clFilter = "all"; MK.inF = "todo"; MK.inKeep = null; MK.inOpen = {}; MK.ppTab = null; MK.ppSel = {}; MK.ppLine = {}; MK.ppDone = null; MK.clTab = "active"; MK.clQ = "";
+  MK.filter = MK.ppFilter = MK.clFilter = "all"; MK.inF = "todo"; MK.inKeep = null; MK.inOpen = {}; MK.ppTab = null; MK.ppLineOf = {}; MK.ppDate = {}; MK.ppDone = null; MK.clTab = "active"; MK.clQ = "";
   document.getElementById("mkTitle").textContent = "Макет · " + (role === "kiosk" ? "Киоск · " + KSHOPS[MK.shop].name : ROLES[role].label);
   overlay.setAttribute("aria-label", "Макет рабочего места: " + ROLES[role].label);
   overlay.hidden = false; document.body.style.overflow = "hidden"; mkRender(); fitMk(); document.getElementById("mkClose").focus();
@@ -2693,7 +2700,7 @@ document.querySelectorAll(".hot[data-role]").forEach((g) => {
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-topool],[data-mk-pptab],[data-mk-ppsel],[data-mk-ppmk],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-topool],[data-mk-pptab],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
@@ -2778,13 +2785,8 @@ overlay.addEventListener("click", (e) => {
   else if (d.mkInopen) MK.inOpen[d.mkInopen] = !MK.inOpen[d.mkInopen]; // раскрыть / свернуть заявку под строкой
   else if (d.mkL2ok) ord(d.mkL2ok).l2ok = true; // логист №2 передал свою часть шефу
   else if (d.mkPptab) { MK.ppTab = d.mkPptab; MK.ppDone = null; }
-  else if (d.mkPpsel) MK.ppSel[d.mkPpsel] = !MK.ppSel[d.mkPpsel];
-  else if (d.mkPpmk) Object.assign(MK, { modal: "ppmk", ppOne: d.mkPpmk === "one", ppLine: {} });
-  else if (d.mkPpline) { const [k, j] = d.mkPpline.split("|"); MK.ppLine[+k] = +j; }
-  else if (t.hasAttribute("data-mk-ppcreate")) { // из «Нужно произвести» — черновики; позиции уходят из списка
-    const dt = MK.vals["pp|date"] || "2026-10-17";
-    MK.ppDone = ppMake(MK.ppOne, dt.split("-").reverse().join(".")); Object.assign(MK, { ppSel: {}, ppLine: {}, modal: null, pre: null, ppTab: "list" });
-  }
+  else if (d.mkPpline) { const [k, j] = d.mkPpline.split("#"); if (MK.ppLineOf[k] === +j) delete MK.ppLineOf[k]; else MK.ppLineOf[k] = +j; } // линия у позиции; повторно — снять
+  else if (t.hasAttribute("data-mk-ppcreate")) { MK.ppDone = ppMake(); MK.ppTab = "list"; } // из «Нужно произвести» — по заявке на линию, черновики
   else if (t.hasAttribute("data-mk-clogin")) { // в макете подходят любые логин и пароль
     const l = (document.getElementById("cLogin") || {}).value || "", p = (document.getElementById("cPass") || {}).value || "";
     if (l.trim() && p) Object.assign(MK, { cLogged: true, cLoginErr: "", view: "cat" }); else MK.cLoginErr = "Введите логин и пароль";
@@ -2808,6 +2810,8 @@ overlay.addEventListener("click", (e) => {
 });
 // пересчёт в машине: значение сохраняется при выходе из поля; фокус возвращаем туда, куда перешёл человек
 overlay.addEventListener("change", (e) => {
+  const pdt = e.target.dataset && e.target.dataset.mkPpdate; // плановая дата будущей заявки на производство
+  if (pdt) { MK.ppDate[pdt] = e.target.value; return; }
   const cd = e.target.dataset && e.target.dataset.mkCdate; // срок сверки датой
   if (cd) { const [no, i] = cd.split("|"), val = e.target.value; if (val) { const [, m, dd] = val.split("-"); chkOf(ord(no))[+i].dl = dd + "." + m; unconfirm(ord(no), +i); } mkRender(); return; }
   const v = e.target.dataset && e.target.dataset.mkVal;
