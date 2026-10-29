@@ -325,6 +325,11 @@ footer { color: var(--muted); font-size: 13px }
 .mk-cb { display: flex; align-items: flex-start; gap: 8px; font-size: .875rem; cursor: pointer }
 .mk-cb input { width: 18px; height: 18px; margin: 0; flex-shrink: 0 }
 .mk-cb.off { color: var(--fg-tertiary); cursor: not-allowed }
+.mk-pk { padding: 14px 16px; display: grid; gap: 10px; margin-bottom: 12px }
+.mk-pk-h { display: flex; flex-wrap: wrap; gap: 6px 16px; justify-content: space-between; align-items: baseline }
+.mk-pk-h span { font-size: .8125rem; color: var(--fg-secondary) }
+.mk-pk-f { display: flex; flex-wrap: wrap; gap: 6px 12px; justify-content: flex-end; align-items: center }
+.mk-pk-f .mk-why { flex-basis: auto }
 .mk-f input.err, .mk-f textarea.err, .mk-head input.err { border-color: var(--danger-600) }
 .mk-tbl input.mk-n { width: 80px; padding: 4px 8px; font-size: .875rem; text-align: left }
 .mk-head input[type=date] { padding: 4px 8px; font: inherit; font-size: .875rem; color: var(--fg-primary); background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: 6px }
@@ -682,6 +687,15 @@ footer { color: var(--muted); font-size: 13px }
 .cs-row .nm span.cs-why { color: var(--fg-primary) }
 .cs-row.click { cursor: pointer }
 .cs-items { margin: 4px 0 14px }
+.cs-pick tr.off td { color: var(--fg-tertiary) }
+.cs-pick tr.on td { background: var(--bg-sunken) }
+.cs-pick input[type=checkbox] { width: 18px; height: 18px; margin: 0 }
+.cs-no { color: var(--fg-secondary) }
+.cs-pickbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; padding: 14px 0 }
+.cs-pickbar .sp { flex: 1 }
+.cs-pickbar .mk-f { min-width: 200px }
+.cs-req { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; padding: 12px 14px; margin-bottom: 10px; border: 1px solid var(--border-default); border-radius: 8px; background: var(--bg-surface); font-size: .875rem }
+.cs-req ul { margin: 6px 0 0; padding-left: 18px; font-size: .8125rem; color: var(--fg-secondary) }
 .cs-box > .mk-btn.ghost { margin-top: 10px }
 .cs-form { display: grid; grid-template-columns: 220px 1fr; gap: 16px; padding: 16px 20px }
 .cs-send { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap }
@@ -1178,7 +1192,7 @@ const LG_TITLES = (g) => ({
 const ROLES = {
   manager: { label: "Менеджер", user: () => [MK.mgr, "Менеджер", MK.mgr.split(" ").map((w) => w[0]).join("")], start: "orders", back: "orders",
     nav: [{ items: [["chat", "Сообщения", "message-square"]] },
-      { title: "Производство", items: [["clients", "Клиенты", "users"], ["orders", "Мои заявки", "clipboard-list"], ["ships", "Заявки на отгрузку", "square-kanban"]] },
+      { title: "Производство", items: [["clients", "Клиенты", "users"], ["orders", "Мои заявки", "clipboard-list"], ["ships", "Заявки на отгрузку", "square-kanban", false, () => pkNew().length]] },
       { title: "Администрация", items: [["invoices", "Инвойсы", "stamp"]] }].concat(NAV_END),
     titles: { orders: ["Мои заявки", "Заявки шефу логистов и что с ними"], ships: ["Заявки на отгрузку", "Создаю, когда всё по заявке готово"],
       invoices: ["Инвойсы", ""], chat: ["Сообщения", ""], clients: ["Клиенты", "Мои клиенты и доступ в личный кабинет"], dicts: ["Справочник", ""] } },
@@ -2439,7 +2453,9 @@ function pgShips() {
   const cnt = (st) => all.filter((z) => zSt(z) === st).length;
   const list = all.filter((z) => MK.seg === "all" || (MK.seg === "active" ? zSt(z) !== "done" : zSt(z) === "done"));
   const step = (ok, t) => `<span class="${ok ? "ok" : ""}">${ok ? "✓ " : ""}${t}</span>`;
-  return `<div class="mk-kpis">
+  const picks = chief ? [] : pkNew(); // менеджеру — «Клиент хочет забрать» (этап 4)
+  return `${picks.length ? `<div class="mk-sec"><h3>Клиент хочет забрать <small>· ${picks.length}</small></h3></div>${picks.map(pkCard).join("")}` : ""}
+    <div class="mk-kpis">
       <div class="mk-card mk-kpi"><span>Всего</span><b>${all.length}</b></div>
       <div class="mk-card mk-kpi"><span>Ждут одобрения</span><b>${cnt("wait")}</b></div>
       <div class="mk-card mk-kpi"><span>Одобрены</span><b>${cnt("approved")}</b></div>
@@ -2629,9 +2645,11 @@ function cOrdItems(o) {
   </tbody></table></div>`;
 }
 function pgCOrders() {
+  if (MK.cPick && MK.cPart[C_NAME] && MK.cPart[C_NAME].on) return pgCPick(); // режим «Выбрать к отгрузке» (этап 4)
   const rows = ORDERS.filter((o) => o.client === C_NAME && o.st !== "draft");
   return `${cHero("Мои заказы", "Отправленные заказы и что с ними.")}
     ${MK.cSent ? `<div class="mk-hint ok">✓ Заказ <b>${MK.cSent}</b> отправлен менеджеру.</div>` : ""}
+    ${cpBlock()}
     <div class="cs-box">${rows.map((o) => { const on = !!MK.cOrd[o.no];
       return `<div class="cs-row click${on ? " on" : ""}" data-mk-cord="${o.no}"><div class="nm"><b class="mk-no">${o.no}</b><span>отправлен ${o.created} · нужен к ${o.need} · ${nPos(o.items.length)}</span>${o.edited ? `<span>изменён менеджером ${o.edited}</span>` : ""}
       ${o.st === "rejected" ? `<span class="cs-why">Причина: ${esc(o.rejWhy)}</span>` : ""}</div>
@@ -2645,6 +2663,88 @@ function cSend() {
     items: Object.entries(MK.cart).map(([k, c]) => { const x = cX(k); return it(/лист/.test(x.prod) ? 1 : 2, x.prod, x.th, [x.size, cDen(x)].filter(Boolean).join(" · "), x.color, fmt(c.qty) + " " + cUnit(x.tab), "wait"); }) });
   MK.cart = {}; Object.keys(MK.vals).filter((k) => /^cq?\|/.test(k)).forEach((k) => delete MK.vals[k]);
   MK.cSent = no; MK.view = "corders";
+}
+
+// --- частичная отгрузка, этап 4 (юзер 30.10): режим клиента «Выбрать к отгрузке» — только если менеджер включил «Частичную отгрузку»;
+// клиент отмечает позиции из принятых заказов и сколько забрать → «запрос на отгрузку» → у менеджера «Клиент хочет забрать».
+// Отгружают только готовое: при «Только готовое» неготовое не выбрать, при «Любые позиции» — заберёт, когда будет готово.
+// Отменить запрос клиент может, пока менеджер не взял его в работу. Заявка на отгрузку из запроса — этап 5.
+const PICKS = [];
+Object.assign(MK, { cPick: false, cpSel: {}, cpErr: {}, cpWhen: "", cpWhenErr: null, cpNone: false, cpSent: false });
+const PK_TAKEN = ["chef", "logist", "checked", "prod", "ready"]; // принятые заказы — из них можно просить отгрузку
+// сколько по позиции готово: заказ готов — всё; сверен / в производстве — со склада целиком или взятое со склада; до сверки — 0
+function rdyQ(o, x) {
+  if (o.st === "ready" || o.st === "shipped") return qN(x);
+  if (o.st !== "checked" && o.st !== "prod") return 0;
+  return x.dl ? x.from || 0 : x.st === "stock" ? qN(x) : 0;
+}
+const pkReq = (no, i) => PICKS.filter((p) => p.st === "new").reduce((s, p) => s + p.items.filter((y) => y.no === no && y.i === i).reduce((a, y) => a + y.qty, 0), 0);
+const pkLeft = (o, x, i) => qN(x) - cShip(o, x) - pkReq(o.no, i);
+const pkAvail = (o, x, i, what) => Math.max(0, what === "any" ? pkLeft(o, x, i) : Math.min(pkLeft(o, x, i), rdyQ(o, x) - cShip(o, x) - pkReq(o.no, i)));
+const pkNew = () => PICKS.filter((p) => p.st === "new" && mgrOfClient(p.client) === MK.mgr); // менеджеру — запросы его клиентов
+const pkU = (x, n) => fmt(n) + " " + qU(x);
+// строки режима: позиции принятых заказов клиента, где ещё что-то осталось забрать
+function cpRows() {
+  const what = MK.cPart[C_NAME].what, out = [];
+  ORDERS.filter((o) => o.client === C_NAME && PK_TAKEN.includes(o.st)).forEach((o) => o.items.forEach((x, i) => {
+    if (qN(x) - cShip(o, x) <= 0) return;
+    const av = pkAvail(o, x, i, what), notReady = rdyQ(o, x) - cShip(o, x) - pkReq(o.no, i) < Math.max(1, av), dl = x.dl ? " · до " + x.dl : "";
+    const why = av ? "" : pkLeft(o, x, i) <= 0 ? "уже в запросе" : "ещё не готово" + dl;
+    out.push({ o, x, i, k: o.no + "|" + i, av, why, later: av && what === "any" && notReady ? "заберёте, когда будет готово" + dl : "" });
+  }));
+  return out;
+}
+function cpSync() { // набранное — из полей, чтобы галочки и «Сообщить менеджеру» не теряли его
+  document.querySelectorAll("[data-cpq]").forEach((el) => { if (el.dataset.cpq in MK.cpSel) MK.cpSel[el.dataset.cpq] = el.value; });
+  const w = document.getElementById("cpWhen"); if (w) MK.cpWhen = w.value;
+}
+function pgCPick() {
+  const rows = cpRows(), sel = rows.filter((r) => r.k in MK.cpSel), nOrd = new Set(sel.map((r) => r.o.no)).size;
+  return `${cHero("Выбрать к отгрузке", "Отметьте, что и сколько хотите забрать, — менеджер подготовит отгрузку.")}
+    <div class="mk-hint">ⓘ ${MK.cPart[C_NAME].what === "any" ? "Можно выбрать и то, что ещё в производстве, — заберёте, когда будет готово." : "Выбрать можно только то, что уже готово к отгрузке."}</div>
+    <div class="mk-card mk-tbl dense cs-pick"><table><thead><tr><th></th><th>Заказ</th><th>Продукция</th><th>Цвет</th><th>Толщ., мм</th><th>Размер, мм</th><th>Осталось</th><th>Можно забрать</th><th>Сколько забрать</th></tr></thead><tbody>
+    ${rows.length ? rows.map((r) => { const on = r.k in MK.cpSel, er = MK.cpErr[r.k];
+      return `<tr class="${on ? "on" : ""}${r.av ? "" : " off"}"><td><input type="checkbox" data-mk-cpsel="${r.k}" data-av="${r.av}"${on ? " checked" : ""}${r.av ? "" : " disabled"} aria-label="Забрать: ${r.o.no}, позиция ${r.i + 1}"></td>
+        <td class="mk-no">${r.o.no}</td><td>${r.x.prod}</td><td>${r.x.color}</td><td>${r.x.th}</td><td>${r.x.size}</td><td>${pkU(r.x, pkLeft(r.o, r.x, r.i))}</td>
+        <td>${r.av ? pkU(r.x, r.av) : `<span class="cs-no">${r.why}</span>`}${r.later ? `<small>${r.later}</small>` : ""}</td>
+        <td>${on ? `<input class="mk-n${er ? " err" : ""}" data-cpq="${r.k}" inputmode="numeric" value="${esc(MK.cpSel[r.k])}" aria-label="Сколько забрать: ${r.o.no}, позиция ${r.i + 1}"> ${qU(r.x)}${er ? `<div class="mk-err">${er}</div>` : ""}` : ""}</td></tr>`; }).join("")
+      : `<tr><td colspan="9" class="mk-muted">Пока нечего забирать — в принятых заказах всё отгружено или уже в запросе.</td></tr>`}
+    </tbody></table></div>
+    <div class="cs-pickbar"><b>Выбрано: ${sel.length ? nPos(sel.length) + " из " + pl(nOrd, "заказа", "заказов", "заказов") : "ничего"}</b>
+      <div class="mk-f"><label for="cpWhen">Когда хотите забрать</label><input type="date" id="cpWhen" value="${MK.cpWhen}"${MK.cpWhenErr ? ' class="err"' : ""}>${MK.cpWhenErr ? `<div class="mk-err">${MK.cpWhenErr}</div>` : ""}</div>
+      <span class="sp"></span><button class="mk-btn" data-mk-cpoff>Отмена</button><button class="mk-btn p" data-mk-cpsend>${ico("send")}Сообщить менеджеру</button></div>
+    ${MK.cpNone ? `<div class="mk-err">Отметьте, что хотите забрать</div>` : ""}`;
+}
+function cpSend() {
+  cpSync();
+  const rows = cpRows(), sel = rows.filter((r) => r.k in MK.cpSel);
+  MK.cpErr = {}; MK.cpNone = !sel.length;
+  sel.forEach((r) => { const v = String(MK.cpSel[r.k]).replace(/\s/g, "");
+    if (!/^\d+$/.test(v) || +v < 1) MK.cpErr[r.k] = "Укажите количество"; else if (+v > r.av) MK.cpErr[r.k] = "Можно не больше " + pkU(r.x, r.av); });
+  MK.cpWhenErr = !MK.cpWhen ? "Укажите дату" : MK.cpWhen < "2026-10-12" ? "Дата не может быть в прошлом" : null; // «сегодня» макета — 12.10.2026
+  if (MK.cpNone || Object.keys(MK.cpErr).length || MK.cpWhenErr) return;
+  PICKS.unshift({ id: PICKS.length + 1, client: C_NAME, date: "12.10.2026", when: MK.cpWhen.split("-").reverse().join("."), st: "new",
+    items: sel.map((r) => ({ no: r.o.no, i: r.i, qty: +String(MK.cpSel[r.k]).replace(/\s/g, "") })) });
+  MK.cPick = false; MK.cpSent = true;
+}
+// «Мои заказы» у клиента: кнопка режима и его запросы (пока ждут менеджера — можно отменить)
+function cpBlock() {
+  const p = MK.cPart[C_NAME], mine = PICKS.filter((x) => x.client === C_NAME && x.st === "new");
+  return `${MK.cpSent ? `<div class="mk-hint ok">✓ Запрос на отгрузку отправлен менеджеру.</div>` : ""}
+    ${mine.map((x) => `<div class="cs-req"><div><b>Ваш запрос на отгрузку от ${x.date}: ${nPos(x.items.length)} · забрать ${x.when}</b> — ждёт менеджера
+      <ul>${x.items.map((y) => { const o = ord(y.no), it = o.items[y.i]; return `<li>${y.no} · ${it.prod} ${it.th} мм · ${it.color} — ${pkU(it, y.qty)}</li>`; }).join("")}</ul></div>
+      <button class="mk-btn sm" data-mk-cpcancel="${x.id}">${ico("x")}Отменить запрос</button></div>`).join("")}
+    ${p && p.on ? `<div class="mk-tools"><button class="mk-btn p" data-mk-cpick>${ico("list-checks")}Выбрать к отгрузке</button></div>` : ""}`;
+}
+// менеджер, «Заявки на отгрузку»: «Клиент хочет забрать»
+function pkCard(p) {
+  return `<div class="mk-card mk-pk"><div class="mk-pk-h"><b>${esc(p.client)}</b><span>запрос от ${p.date} · забрать <b>${p.when}</b></span></div>
+    <div class="mk-tbl dense"><table><thead><tr><th>Заказ</th><th>Продукция</th><th>Цвет</th><th>Толщ., мм</th><th>Размер, мм</th><th>Забрать</th><th>Готовность</th></tr></thead><tbody>
+    ${p.items.map((y) => { const o = ord(y.no), x = o.items[y.i], r = rdyQ(o, x) - cShip(o, x);
+      return `<tr><td class="mk-no">${y.no}</td><td>${x.prod}</td><td>${x.color}</td><td>${x.th}</td><td>${x.size}</td><td>${pkU(x, y.qty)}</td>
+        <td>${badge(r >= y.qty ? ["Готово", "b-success"] : ["Ждёт производства" + (x.dl ? " до " + x.dl : ""), "b-warning"])}</td></tr>`; }).join("")}
+    </tbody></table></div>
+    <div class="mk-pk-f"><button class="mk-btn p" disabled>${ico("truck")}Создать заявку на отгрузку</button><div class="mk-why">${ico("info")}Появится на этапе 5</div></div></div>`;
 }
 // менеджер: «Клиенты» — как в образце: цифры, вкладки по статусу, поиск, сегмент, таблица, окно клиента; плюс доступ в кабинет.
 // Данные компаний (ИНН, город, контакты, сегмент, заметка) — «-», пока юзер не пришлёт: за настоящие компании не выдумываем
@@ -2793,7 +2893,7 @@ let lastHot = null;
 function mkOpen(role, from, shop) {
   lastHot = from;
   if (shop) { MK.shop = shop; MK.kPart = "a"; }
-  MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cOpen = null; MK.cOrd = {}; MK.cRow = null; MK.cCol = null; MK.cTh = null; MK.cLenR = {}; MK.cLenErr = null; MK.cSent = null; MK.cErr = ""; MK.cLogged = false; MK.cLoginErr = ""; MK.accDone = MK.clNew = MK.clErr = MK.oEd = MK.rejErr = null; MK.clDraft = "";
+  MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cOpen = null; MK.cOrd = {}; MK.cPick = false; MK.cpSent = false; MK.cRow = null; MK.cCol = null; MK.cTh = null; MK.cLenR = {}; MK.cLenErr = null; MK.cSent = null; MK.cErr = ""; MK.cLogged = false; MK.cLoginErr = ""; MK.accDone = MK.clNew = MK.clErr = MK.oEd = MK.rejErr = null; MK.clDraft = "";
   MK.role = role; MK.view = role === "kiosk" && !KSHOPS[MK.shop].orders ? "kShift" : ROLES[role].start; MK.order = null; MK.modal = null; MK.pre = null;
   MK.mgr = MGRS[0]; MK.filter = MK.ppFilter = MK.clFilter = "all"; MK.inF = "todo"; MK.inKeep = null; MK.inOpen = {}; MK.ppTab = null; MK.ppLineOf = {}; MK.ppDate = {}; MK.ppDone = null; MK.clTab = "active"; MK.clQ = "";
   document.getElementById("mkTitle").textContent = "Макет · " + (role === "kiosk" ? "Киоск · " + KSHOPS[MK.shop].name : ROLES[role].label);
@@ -2817,7 +2917,7 @@ document.querySelectorAll(".hot[data-role]").forEach((g) => {
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-asmgr],[data-mk-clsave],[data-mk-oedit],[data-mk-oecancel],[data-mk-oedel],[data-mk-oesave],[data-mk-orej],[data-mk-cord],[data-mk-clpart],[data-mk-clpwhat],[data-mk-clupd],[data-mk-topool],[data-mk-pptab],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-asmgr],[data-mk-clsave],[data-mk-oedit],[data-mk-oecancel],[data-mk-oedel],[data-mk-oesave],[data-mk-orej],[data-mk-cord],[data-mk-clpart],[data-mk-clpwhat],[data-mk-clupd],[data-mk-cpick],[data-mk-cpoff],[data-mk-cpsel],[data-mk-cpsend],[data-mk-cpcancel],[data-mk-topool],[data-mk-pptab],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
@@ -2825,7 +2925,7 @@ overlay.addEventListener("click", (e) => {
     MK.modal = null; MK.pre = null; mkRender(); return;
   }
   if (d.mkModal) { MK.modal = d.mkModal; MK.pre = d.mkPre || null; MK.rejErr = null; }
-  else if (d.mkNav) { MK.view = d.mkNav; MK.order = null; MK.oEd = null; MK.inKeep = null; MK.inOpen = {}; }
+  else if (d.mkNav) { MK.view = d.mkNav; MK.order = null; MK.oEd = null; MK.cPick = false; MK.inKeep = null; MK.inOpen = {}; }
   else if (d.mkOrder) { MK.view = "order"; MK.order = d.mkOrder; MK.oEd = null; }
   else if (d.mkApprove) MK.approved[d.mkApprove] = true;
   else if (d.mkArea) { MK.area = d.mkArea; MK.stTab = null; }
@@ -2918,7 +3018,12 @@ overlay.addEventListener("click", (e) => {
     if (l.trim() && p) Object.assign(MK, { cLogged: true, cLoginErr: "", view: "cat" }); else MK.cLoginErr = "Введите логин и пароль";
   }
   else if (t.hasAttribute("data-mk-side")) { MK.sideC = !MK.sideC; MK.sideAnim = true; try { localStorage.setItem(SIDE_KEY, MK.sideC ? "1" : "0"); } catch (err) {} }
-  else if (t.hasAttribute("data-mk-clogout")) Object.assign(MK, { cLogged: false, cSent: null, cErr: "", cOrd: {} });
+  else if (t.hasAttribute("data-mk-clogout")) Object.assign(MK, { cLogged: false, cSent: null, cErr: "", cOrd: {}, cPick: false, cpSent: false });
+  else if (t.hasAttribute("data-mk-cpick")) Object.assign(MK, { cPick: true, cpSel: {}, cpErr: {}, cpWhen: "", cpWhenErr: null, cpNone: false, cpSent: false }); // «Выбрать к отгрузке»
+  else if (t.hasAttribute("data-mk-cpoff")) MK.cPick = false;
+  else if (d.mkCpsel) { cpSync(); if (t.checked) MK.cpSel[d.mkCpsel] = d.av; else { delete MK.cpSel[d.mkCpsel]; delete MK.cpErr[d.mkCpsel]; } MK.cpNone = false; }
+  else if (t.hasAttribute("data-mk-cpsend")) cpSend();
+  else if (d.mkCpcancel) { const k = PICKS.findIndex((p) => p.id === +d.mkCpcancel && p.st === "new"); if (k >= 0) PICKS.splice(k, 1); MK.cpSent = false; } // отменить — пока менеджер не взял в работу
   else if (d.mkCord) MK.cOrd[d.mkCord] = !MK.cOrd[d.mkCord]; // заказ клиента: раскрыть / свернуть состав
   else if (d.mkCltab) MK.clTab = d.mkCltab;
   else if (t.hasAttribute("data-mk-clform")) { MK.modal = "client"; MK.clEdit = d.mkClform || null; MK.clErr = null; MK.clDraft = ""; MK.clPart = Object.assign({ on: false, what: "ready" }, MK.cPart[MK.clEdit] || {}); }
