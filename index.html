@@ -80,6 +80,12 @@ footer { color: var(--muted); font-size: 13px }
 .mk-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: calc(env(safe-area-inset-top, 0px) + 8px) 16px 8px; background: var(--fg); color: var(--bg); font: 500 13px var(--body) }
 .mk-bar b { font-weight: 700 }
 .mk-bar span.note { opacity: .75 }
+/* только в макете: от чьего лица смотреть (менеджеры) */
+.mk-as { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font: 500 12px var(--body) }
+.mk-as:empty { display: none }
+.mk-as-l { opacity: .75; margin-right: 2px }
+.mk-as button { border: 1px solid currentColor; background: transparent; color: inherit; border-radius: 9999px; padding: 3px 10px; font: inherit; cursor: pointer; opacity: .8 }
+.mk-as button.on { background: var(--bg); color: var(--fg); opacity: 1; font-weight: 700 }
 .mk-x { border: 1px solid currentColor; background: transparent; color: inherit; border-radius: 8px; padding: 5px 12px; font: 600 13px var(--body); cursor: pointer }
 .mk-scroll { flex: 1; overflow: auto; min-height: 0 }
 /* прокрутка в макетах — как в ERP образца: тонкая, без стрелок, дорожка прозрачная, ползунок цвета рамок, при наведении светлее */
@@ -1020,6 +1026,7 @@ footer { color: var(--muted); font-size: 13px }
 <div class="mk-overlay" id="mkOverlay" hidden role="dialog" aria-modal="true" aria-label="Макет рабочего места менеджера">
   <div class="mk-bar">
     <span><b id="mkTitle">Макет · Менеджер</b></span>
+    <span class="mk-as" id="mkAs"></span>
     <button class="mk-x" id="mkClose" type="button">✕ Закрыть макет</button>
   </div>
   <div class="mk-scroll"><div class="mk" id="mkApp"></div></div>
@@ -1090,8 +1097,12 @@ const iSt = (x) => (x.dl ? [x.from ? `Со склада ${fmt(x.from)} + ${fmt(q
 const it = (s, prod, th, size, color, qty, st, pp) => ({ s, prod, th, size, color, qty, st, pp });
 // менеджер заявки — по клиенту (имена от юзера 29.10; какой клиент у какого менеджера — пример); заявка с сайта — менеджеру клиента
 const MGR_OF = { "МВ-Строй": "Роман Абдоков", "ТСК Империя": "Хаджимурат Заканоков", "Уникум Пласт Северо-Запад": "Хаджимурат Заканоков",
-  "Полимакс": "Татьяна Кутлиметова", "Протэк": "Татьяна Кутлиметова", "Уникум Дон": "Инна Понамарева" };
-const mgrOf = (o) => MGR_OF[o.client] || "Менеджер (пример)";
+  "Полимакс": "Татьяна Кутлиметова", "Протэк": "Татьяна Кутлиметова", "Уникум Дон": "Инна Понамарева",
+  "Регионстрой": "Инна Понамарева", "Лемана Про": "Роман Абдоков", "Бауцентр": "Татьяна Кутлиметова" }; // клиенты без заявок — тоже пример
+const MGRS = ["Инна Понамарева", "Роман Абдоков", "Хаджимурат Заканоков", "Татьяна Кутлиметова"];
+const mgrOfClient = (c) => MGR_OF[c] || "Менеджер (пример)";
+const mgrOf = (o) => mgrOfClient(o.client);
+const myOrder = (o) => mgrOf(o) === MK.mgr; // менеджер видит только заявки своих клиентов (юзер 29.10)
 const ORDERS = [
   { no: "З-2026-009", client: "МВ-Строй", created: "12.10.2026", need: "26.10.2026", st: "chef", items: [
     it(1, "Сотовый лист", "6", "2100×6000", "прозрачный", "50 листов", "wait"), it(1, "Монолитный лист", "3", "2050×3050", "прозрачный", "20 листов", "wait"),
@@ -1151,7 +1162,7 @@ const LG_TITLES = (g) => ({
   stock: ["Остатки готовой продукции", ""], chat: ["Сообщения", ""], dicts: ["Справочник", ""]
 });
 const ROLES = {
-  manager: { label: "Менеджер", user: ["Менеджер (пример)", "Менеджер", "М"], start: "orders", back: "orders",
+  manager: { label: "Менеджер", user: () => [MK.mgr, "Менеджер", MK.mgr.split(" ").map((w) => w[0]).join("")], start: "orders", back: "orders",
     nav: [{ items: [["chat", "Сообщения", "message-square"]] },
       { title: "Производство", items: [["clients", "Клиенты", "users"], ["orders", "Мои заявки", "clipboard-list"], ["ships", "Заявки на отгрузку", "square-kanban"]] },
       { title: "Администрация", items: [["invoices", "Инвойсы", "stamp"]] }].concat(NAV_END),
@@ -1543,16 +1554,19 @@ function ppList(all, ro) {
         <td>${p.pos}</td><td><span class="mk-tag">${p.order}</span></td><td>${badge(PP_ST[p.st])}</td><td>${p.author}${viewer() === "chef" && p.grp === 2 ? "<small>логист №2 — только просмотр</small>" : ""}</td></tr>`).join("")}
     </tbody></table></div>`;
 }
+// макет менеджера — от лица одного менеджера; «Смотреть как» — только в макете (в настоящей ERP — свой логин)
+Object.assign(MK, { mgr: MGRS[0] });
+const mgrSwitch = () => `<span class="mk-as-l">Только в макете — смотреть как:</span>${MGRS.map((m) => `<button type="button" class="${MK.mgr === m ? "on" : ""}" data-mk-asmgr="${m}">${m}</button>`).join("")}`;
 function pgOrders() {
-  const cnt = (st) => ORDERS.filter((o) => oKey(o) === st).length;
-  const chips = [["all", "Все", ORDERS.length]].concat(Object.entries(O_ST).map(([k, v]) => [k, v[0], cnt(k)]));
-  const rows = ORDERS.filter((o) => MK.filter === "all" || oKey(o) === MK.filter);
+  const mine = ORDERS.filter(myOrder), cnt = (st) => mine.filter((o) => oKey(o) === st).length;
+  const chips = [["all", "Все", mine.length]].concat(Object.entries(O_ST).map(([k, v]) => [k, v[0], cnt(k)]));
+  const rows = mine.filter((o) => MK.filter === "all" || oKey(o) === MK.filter);
   return `<div class="mk-kpis">
-      <div class="mk-card mk-kpi"><span>Всего</span><b>${ORDERS.length}</b></div>
+      <div class="mk-card mk-kpi"><span>Всего</span><b>${mine.length}</b></div>
       <div class="mk-card mk-kpi"><span>У логистов</span><b>${cnt("chef")}</b></div>
       <div class="mk-card mk-kpi"><span>В производстве</span><b>${cnt("prod")}</b></div>
       <div class="mk-card mk-kpi"><span>Готово к отгрузке</span><b>${cnt("ready")}</b></div></div>
-    <div class="mk-sec"><h3>Мои заявки <small>· ${ORDERS.length}</small></h3>
+    <div class="mk-sec"><h3>Мои заявки <small>· ${mine.length}</small></h3>
       <button class="mk-btn p" data-mk-modal="order">${ico("plus")}Новая заявка</button></div>
     <div class="mk-chips">${chips.map(([k, l, n]) => `<button class="mk-chip${MK.filter === k ? " on" : ""}" data-mk-filter="${k}">${l}<em>${n}</em></button>`).join("")}
       ${TODO("статусы и номера")}</div>
@@ -2379,16 +2393,16 @@ function ppMake() {
   });
 }
 function pgShips() {
-  const chief = MK.role === "cheflog";
-  const cnt = (st) => SHIPS.filter((z) => zSt(z) === st).length;
-  const list = SHIPS.filter((z) => MK.seg === "all" || (MK.seg === "active" ? zSt(z) !== "done" : zSt(z) === "done"));
+  const chief = MK.role === "cheflog", all = chief ? SHIPS : SHIPS.filter((z) => mgrOfClient(z.client) === MK.mgr); // менеджер — только по своим заявкам
+  const cnt = (st) => all.filter((z) => zSt(z) === st).length;
+  const list = all.filter((z) => MK.seg === "all" || (MK.seg === "active" ? zSt(z) !== "done" : zSt(z) === "done"));
   const step = (ok, t) => `<span class="${ok ? "ok" : ""}">${ok ? "✓ " : ""}${t}</span>`;
   return `<div class="mk-kpis">
-      <div class="mk-card mk-kpi"><span>Всего</span><b>${SHIPS.length}</b></div>
+      <div class="mk-card mk-kpi"><span>Всего</span><b>${all.length}</b></div>
       <div class="mk-card mk-kpi"><span>Ждут одобрения</span><b>${cnt("wait")}</b></div>
       <div class="mk-card mk-kpi"><span>Одобрены</span><b>${cnt("approved")}</b></div>
       <div class="mk-card mk-kpi"><span>Подтверждены</span><b>${cnt("done")}</b></div></div>
-    <div class="mk-sec"><h3>Заявки на отгрузку <small>· ${SHIPS.length}</small></h3>
+    <div class="mk-sec"><h3>Заявки на отгрузку <small>· ${all.length}</small></h3>
       <div class="mk-tools">${TODO("статусы")}<div class="mk-seg">${[["active", "Активные"], ["done", "Завершённые"], ["all", "Все"]].map(([k, l]) =>
         `<button class="${MK.seg === k ? "on" : ""}" data-mk-seg="${k}">${l}</button>`).join("")}</div>
         ${chief ? "" : `<button class="mk-btn p" data-mk-modal="ship">${ico("plus")}Заявка на отгрузку</button>`}</div></div>
@@ -2410,14 +2424,14 @@ function pgShips() {
     }).join("")}</div>`;
 }
 function pgInvoices() {
-  const waiting = SHIPS.filter((z) => zSt(z) === "done" && !z.inv);
+  const waiting = SHIPS.filter((z) => zSt(z) === "done" && !z.inv && mgrOfClient(z.client) === MK.mgr), myInv = mgrOfClient("Полимакс") === MK.mgr; // пример инвойса — у клиента Полимакс
   return `<div class="mk-sec"><div><h1 class="mk-h1">Инвойсы</h1><p class="mk-h1-sub">Создаются по машине — после того, как проверяющий подтвердил отгрузку.</p></div>
       <button class="mk-btn p" data-mk-modal="inv">${ico("plus")}Создать</button></div>
     ${waiting.map((z) => `<div class="mk-wait"><span>Ждёт инвойса · <b>${z.no}</b> · ${z.client} · отгрузка подтверждена ${z.date}.2026</span>
       <button class="mk-btn p sm" data-mk-modal="inv">${ico("plus")}Создать инвойс</button></div>`).join("")}
-    <div class="mk-chips"><button class="mk-chip on">Инвойсы<em>1</em></button>${TODO("какие документы по закону РФ")}</div>
+    <div class="mk-chips"><button class="mk-chip on">Инвойсы<em>${myInv ? 1 : 0}</em></button>${TODO("какие документы по закону РФ")}</div>
     <div class="mk-card mk-tbl"><table><thead><tr><th>Номер</th><th>Заявка на отгрузку</th><th>Покупатель</th><th>Сумма</th><th>Создан</th><th>Автор</th><th></th></tr></thead><tbody>
-      <tr class="click"><td class="mk-no">2026/001</td><td>ЗО-2026-001</td><td>Полимакс</td><td>486 000,00 ₽</td><td>01.10.2026</td><td>Менеджер</td><td><button class="mk-btn sm">Изменить</button></td></tr>
+      ${myInv ? `<tr class="click"><td class="mk-no">2026/001</td><td>ЗО-2026-001</td><td>Полимакс</td><td>486 000,00 ₽</td><td>01.10.2026</td><td>Менеджер</td><td><button class="mk-btn sm">Изменить</button></td></tr>` : `<tr><td colspan="8" class="mk-muted">Инвойсов пока нет.</td></tr>`}
     </tbody></table></div>`;
 }
 /* --- клиент: простой сайт для клиентов — вход по логину и паролю, которые выдаёт менеджер; продукция, моя заявка, мои заявки; заявка уходит менеджеру --- */
@@ -2584,7 +2598,7 @@ function clAct(c) {
   return `<span class="mk-act ${tone}">${ico("clock")}${l}</span>`;
 }
 function pgClients() {
-  const all = [...new Set(ORDERS.map((o) => o.client).concat(C_EXTRA))].sort((a, b) => a.localeCompare(b, "ru", { numeric: true }));
+  const all = [...new Set(ORDERS.filter(myOrder).map((o) => o.client).concat(C_EXTRA.filter((c) => mgrOfClient(c) === MK.mgr)))].sort((a, b) => a.localeCompare(b, "ru", { numeric: true })); // только свои клиенты
   const n = (k) => (k === "all" ? all.length : k === "archive" ? 0 : all.filter((c) => clStatus(c) === k).length);
   const q = MK.clQ.trim().toLowerCase(), act = n("active"), dash = `<span class="mk-muted">-</span>`;
   const rows = all.filter((c) => (MK.clTab === "all" || clStatus(c) === MK.clTab) && (!q || c.toLowerCase().includes(q)));
@@ -2602,7 +2616,7 @@ function pgClients() {
     <div class="mk-card mk-tbl dense mk-cltbl"><table><thead><tr><th>Клиент</th><th>ИНН</th><th>Страна / Город</th><th>Сегмент</th><th>Директор / Менеджер</th><th>Активность</th>
       <th>Контакты</th><th>Заметка</th><th>Заявок</th><th>Доступ в кабинет</th><th class="r">Действия</th></tr></thead><tbody>
       ${rows.length ? rows.map((c) => { const a = MK.access[c];
-        return `<tr><td><b>${c}</b> ${badge(CL_STAT[clStatus(c)])}</td><td>${dash}</td><td>${dash}</td><td>${dash}</td><td>Менеджер (пример)</td><td>${clAct(c)}</td><td>${dash}</td><td>${dash}</td>
+        return `<tr><td><b>${c}</b> ${badge(CL_STAT[clStatus(c)])}</td><td>${dash}</td><td>${dash}</td><td>${dash}</td><td>${mgrOfClient(c)}</td><td>${clAct(c)}</td><td>${dash}</td><td>${dash}</td>
           <td>${clOrders(c).length}</td>
           <td>${a ? `<span class="mk-pill b-success">Доступ выдан</span><small>логин ${esc(a.login)} · ${a.date}</small>` : `<span class="mk-muted">нет доступа</span>`}</td>
           <td class="r"><span class="mk-acts"><button class="mk-ib0" data-mk-clform="${c}" title="Изменить" aria-label="Изменить">${ico("pencil")}</button><button class="mk-ib0" data-mk-noop title="В архив" aria-label="В архив">${ico("trash-2")}</button>
@@ -2654,7 +2668,7 @@ function mkModal() {
         ${inp("mkfClAddr", "Адрес")}
         <div class="mk-f2">${inp("mkfClEmail", "Email")}${inp("mkfClPhone", "Телефон")}${inp("mkfClSite", "Сайт", "", "https://...")}${inp("mkfClContract", "Номер договора")}
           ${f("mkfClDate", "Дата договора", `<input type="date" id="mkfClDate">`)}${f("mkfClStatus", "Статус", combo("mkfClStatus", CL_STAT[c ? clStatus(c) : "active"][0], ""))}
-          ${inp("mkfClSeg", "Сегмент", "", "напр. оптовик / розница")}${inp("mkfClMgr", "Директор / Менеджер", c ? "Менеджер (пример)" : "", "Имя")}</div>
+          ${inp("mkfClSeg", "Сегмент", "", "напр. оптовик / розница")}${inp("mkfClMgr", "Директор / Менеджер", MK.mgr, "Имя")}</div>
         ${f("mkfClNote", "Заметки", `<textarea id="mkfClNote" placeholder="Любые заметки по клиенту…"></textarea>`)}`, c ? "Сохранить" : "Создать"];
     })(),
     access: (() => {
@@ -2691,6 +2705,7 @@ function mkRender() {
   document.getElementById("mkApp").innerHTML = MK.role === "client" ? cSite(page)
     : mkSide() + `<div class="mk-col">${mkTop()}<main class="mk-main"><div class="mk-page">${page()}</div></main></div>`;
   document.getElementById("mkModalHost").innerHTML = mkModal();
+  document.getElementById("mkAs").innerHTML = MK.role === "manager" ? mgrSwitch() : ""; // только в макете: от чьего лица смотреть
   if (MK.modal === "pin" && document.getElementById("mkPin")) document.getElementById("mkPin").focus();
   try { if (window.lucide) window.lucide.createIcons(); } catch (e) {}
 }
@@ -2701,7 +2716,7 @@ function mkOpen(role, from, shop) {
   if (shop) { MK.shop = shop; MK.kPart = "a"; }
   MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cOpen = null; MK.cRow = null; MK.cCol = null; MK.cTh = null; MK.cLenR = {}; MK.cLenErr = null; MK.cSent = null; MK.cErr = ""; MK.cLogged = false; MK.cLoginErr = ""; MK.accDone = null;
   MK.role = role; MK.view = role === "kiosk" && !KSHOPS[MK.shop].orders ? "kShift" : ROLES[role].start; MK.order = null; MK.modal = null; MK.pre = null;
-  MK.filter = MK.ppFilter = MK.clFilter = "all"; MK.inF = "todo"; MK.inKeep = null; MK.inOpen = {}; MK.ppTab = null; MK.ppLineOf = {}; MK.ppDate = {}; MK.ppDone = null; MK.clTab = "active"; MK.clQ = "";
+  MK.mgr = MGRS[0]; MK.filter = MK.ppFilter = MK.clFilter = "all"; MK.inF = "todo"; MK.inKeep = null; MK.inOpen = {}; MK.ppTab = null; MK.ppLineOf = {}; MK.ppDate = {}; MK.ppDone = null; MK.clTab = "active"; MK.clQ = "";
   document.getElementById("mkTitle").textContent = "Макет · " + (role === "kiosk" ? "Киоск · " + KSHOPS[MK.shop].name : ROLES[role].label);
   overlay.setAttribute("aria-label", "Макет рабочего места: " + ROLES[role].label);
   overlay.hidden = false; document.body.style.overflow = "hidden"; mkRender(); fitMk(); document.getElementById("mkClose").focus();
@@ -2723,7 +2738,7 @@ document.querySelectorAll(".hot[data-role]").forEach((g) => {
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-topool],[data-mk-pptab],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-asmgr],[data-mk-topool],[data-mk-pptab],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
@@ -2826,6 +2841,7 @@ overlay.addEventListener("click", (e) => {
   else if (d.mkArcm) MK.arcM = d.mkArcm;
   else if (d.mkArct) MK.arcT = d.mkArct;
   else if (t.hasAttribute("data-mk-back")) { MK.view = R().back; MK.order = null; }
+  else if (d.mkAsmgr) { MK.mgr = d.mkAsmgr; MK.filter = "all"; MK.clTab = "active"; MK.clQ = ""; MK.accDone = null; if (MK.view === "order") { MK.view = "orders"; MK.order = null; } } // только в макете
   else if (d.mkFilter) MK.filter = d.mkFilter;
   else if (d.mkPpfilter) MK.ppFilter = d.mkPpfilter;
   else if (d.mkSeg) MK.seg = d.mkSeg;
