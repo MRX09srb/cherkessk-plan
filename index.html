@@ -674,9 +674,10 @@ footer { color: var(--muted); font-size: 13px }
   .mk-pin { font-size: 22px; padding: 10px 12px; letter-spacing: .4em }
   .mk-f input, .mk-f textarea, .mk-combo { font-size: 16px } /* меньше 16 — телефон сам увеличивает страницу при вводе */
 }
-/* входящие заявки: заявка — блок с рамкой; шапка — как строка списка; чужие позиции затемнены, под ними — кто обрабатывает */
-.mk-ob { margin-top: 14px; overflow: hidden }
-.mk-ob > .mk-head { background: var(--bg-sunken); border-bottom: 1px solid var(--border-default) }
+/* «Заявки от менеджеров»: лента таблицей; раскрытая заявка — рамка под своей строкой; чужие позиции затемнены, под ними — кто обрабатывает */
+.mk-inlist tr.open > td { background: var(--bg-sunken) }
+.mk-inlist tr.mk-oexp > td { padding: 0 16px 16px; background: var(--bg-sunken); white-space: normal }
+.mk-ob { overflow: hidden }
 .mk-ob > .mk-hint { margin: 12px 16px 0 }
 .mk-ob .mk-tbl { margin-top: 4px }
 .mk-ob tr.lock td { opacity: .45 }
@@ -1114,7 +1115,7 @@ const PP_ST = { draft: ["Черновик", "b-slate"], issued: ["Выдано �
 const PP_LINES = { 1: ["Сотовый", "Монолитный цех"], 2: ["Профильный цех", "Термошайбы", "Трапеция"] };
 const NAV_END = [{ title: "Общее", items: [["dicts", "Справочник", "book-open"]] }];
 const LG_TITLES = (g) => ({
-  inbox: ["Входящие заявки", g === 1 ? "Лист, который шеф логистов передал мне на сверку" : "От менеджеров — профиль, термошайбы, трапеция"],
+  inbox: ["Заявки от менеджеров", g === 1 ? "Лист, который шеф логистов передал мне на сверку" : "Профиль, термошайбы, трапеция — сверяю я"],
   plan: ["Заявки на производство", g === 1 ? "Что создал шеф логистов по листу" : "Очередь заявок и приоритеты"],
   stock: ["Остатки готовой продукции", ""], chat: ["Сообщения", ""], dicts: ["Справочник", ""]
 });
@@ -1127,20 +1128,20 @@ const ROLES = {
       invoices: ["Инвойсы", ""], chat: ["Сообщения", ""], clients: ["Клиенты", "Мои клиенты и доступ в личный кабинет"], dicts: ["Справочник", ""] } },
   logist1: { label: "Логист №1", grp: 1, user: ["Логист №1 (пример)", "Логист · сотовый и монолитный лист", "Л1"], start: "inbox", back: "inbox",
     nav: [{ items: [["chat", "Сообщения", "message-square"]] },
-      { title: "Производство", items: [["inbox", "Входящие заявки", "inbox", false, () => inTodo("l1")], ["plan", "Заявки на производство", "factory", true]] },
+      { title: "Производство", items: [["inbox", "Заявки от менеджеров", "inbox", false, () => inTodo("l1")], ["plan", "Заявки на производство", "factory", true]] },
       { title: "Склад", items: [["stock", "Остатки готовой продукции", "boxes"]] }].concat(NAV_END),
     titles: LG_TITLES(1) },
   logist2: { label: "Логист №2", grp: 2, user: ["Логист №2 (пример)", "Логист · профиль, термошайба, трапеция", "Л2"], start: "inbox", back: "inbox",
     nav: [{ items: [["chat", "Сообщения", "message-square"]] },
-      { title: "Производство", items: [["inbox", "Входящие заявки", "inbox", false, () => inTodo("l2")], ["plan", "Заявки на производство", "factory"]] },
+      { title: "Производство", items: [["inbox", "Заявки от менеджеров", "inbox", false, () => inTodo("l2")], ["plan", "Заявки на производство", "factory"]] },
       { title: "Склад", items: [["stock", "Остатки готовой продукции", "boxes"]] }].concat(NAV_END),
     titles: LG_TITLES(2) }
 };
 ROLES.cheflog = { label: "Шеф логистов", grp: 1, user: ["Шеф логистов (пример)", "Шеф логистов и кладовщиков", "ШЛ"], start: "cin", back: "cin",
   nav: [{ items: [["chat", "Сообщения", "message-square"]] },
-    { title: "Производство", items: [["cin", "Входящие заявки", "inbox", false, () => inTodo("chef")], ["plan", "Заявки на производство", "factory"], ["ships", "Заявки на отгрузку", "square-kanban"]] },
+    { title: "Производство", items: [["cin", "Заявки от менеджеров", "inbox", false, () => inTodo("chef")], ["plan", "Заявки на производство", "factory"], ["ships", "Заявки на отгрузку", "square-kanban"]] },
     { title: "Склад", items: [["keepers", "Кладовщики", "users"], ["stock", "Остатки готовой продукции", "boxes"]] }].concat(NAV_END),
-  titles: { cin: ["Входящие заявки", "От менеджеров — лист сверяю я, профиль, термошайбы и трапецию — логист №2"], plan: ["Заявки на производство", "Лист — сотовый и монолитный"],
+  titles: { cin: ["Заявки от менеджеров", "Лист сверяю я, профиль, термошайбы и трапецию — логист №2"], plan: ["Заявки на производство", "Лист — сотовый и монолитный"],
     ships: ["Заявки на отгрузку", "Одобряю — дальше берут грузчики и кладовщики"], keepers: ["Кладовщики", ""],
     stock: ["Остатки готовой продукции", ""], chat: ["Сообщения", ""], dicts: ["Справочник", ""] } };
 const MK = { role: "manager", view: "orders", order: null, filter: "all", seg: "active", modal: null, pre: null,
@@ -2142,16 +2143,17 @@ function stOf(o, v) {
   if (!partDone(o, "chef")) return o.ret ? ["Вернул логист №1 — проверить", "b-warning", "todo"] : ["Новая — сверить", "b-primary", "todo"];
   return ["Ждёт логиста №2", "b-slate", "lg"];
 }
-const IN_F = { chef: [["todo", "Ждут меня"], ["lg", "У логистов"], ["sent", "Отправлены менеджеру"], ["all", "Все"]],
-  l1: [["todo", "Ждут меня"], ["passed", "Вернул шефу"], ["sent", "Отправлены менеджеру"], ["all", "Все"]],
-  l2: [["todo", "Ждут меня"], ["passed", "Передал шефу"], ["sent", "Отправлены менеджеру"], ["all", "Все"]] };
+const IN_F = { chef: [["all", "Все"], ["todo", "Нужно сделать"], ["lg", "У логистов"], ["sent", "Отправлены менеджеру"]],
+  l1: [["all", "Все"], ["todo", "Нужно сделать"], ["passed", "Вернул шефу"], ["sent", "Отправлены менеджеру"]],
+  l2: [["all", "Все"], ["todo", "Нужно сделать"], ["passed", "Передал шефу"], ["sent", "Отправлены менеджеру"]] };
 function inList(v) {
   chkAll();
   return ORDERS.filter((o) => (v === "l1" ? o.at === "l1" || o.ret === "l1" || o.chkBy === "l1" : (inWork(o) || sentOut(o)) && (v === "chef" || hasPart(o, "l2"))));
 }
 const inF = (o, f, v) => f === "all" || stOf(o, v)[2] === f;
 const inTodo = (v) => inList(v).filter((o) => inF(o, "todo", v)).length;
-Object.assign(MK, { inF: "todo", inKeep: null }); // inKeep — заявки, уже показанные в списке: не пропадают, пока с ними работают
+// inKeep — заявки, уже показанные в списке: не пропадают, пока с ними работают; inOpen — раскрытые под своей строкой
+Object.assign(MK, { inF: "all", inKeep: null, inOpen: {} });
 // отправка менеджеру: у позиций — «со склада» или срок, у заявки — когда будет готова вся
 function chkSend(o) {
   const ch = chkOf(o);
@@ -2162,9 +2164,10 @@ function chkSend(o) {
 // пример: лист З-2026-007 сверяет логист №1; З-2026-009 (Роман Обдоков) и З-2026-006 (Хаджимурат Заканоков) — новые, ждут шефа;
 // обеим нужен монолит 3 мм (20 + 15, на складе 18) — кому склад, решает шеф
 ord("З-2026-007").at = "l1";
-/* --- входящие заявки у шефа логистов, логиста №1 и логиста №2: один общий список, каждая заявка — блок с рамкой;
-   шапка — как строка списка (заявка, от кого, клиент, нужна к, позиций, кому, статус); своё — решение и срок прямо
-   в списке, чужое затемнено с пометкой, кто обрабатывает. Заявки на производство отсюда не создаются (юзер 29.10) --- */
+/* --- «Заявки от менеджеров» у шефа логистов, логиста №1 и логиста №2 (юзер 29.10): лента таблицей — строка на заявку
+   (заявка, от кого, клиент, нужна к, позиций, кому, статус), новые сверху; «Сверить» / клик по строке раскрывает заявку
+   под строкой в рамке: своё — решение и срок, чужое затемнено с пометкой, кто обрабатывает. Можно раскрыть несколько.
+   Заявки на производство отсюда не создаются --- */
 const qtyT = (n, u) => fmt(n) + " " + (u === "листов" ? pl(n, "лист", "листа", "листов").split(" ")[1] : u);
 function inStock(o, i) {
   const x = o.items[i], all = onStock(x), f = freeFor(o, i), need = qN(x), u = qU(x), tk = takers(o, i);
@@ -2219,34 +2222,40 @@ function inFoot(o, v, mine) {
   else if (v === "l2" && !o.l2ok) btn = `<button class="mk-btn p" data-mk-l2ok="${o.no}"${partDone(o, "l2") ? "" : ' disabled title="Поставьте решение и срок у всех своих позиций"'}>${ico("check")}Готово — передать шефу</button>`;
   return `<div class="mk-dfoot">${note}${btn}</div>`;
 }
+// раскрытая заявка: подсказки, позиции, кнопки
 function inBlock(o, v) {
   const s = stOf(o, v), F = IN_F[v], toF = (F.find(([k]) => k === s[2]) || [null, ""])[1], ids = o.items.map((x, i) => i), mine = ids.filter((i) => mineOf(o.items[i], v)), other = ids.filter((i) => !mineOf(o.items[i], v));
-  const to = ["chef", "l2"].filter((p) => hasPart(o, p)).map((p) => `${PART_NM[p]} (${o.items.filter((x) => partOf(x) === p).length})`).join(" · ");
   const hint = [o.from === "client" ? "ⓘ Заявка пришла от клиента с сайта, менеджер её проверил." : "",
     inWork(o) && v === "chef" && o.at ? "ⓘ Лист сверяет логист №1 — вернёт вам, когда закончит." : "",
     inWork(o) && v === "chef" && !o.at && o.ret === "l1" ? `ⓘ Лист сверил ${LG_NAME.l1} — проверьте решения и сроки.` : "",
     inWork(o) && v === "l1" && o.at === "l1" ? "ⓘ Шеф логистов передал вам лист этой заявки на сверку." : ""].filter(Boolean).map((t) => `<div class="mk-hint">${t}</div>`).join("")
     + (MK.inF !== "all" && !inF(o, MK.inF, v) ? `<div class="mk-hint ok">✓ ${s[2] === "todo" ? "Заявка снова ждёт вас — перешла" : s[2] === "sent" ? "Заявка перешла" : v === "chef" && o.at ? "Передана логисту №1 — заявка перешла" : "Ваша часть готова — заявка перешла"} в «${toF}». Из этого списка она уйдёт, когда откроете его заново.</div>` : "")
     + (sentOut(o) && o.sentAt ? `<div class="mk-hint ok">✓ Отправлена менеджеру ${o.sentAt}. ${o.ready ? "Вся заявка будет готова до " + o.ready + "." : "Всё есть на складе."}</div>` : "");
-  return `<section class="mk-card mk-ob" data-mk-ob="${o.no}">
-    <div class="mk-head">
-      <div><span>Заявка</span><b class="mk-no">${o.no}</b></div><div><span>От кого</span><b>${mgrOf(o)}</b></div><div><span>Клиент</span><b>${o.client}</b></div>
-      <div><span>Нужна к</span><b>${o.need}</b></div><div><span>Позиций</span><b>${o.items.length}</b></div><div><span>Кому</span><b>${to}</b></div>
-      <div><span>Статус</span><b><span class="mk-pill ${s[1]}">${s[0]}</span></b></div></div>
-    ${hint}
+  return `<section class="mk-card mk-ob" data-mk-ob="${o.no}">${hint}
     <div class="mk-tbl dense mk-chk"><table><thead><tr><th>№</th><th>Продукция</th><th>Нужно</th><th>На складе</th><th>Решение</th><th>Срок</th></tr></thead><tbody>
       ${mine.map((i) => inRow(o, i, v)).join("")}${other.length ? inLocked(o, other, v) : ""}
     </tbody></table></div>${inFoot(o, v, mine)}</section>`;
+}
+const inTo = (o) => ["chef", "l2"].filter((p) => hasPart(o, p)).map((p) => `${PART_NM[p]} (${o.items.filter((x) => partOf(x) === p).length})`).join(" · ");
+// строка ленты; раскрытая — с заявкой под ней
+function inLine(o, v) {
+  const s = stOf(o, v), open = !!MK.inOpen[o.no], act = s[2] === "todo" && !(v === "chef" && sendable(o));
+  return `<tr class="click${open ? " open" : ""}" data-mk-inopen="${o.no}"><td class="mk-no">${o.no}</td><td>${mgrOf(o)}</td><td>${o.client}</td><td>${o.need}</td>
+      <td>${o.items.length}</td><td>${inTo(o)}</td><td><span class="mk-pill ${s[1]}">${s[0]}</span></td>
+      <td class="r"><button class="mk-btn sm${act && !open ? " p" : ""}" data-mk-inopen="${o.no}">${ico(open ? "chevron-up" : "chevron-down")}${open ? "Свернуть" : act ? "Сверить" : "Открыть"}</button></td></tr>
+    ${open ? `<tr class="mk-oexp"><td colspan="8">${inBlock(o, v)}</td></tr>` : ""}`;
 }
 function pgIn() {
   const v = viewer(), list = inList(v), F = IN_F[v], cnt = (k) => list.filter((o) => inF(o, k, v)).length;
   // заявка, с которой работаете, не пропадает, когда сменился статус, — уйдёт, когда откроете список заново
   const keep = MK.inKeep || [], rows = list.filter((o) => inF(o, MK.inF, v) || keep.includes(o.no));
   MK.inKeep = rows.map((o) => o.no);
-  return `<div class="mk-kpis">${F.map(([k, l]) => `<div class="mk-card mk-kpi"><span>${k === "all" ? "Всего" : l}</span><b>${cnt(k)}</b></div>`).join("")}</div>
-    <div class="mk-sec"><h3>Входящие заявки <small>· ${list.length}</small></h3></div>
+  return `<div class="mk-kpis">${F.slice(1).concat([F[0]]).map(([k, l]) => `<div class="mk-card mk-kpi"><span>${k === "all" ? "Всего" : l}</span><b>${cnt(k)}</b></div>`).join("")}</div>
+    <div class="mk-sec"><h3>Заявки от менеджеров <small>· ${list.length}</small></h3></div>
     <div class="mk-chips">${F.map(([k, l]) => `<button class="mk-chip${MK.inF === k ? " on" : ""}" data-mk-inf="${k}">${l}<em>${cnt(k)}</em></button>`).join("")}${TODO("статусы")}</div>
-    ${rows.length ? rows.map((o) => inBlock(o, v)).join("") : `<div class="mk-card mk-stub">${ico("inbox")}<b>Заявок нет</b></div>`}`;
+    <div class="mk-card mk-tbl mk-inlist"><table><thead><tr><th>№ заявки</th><th>От кого</th><th>Клиент</th><th>Нужна к</th><th>Позиций</th><th>Кому</th><th>Статус</th><th></th></tr></thead><tbody>
+      ${rows.length ? rows.map((o) => inLine(o, v)).join("") : `<tr><td colspan="8" class="mk-muted">Заявок нет.</td></tr>`}
+    </tbody></table></div>`;
 }
 /* --- «Нужно произвести» (юзер 29.10): сверка заявок сама заявок на производство не создаёт — позиции «Частично»
    и «В производство» приходят сюда, когда решение окончательное (вариант Б): лист — когда шеф отправил заявку
@@ -2617,7 +2626,7 @@ function mkOpen(role, from, shop) {
   if (shop) { MK.shop = shop; MK.kPart = "a"; }
   MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cOpen = null; MK.cRow = null; MK.cCol = null; MK.cTh = null; MK.cLenR = {}; MK.cLenErr = null; MK.cSent = null; MK.cErr = ""; MK.cLogged = false; MK.cLoginErr = ""; MK.accDone = null;
   MK.role = role; MK.view = role === "kiosk" && !KSHOPS[MK.shop].orders ? "kShift" : ROLES[role].start; MK.order = null; MK.modal = null; MK.pre = null;
-  MK.filter = MK.ppFilter = MK.clFilter = "all"; MK.inF = "todo"; MK.inKeep = null; MK.ppTab = null; MK.ppSel = {}; MK.ppLine = {}; MK.ppDone = null; MK.clTab = "active"; MK.clQ = "";
+  MK.filter = MK.ppFilter = MK.clFilter = "all"; MK.inF = "all"; MK.inKeep = null; MK.inOpen = {}; MK.ppTab = null; MK.ppSel = {}; MK.ppLine = {}; MK.ppDone = null; MK.clTab = "active"; MK.clQ = "";
   document.getElementById("mkTitle").textContent = "Макет · " + (role === "kiosk" ? "Киоск · " + KSHOPS[MK.shop].name : ROLES[role].label);
   overlay.setAttribute("aria-label", "Макет рабочего места: " + ROLES[role].label);
   overlay.hidden = false; document.body.style.overflow = "hidden"; mkRender(); fitMk(); document.getElementById("mkClose").focus();
@@ -2639,7 +2648,7 @@ document.querySelectorAll(".hot[data-role]").forEach((g) => {
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-pptab],[data-mk-ppsel],[data-mk-ppmk],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-inopen],[data-mk-pptab],[data-mk-ppsel],[data-mk-ppmk],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
@@ -2647,7 +2656,7 @@ overlay.addEventListener("click", (e) => {
     MK.modal = null; MK.pre = null; mkRender(); return;
   }
   if (d.mkModal) { MK.modal = d.mkModal; MK.pre = d.mkPre || null; }
-  else if (d.mkNav) { MK.view = d.mkNav; MK.order = null; MK.inKeep = null; }
+  else if (d.mkNav) { MK.view = d.mkNav; MK.order = null; MK.inKeep = null; MK.inOpen = {}; }
   else if (d.mkOrder) { MK.view = "order"; MK.order = d.mkOrder; }
   else if (d.mkApprove) MK.approved[d.mkApprove] = true;
   else if (d.mkArea) { MK.area = d.mkArea; MK.stTab = null; }
@@ -2719,6 +2728,7 @@ overlay.addEventListener("click", (e) => {
   else if (t.hasAttribute("data-mk-assign")) { const [no, who] = d.mkAssign.split("|"), o = ord(no); if (who) { o.at = who; delete o.ret; } else delete o.at; } // лист — логисту №1 на сверку / забрать себе
   else if (d.mkChksend) chkSend(ord(d.mkChksend));
   else if (d.mkL1ret) { const o = ord(d.mkL1ret); o.ret = "l1"; delete o.at; } // логист №1 вернул лист шефу
+  else if (d.mkInopen) MK.inOpen[d.mkInopen] = !MK.inOpen[d.mkInopen]; // раскрыть / свернуть заявку под строкой
   else if (d.mkL2ok) ord(d.mkL2ok).l2ok = true; // логист №2 передал свою часть шефу
   else if (d.mkPptab) { MK.ppTab = d.mkPptab; MK.ppDone = null; }
   else if (d.mkPpsel) MK.ppSel[d.mkPpsel] = !MK.ppSel[d.mkPpsel];
