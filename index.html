@@ -2253,7 +2253,7 @@ function cSite(page) {
       <div class="mk-hint">В макете подойдут любые логин и пароль.</div></div></div>`;
   const n = Object.keys(MK.cart).length;
   return `<div class="cs"><header class="cs-top"><div class="cs-in">${cLogo}
-      <nav class="cs-nav">${[["cat", "Продукция"], ["cart", "Моя заявка"], ["corders", "Мои заявки"]].map(([v, l]) =>
+      <nav class="cs-nav">${[["cat", "Продукция"], ["cart", "Корзина"], ["corders", "Мои заявки"]].map(([v, l]) =>
         `<button class="${MK.view === v ? "on" : ""}" data-mk-nav="${v}">${l}${v === "cart" && n ? `<em>${n}</em>` : ""}</button>`).join("")}</nav>
       <div class="cs-user">${ico("user")}${C_NAME} (пример)<button class="mk-btn sm ghost" data-mk-clogout>${ico("log-out")}Выйти</button></div></div></header>
     <main class="cs-main"><div class="cs-in">${page()}</div></main></div>`;
@@ -2262,22 +2262,22 @@ const cHero = (t, p) => `<section class="cs-hero"><h1>${t}</h1><p>${p}</p></sect
 // продукция — как «Готовая продукция» в мобильной ERP: плитки видов по две в ряд, под плитками раскрывается список; цифр склада клиенту не показываем.
 // Сотовые листы: марка → цвет → толщина; монолит и трапеция: цвет → толщина; профиль и термошайбы: цвет → количество
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-const gotMark = `<span class="got">${ico("check")}в заявке</span>`;
-const cX = (k) => (MK.cart[k] && MK.cart[k].x) || catItem(k); // позиция заявки: нестандартный размер — из заявки, остальное — из каталога
+const gotMark = `<span class="got">${ico("check")}в корзине</span>`;
+const cX = (k) => (MK.cart[k] && MK.cart[k].x) || catItem(k); // позиция корзины: нестандартный размер — из корзины, остальное — из каталога
 const inCart = (its) => its.some((x) => MK.cart[x.key]) || Object.values(MK.cart).some((c) => c.x && its.some((y) => y.prod === c.x.prod && y.th === c.x.th && y.color === c.x.color && y.dens === c.x.dens));
 const cartFor = (b) => Object.keys(MK.cart).map(cX).filter((x) => x.prod === b.prod && x.th === b.th && x.color === b.color && x.dens === b.dens);
 const byTh = (its) => [...new Set(its.map((x) => x.th))];
 const nTh = (n) => pl(n, "толщина", "толщины", "толщин");
-// строка с количеством: у сотового — поля «6 м» и «12 м», у остальных — одно поле; одна кнопка «В заявку» на всю строку
-// seg — у сотового: переключатель размера листа в строке плотности; other — та же плотность другого размера, что уже в заявке
+// строка с количеством: у сотового — поля «6 м» и «12 м», у остальных — одно поле; одна кнопка «В корзину» на всю строку
+// seg — у сотового: переключатель размера листа в строке плотности; other — та же плотность другого размера, что уже в корзине
 function cQty(id, label, items, other, seg) {
   const err = MK.cErr === id, has = items.some((x) => MK.cart[x.key]);
-  return `<div class="cs-sz cs-th${seg ? " cs-dn" : ""}"><span class="nm">${label}</span>${seg || ""}${other && other.length ? `<span class="got">${ico("check")}в заявке: ${other.map((x) => x.size).join(", ")}</span>` : ""}
+  return `<div class="cs-sz cs-th${seg ? " cs-dn" : ""}"><span class="nm">${label}</span>${seg || ""}${other && other.length ? `<span class="got">${ico("check")}в корзине: ${other.map((x) => x.size).join(", ")}</span>` : ""}
     ${items.map((x) => { const vk = "cq|" + (x.custom ? "custom|" + x.custom : x.key), q = MK.cart[x.key] ? MK.cart[x.key].qty : MK.vals[vk] || "", lab = other ? "" : x.size !== "—" ? x.size : "";
       return `<label class="cs-q">${lab}<input class="mk-n${err ? " err" : ""}" type="number" min="1" inputmode="numeric" data-key="${x.key}"${x.custom ? ` data-custom="${x.custom}" data-base="${x.base}"` : ""} data-mk-val="${vk}" value="${q}"${err ? ' placeholder="сколько?"' : ""} aria-label="Количество${lab ? ", " + lab : ""}"></label>`; }).join("")}
     <span class="mk-muted">${cUnit(items[0].tab)}</span>
-    ${has ? `<button class="mk-btn sm g" data-mk-cadd="${id}" title="Изменить количество">${ico("check")}В заявке</button>`
-      : `<button class="mk-btn sm p" data-mk-cadd="${id}">${ico("plus")}В заявку</button>`}</div>`;
+    ${has ? `<button class="mk-btn sm g" data-mk-cadd="${id}" title="Изменить количество">${ico("check")}В корзине</button>`
+      : `<button class="mk-btn sm p" data-mk-cadd="${id}">${ico("plus")}В корзину</button>`}</div>`;
 }
 // сотовый: толщина раскрывает плотности; в строке плотности — размер листа (2100×6000 по умолчанию) и поле количества
 // строка с выбором размера: стандартные размеры из каталога + «Нестандартный размер» (ширина × длина, длина до 12 000 мм);
@@ -2321,17 +2321,17 @@ function pgCat() {
   const open = MK.cOpen, anim = MK.cAnim; MK.cAnim = null; // плавно раскрывается только то, что сейчас открыли
   const tile = ([k, l]) => { const on = open === k, n = Object.values(MK.cart).filter((c) => c.tab === k).length;
     return `<button class="cs-tile${on ? " on" : ""}" data-mk-ccat="${k}" aria-expanded="${on}"><span class="t">${l}${ico("chevron-down")}</span>
-      <span class="s">${k === "sot" ? pl(C_BRANDS.length, "марка", "марки", "марок") : pl(C_COLORS.length, "цвет", "цвета", "цветов")}</span>${n ? `<span class="c">${ico("check")}в заявке: ${n}</span>` : ""}</button>`; };
-  return `${cHero("Продукция", "Нажмите на вид продукции и выберите: у сотовых листов — марку, цвет и толщину, у монолита и трапеции — цвет и толщину, у профиля и термошайб — цвет. Укажите количество и добавьте в заявку.")}
+      <span class="s">${k === "sot" ? pl(C_BRANDS.length, "марка", "марки", "марок") : pl(C_COLORS.length, "цвет", "цвета", "цветов")}</span>${n ? `<span class="c">${ico("check")}в корзине: ${n}</span>` : ""}</button>`; };
+  return `${cHero("Продукция", "Нажмите на вид продукции и выберите: у сотовых листов — марку, цвет и толщину, у монолита и трапеции — цвет и толщину, у профиля и термошайб — цвет. Укажите количество и добавьте в корзину.")}
     <div class="cs-tiles">${C_TABS.map(tile).join("")}</div>
     ${open ? `<div class="cs-list${anim === "cat" ? " cs-anim" : ""}">${cTree(open, anim)}</div>` : ""}`;
 }
 function pgCart() {
-  const keys = Object.keys(MK.cart), head = cHero("Моя заявка", "Проверьте позиции, укажите, к какой дате нужно, и отправьте менеджеру.");
-  if (!keys.length) return head + `<div class="cs-box mk-empty">${ico("shopping-cart")}В заявке пока ничего нет.<button class="mk-btn p" data-mk-nav="cat">${ico("layers")}Перейти к продукции</button></div>`;
+  const keys = Object.keys(MK.cart), head = cHero("Корзина", "Проверьте позиции, укажите, к какой дате нужно, и отправьте менеджеру.");
+  if (!keys.length) return head + `<div class="cs-box mk-empty">${ico("shopping-cart")}Корзина пуста.<button class="mk-btn p" data-mk-nav="cat">${ico("layers")}Перейти к продукции</button></div>`;
   return `${head}<div class="cs-box">${keys.map((k) => { const x = cX(k);
       return `<div class="cs-row"><div class="nm"><b>${cName(x)}</b><span>${cSub(x)}</span></div><b>${fmt(MK.cart[k].qty)} ${cUnit(x.tab)}</b>
-        <button class="mk-x0" data-mk-cdel="${k}" title="Убрать из заявки" aria-label="Убрать из заявки">${ico("x")}</button></div>`; }).join("")}
+        <button class="mk-x0" data-mk-cdel="${k}" title="Убрать из корзины" aria-label="Убрать из корзины">${ico("x")}</button></div>`; }).join("")}
       <button class="mk-btn ghost" data-mk-nav="cat">${ico("plus")}Добавить ещё</button></div>
     <div class="cs-box cs-form">
       <div class="mk-f"><label for="cNeed">Нужна к</label><input type="date" id="cNeed" data-mk-val="c|need" value="${MK.vals["c|need"] || "2026-10-24"}"></div>
@@ -2570,7 +2570,7 @@ overlay.addEventListener("click", (e) => {
   else if (d.mkCcol) { MK.cCol = MK.cCol === d.mkCcol ? null : d.mkCcol; MK.cTh = null; MK.cAnim = "col"; MK.cErr = ""; }
   else if (d.mkClen) { const [r, z] = d.mkClen.split("#"); MK.cLenR[r] = z; MK.cErr = ""; MK.cLenErr = null; }
   else if (d.mkCth) { MK.cTh = MK.cTh === d.mkCth ? null : d.mkCth; MK.cAnim = "th"; MK.cErr = ""; }
-  else if (d.mkCadd) { // клиент: «В заявку» берёт количество из строки; пустое поле у позиции в заявке — убрать её; нестандартный размер — ширина × длина, длина до 12 000 мм
+  else if (d.mkCadd) { // клиент: «В корзину» берёт количество из строки; пустое поле у позиции в корзине — убрать её; нестандартный размер — ширина × длина, длина до 12 000 мм
     const row = t.closest(".cs-sz"), ins = [...row.querySelectorAll("input[data-key]")], had = ins.some((i) => MK.cart[i.dataset.key]);
     let any = false; MK.cLenErr = null;
     ins.forEach((i) => { const k = i.dataset.key, v = Number(i.value);
