@@ -82,6 +82,13 @@ footer { color: var(--muted); font-size: 13px }
 .mk-bar span.note { opacity: .75 }
 .mk-x { border: 1px solid currentColor; background: transparent; color: inherit; border-radius: 8px; padding: 5px 12px; font: 600 13px var(--body); cursor: pointer }
 .mk-scroll { flex: 1; overflow: auto; min-height: 0 }
+/* прокрутка в макетах — как в ERP образца: тонкая, без стрелок, дорожка прозрачная, ползунок цвета рамок, при наведении светлее */
+.mk-overlay, .mk-overlay * { scrollbar-color: var(--border-default, #334155) transparent; scrollbar-width: thin }
+.mk-overlay ::-webkit-scrollbar { width: 10px; height: 14px }
+.mk-overlay ::-webkit-scrollbar-track { background: transparent }
+.mk-overlay ::-webkit-scrollbar-thumb { background: var(--border-default, #334155); border-radius: 5px; border: 2px solid transparent; background-clip: padding-box }
+.mk-overlay ::-webkit-scrollbar-thumb:hover { background-color: var(--fg-tertiary, #64748b) }
+.mk-overlay ::-webkit-scrollbar-corner { background: transparent }
 
 .mk {
   --primary-50: #EFF6FF; --primary-100: #DBEAFE; --primary-200: #BFDBFE; --primary-300: #93C5FD; --primary-400: #60A5FA;
