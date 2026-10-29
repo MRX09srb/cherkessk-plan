@@ -2144,7 +2144,8 @@ function stOf(o, v) {
   if (v === "l2") return o.l2ok ? ["Передал шефу", "b-success", "passed"] : ["Новая — сверить", "b-primary", "todo"];
   if (v === "l1") return o.at === "l1" ? ["Передал шеф — сверить", "b-primary", "todo"] : ["Вернул шефу", "b-success", "passed"];
   if (o.at) return ["У логиста №1 — сверяет", "b-slate", "lg"];
-  if (sendable(o)) return ["Готово — отправить менеджеру", "b-primary", "todo"];
+  // готова к отправке: шеф уже нажимал «Готово» (или листа нет) — отправляет из «На обработке», иначе — там, где сверял
+  if (sendable(o)) return ["Готово — отправить менеджеру", "b-primary", o.chefOk || !hasPart(o, "chef") ? "lg" : "todo"];
   // лист готов, но шеф ещё не нажал «Готово — лист сверен» — заявка остаётся у него (юзер 29.10)
   if (!partDone(o, "chef") || !o.chefOk) return o.ret ? ["Вернул логист №1 — проверить", "b-warning", "todo"] : partDone(o, "chef") ? ["Сверено — нажмите «Готово»", "b-primary", "todo"] : ["Новая — сверить", "b-primary", "todo"];
   return ["Ждёт логиста №2", "b-slate", "lg"];
@@ -2160,7 +2161,7 @@ function inList(v) {
   return ORDERS.filter((o) => (v === "l1" ? o.at === "l1" || o.ret === "l1" || o.chkBy === "l1" : (inWork(o) || sentOut(o)) && (v === "chef" || hasPart(o, "l2"))));
 }
 const inF = (o, f, v) => f === "all" || stOf(o, v)[2] === f;
-const inTodo = (v) => inList(v).filter((o) => inF(o, "todo", v)).length;
+const inTodo = (v) => inList(v).filter((o) => inF(o, "todo", v) || (v === "chef" && sendable(o))).length; // в меню — и готовые к отправке
 // inKeep — заявки, уже показанные в списке: не пропадают, пока с ними работают; inOpen — раскрытые под своей строкой
 Object.assign(MK, { inF: "todo", inKeep: null, inOpen: {} });
 // отправка менеджеру: у позиций — «со склада» или срок, у заявки — когда будет готова вся
@@ -2281,10 +2282,10 @@ function inToPool(o, v) {
 const inTo = (o) => ["chef", "l2"].filter((p) => hasPart(o, p)).map((p) => `${PART_NM[p]} (${o.items.filter((x) => partOf(x) === p).length})`).join(" · ");
 // строка ленты; раскрытая — с заявкой под ней
 function inLine(o, v) {
-  const s = stOf(o, v), open = !!MK.inOpen[o.no], act = s[2] === "todo" && !(v === "chef" && sendable(o));
+  const s = stOf(o, v), open = !!MK.inOpen[o.no], snd = v === "chef" && sendable(o), act = s[2] === "todo" && !snd;
   return `<tr class="click${open ? " open" : ""}" data-mk-inopen="${o.no}"><td class="mk-no">${o.no}</td><td>${mgrOf(o)}</td><td>${o.client}</td><td>${o.need}</td>
       <td>${o.items.length}</td><td>${inTo(o)}</td><td><span class="mk-pill ${s[1]}">${s[0]}</span></td>
-      <td class="r"><button class="mk-btn sm${act && !open ? " p" : ""}" data-mk-inopen="${o.no}">${ico(open ? "chevron-up" : "chevron-down")}${open ? "Свернуть" : act ? "Сверить" : "Открыть"}</button></td></tr>
+      <td class="r"><button class="mk-btn sm${(act || snd) && !open ? " p" : ""}" data-mk-inopen="${o.no}">${ico(open ? "chevron-up" : "chevron-down")}${open ? "Свернуть" : snd ? "Отправить" : act ? "Сверить" : "Открыть"}</button></td></tr>
     ${open ? `<tr class="mk-oexp"><td colspan="8">${inBlock(o, v)}</td></tr>` : ""}`;
 }
 function pgIn() {
