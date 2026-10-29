@@ -319,6 +319,7 @@ footer { color: var(--muted); font-size: 13px }
 .mk-combo span.ph { color: var(--fg-tertiary) }
 .mk-combo:disabled { opacity: .6; cursor: not-allowed }
 .mk-f-note { font-size: .75rem; color: var(--fg-tertiary) }
+.mk-f input.err { border-color: var(--danger-600) }
 .mk-combo svg.lucide { width: 14px; height: 14px; color: var(--fg-tertiary) }
 .mk-modal-f { padding: 18px 22px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end; gap: 10px }
 .mk-btn.ghost { background: transparent; border-color: transparent; box-shadow: none; color: var(--fg-secondary) }
@@ -2599,13 +2600,15 @@ function clAct(c) {
   const [l, tone] = days < 1 ? ["сегодня", "fresh"] : days < 90 ? [days + " дн. назад", days < 7 ? "fresh" : days < 30 ? "warm" : "stale"] : [Math.floor(days / 30) + " мес. назад", "cold"];
   return `<span class="mk-act ${tone}">${ico("clock")}${l}</span>`;
 }
+const clAll = () => [...new Set(ORDERS.map((o) => o.client).concat(C_EXTRA))].sort((a, b) => a.localeCompare(b, "ru", { numeric: true }));
 function pgClients() {
-  const all = [...new Set(ORDERS.map((o) => o.client).concat(C_EXTRA))].sort((a, b) => a.localeCompare(b, "ru", { numeric: true })); // «Все» — все клиенты, у каждого подписан его менеджер (юзер 29.10)
+  const all = clAll(); // «Все» — все клиенты, у каждого подписан его менеджер (юзер 29.10)
   const mine = all.filter((c) => mgrOfClient(c) === MK.mgr); // вкладки по статусу и цифры — только свои
   const n = (k) => (k === "all" ? all.length : k === "archive" ? 0 : mine.filter((c) => clStatus(c) === k).length);
   const q = MK.clQ.trim().toLowerCase(), act = n("active"), dash = `<span class="mk-muted">-</span>`;
   const rows = (MK.clTab === "all" ? all : mine).filter((c) => (MK.clTab === "all" || clStatus(c) === MK.clTab) && (!q || c.toLowerCase().includes(q)));
-  return `${MK.accDone ? `<div class="mk-hint ok">✓ Доступ для ${MK.accDone} выдан — передайте клиенту логин и пароль.</div>` : ""}
+  return `${MK.accDone ? `<div class="mk-hint ok">✓ Доступ для ${esc(MK.accDone)} выдан — передайте клиенту логин и пароль.</div>` : ""}
+    ${MK.clNew ? `<div class="mk-hint ok">✓ Клиент «${esc(MK.clNew)}» создан — он в «Потенциальных», менеджер — ${mgrOfClient(MK.clNew)}.</div>` : ""}
     <div class="mk-kpis">
       <div class="mk-card mk-kpi"><span>Всего клиентов</span><b>${mine.length}</b></div>
       <div class="mk-card mk-kpi"><span>Активных</span><b>${act}</b><small>${mine.length ? Math.round((act / mine.length) * 100) : 0}% базы</small></div>
@@ -2619,11 +2622,11 @@ function pgClients() {
     <div class="mk-card mk-tbl dense mk-cltbl"><table><thead><tr><th>Клиент</th><th>ИНН</th><th>Страна / Город</th><th>Сегмент</th><th>Менеджер</th><th>Активность</th>
       <th>Контакты</th><th>Заметка</th><th>Заявок</th><th>Доступ в кабинет</th><th class="r">Действия</th></tr></thead><tbody>
       ${rows.length ? rows.map((c) => { const a = MK.access[c];
-        return `<tr><td><b>${c}</b> ${badge(CL_STAT[clStatus(c)])}</td><td>${dash}</td><td>${dash}</td><td>${dash}</td><td>${mgrOfClient(c)}</td><td>${clAct(c)}</td><td>${dash}</td><td>${dash}</td>
+        return `<tr><td><b>${esc(c)}</b> ${badge(CL_STAT[clStatus(c)])}</td><td>${dash}</td><td>${dash}</td><td>${dash}</td><td>${mgrOfClient(c)}</td><td>${clAct(c)}</td><td>${dash}</td><td>${dash}</td>
           <td>${clOrders(c).length}</td>
           <td>${a ? `<span class="mk-pill b-success">Доступ выдан</span><small>логин ${esc(a.login)} · ${a.date}</small>` : `<span class="mk-muted">нет доступа</span>`}</td>
-          <td class="r">${mgrOfClient(c) !== MK.mgr ? "" : `<span class="mk-acts"><button class="mk-ib0" data-mk-clform="${c}" title="Изменить" aria-label="Изменить">${ico("pencil")}</button><button class="mk-ib0" data-mk-noop title="В архив" aria-label="В архив">${ico("trash-2")}</button>
-            <button class="mk-btn sm${a ? "" : " p"}" data-mk-cacc="${c}">${ico(a ? "key" : "user-plus")}${a ? "Новый пароль" : "Выдать доступ"}</button></span>`}</td></tr>`; }).join("") // чужой клиент — только просмотр
+          <td class="r">${mgrOfClient(c) !== MK.mgr ? "" : `<span class="mk-acts"><button class="mk-ib0" data-mk-clform="${esc(c)}" title="Изменить" aria-label="Изменить">${ico("pencil")}</button><button class="mk-ib0" data-mk-noop title="В архив" aria-label="В архив">${ico("trash-2")}</button>
+            <button class="mk-btn sm${a ? "" : " p"}" data-mk-cacc="${esc(c)}">${ico(a ? "key" : "user-plus")}${a ? "Новый пароль" : "Выдать доступ"}</button></span>`}</td></tr>`; }).join("") // чужой клиент — только просмотр
         : `<tr><td colspan="11" class="mk-muted">${q ? "Клиенты не найдены — попробуйте другой запрос" : "Пусто"}</td></tr>`}
     </tbody></table></div>`;
 }
@@ -2666,20 +2669,20 @@ function mkModal() {
     client: (() => {
       if (MK.modal !== "client") return null;
       const c = MK.clEdit, inp = (id, l, val = "", ph = "") => f(id, l, `<input id="${id}" value="${esc(val)}"${ph ? ` placeholder="${ph}"` : ""}>`);
-      return [c ? "Редактировать клиента" : "Новый клиент", `<div class="mk-f2">${inp("mkfClName", "Название *", c || "")}${inp("mkfClInn", "ИНН")}
+      return [c ? "Редактировать клиента" : "Новый клиент", `<div class="mk-f2">${f("mkfClName", "Название *", `<input id="mkfClName" value="${esc(c || MK.clDraft || "")}"${MK.clErr ? ' class="err"' : ""}>${MK.clErr ? `<div class="mk-err">${esc(MK.clErr)}</div>` : ""}`)}${inp("mkfClInn", "ИНН")}
           ${inp("mkfClKpp", "КПП")}${inp("mkfClOgrn", "ОГРН")}${inp("mkfClCountry", "Страна")}${inp("mkfClCity", "Город")}</div>
         ${inp("mkfClAddr", "Адрес")}
         <div class="mk-f2">${inp("mkfClEmail", "Email")}${inp("mkfClPhone", "Телефон")}${inp("mkfClSite", "Сайт", "", "https://...")}${inp("mkfClContract", "Номер договора")}
           ${f("mkfClDate", "Дата договора", `<input type="date" id="mkfClDate">`)}${f("mkfClStatus", "Статус", combo("mkfClStatus", CL_STAT[c ? clStatus(c) : "active"][0], ""))}
           ${inp("mkfClSeg", "Сегмент", "", "напр. оптовик / розница")}${f("mkfClMgr", "Менеджер", `<button type="button" class="mk-combo" id="mkfClMgr" disabled><span>${c ? mgrOfClient(c) : MK.mgr}</span>${ico("chevron-down")}</button>
             <small class="mk-f-note">Сменить менеджера клиента может только руководитель</small>`)}</div>
-        ${f("mkfClNote", "Заметки", `<textarea id="mkfClNote" placeholder="Любые заметки по клиенту…"></textarea>`)}`, c ? "Сохранить" : "Создать"];
+        ${f("mkfClNote", "Заметки", `<textarea id="mkfClNote" placeholder="Любые заметки по клиенту…"></textarea>`)}`, c ? "Сохранить" : "Создать", c ? "" : 'data-mk-clsave="1"'];
     })(),
     access: (() => {
       if (MK.modal !== "access") return null;
       const c = MK.accFor, a = MK.access[c];
       return [a ? "Новый пароль" : "Доступ в личный кабинет", `<div class="mk-hint">ⓘ Передайте клиенту логин и пароль — с ними он входит на сайт для клиентов.${a ? " Старый пароль перестанет работать." : ""}</div>
-        ${f("mkfCl", "Клиент", `<input id="mkfCl" value="${c}" readonly>`)}
+        ${f("mkfCl", "Клиент", `<input id="mkfCl" value="${esc(c)}" readonly>`)}
         ${f("mkfLogin", "Логин", `<input id="mkfLogin" value="${a ? esc(a.login) : lat(c)}">`)}
         ${f("mkfPass", "Пароль (пример)", `<input id="mkfPass" value="Kx7m-42Qa">`)}`, a ? "Выдать новый пароль" : "Выдать доступ", 'data-mk-cgive="1"'];
     })(),
@@ -2718,7 +2721,7 @@ let lastHot = null;
 function mkOpen(role, from, shop) {
   lastHot = from;
   if (shop) { MK.shop = shop; MK.kPart = "a"; }
-  MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cOpen = null; MK.cRow = null; MK.cCol = null; MK.cTh = null; MK.cLenR = {}; MK.cLenErr = null; MK.cSent = null; MK.cErr = ""; MK.cLogged = false; MK.cLoginErr = ""; MK.accDone = null;
+  MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cOpen = null; MK.cRow = null; MK.cCol = null; MK.cTh = null; MK.cLenR = {}; MK.cLenErr = null; MK.cSent = null; MK.cErr = ""; MK.cLogged = false; MK.cLoginErr = ""; MK.accDone = MK.clNew = MK.clErr = null; MK.clDraft = "";
   MK.role = role; MK.view = role === "kiosk" && !KSHOPS[MK.shop].orders ? "kShift" : ROLES[role].start; MK.order = null; MK.modal = null; MK.pre = null;
   MK.mgr = MGRS[0]; MK.filter = MK.ppFilter = MK.clFilter = "all"; MK.inF = "todo"; MK.inKeep = null; MK.inOpen = {}; MK.ppTab = null; MK.ppLineOf = {}; MK.ppDate = {}; MK.ppDone = null; MK.clTab = "active"; MK.clQ = "";
   document.getElementById("mkTitle").textContent = "Макет · " + (role === "kiosk" ? "Киоск · " + KSHOPS[MK.shop].name : ROLES[role].label);
@@ -2742,7 +2745,7 @@ document.querySelectorAll(".hot[data-role]").forEach((g) => {
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-asmgr],[data-mk-topool],[data-mk-pptab],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-asmgr],[data-mk-clsave],[data-mk-topool],[data-mk-pptab],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
@@ -2836,16 +2839,22 @@ overlay.addEventListener("click", (e) => {
   else if (t.hasAttribute("data-mk-side")) { MK.sideC = !MK.sideC; MK.sideAnim = true; try { localStorage.setItem(SIDE_KEY, MK.sideC ? "1" : "0"); } catch (err) {} }
   else if (t.hasAttribute("data-mk-clogout")) Object.assign(MK, { cLogged: false, cSent: null, cErr: "" });
   else if (d.mkCltab) MK.clTab = d.mkCltab;
-  else if (t.hasAttribute("data-mk-clform")) { MK.modal = "client"; MK.clEdit = d.mkClform || null; }
+  else if (t.hasAttribute("data-mk-clform")) { MK.modal = "client"; MK.clEdit = d.mkClform || null; MK.clErr = null; MK.clDraft = ""; }
+  else if (t.hasAttribute("data-mk-clsave")) { // новый клиент — за тем менеджером, кто завёл; повтор по названию не пускаем (в ERP — и по ИНН)
+    const name = ((document.getElementById("mkfClName") || {}).value || "").trim().replace(/\s+/g, " ");
+    const had = clAll().find((c) => c.toLowerCase() === name.toLowerCase());
+    MK.clDraft = name; MK.clErr = !name ? "Укажите название" : had ? "Такой клиент уже есть — с ним работает " + mgrOfClient(had) : null;
+    if (!MK.clErr) { C_EXTRA.push(name); MGR_OF[name] = MK.mgr; MK.modal = null; MK.clDraft = ""; MK.clTab = "prospect"; MK.clQ = ""; MK.clNew = name; MK.accDone = null; }
+  }
   else if (d.mkCacc) { MK.modal = "access"; MK.accFor = d.mkCacc; }
   else if (t.hasAttribute("data-mk-cgive")) {
     const l = ((document.getElementById("mkfLogin") || {}).value || "").trim();
-    MK.access[MK.accFor] = { login: l || lat(MK.accFor), date: "12.10.2026" }; MK.accDone = MK.accFor; MK.modal = null;
+    MK.access[MK.accFor] = { login: l || lat(MK.accFor), date: "12.10.2026" }; MK.accDone = MK.accFor; MK.clNew = null; MK.modal = null;
   }
   else if (d.mkArcm) MK.arcM = d.mkArcm;
   else if (d.mkArct) MK.arcT = d.mkArct;
   else if (t.hasAttribute("data-mk-back")) { MK.view = R().back; MK.order = null; }
-  else if (d.mkAsmgr) { MK.mgr = d.mkAsmgr; MK.filter = "all"; MK.clTab = "active"; MK.clQ = ""; MK.accDone = null; if (MK.view === "order") { MK.view = "orders"; MK.order = null; } } // только в макете
+  else if (d.mkAsmgr) { MK.mgr = d.mkAsmgr; MK.filter = "all"; MK.clTab = "active"; MK.clQ = ""; MK.accDone = MK.clNew = null; if (MK.view === "order") { MK.view = "orders"; MK.order = null; } } // только в макете
   else if (d.mkFilter) MK.filter = d.mkFilter;
   else if (d.mkPpfilter) MK.ppFilter = d.mkPpfilter;
   else if (d.mkSeg) MK.seg = d.mkSeg;
