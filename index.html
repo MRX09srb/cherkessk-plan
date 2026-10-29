@@ -123,7 +123,7 @@ footer { color: var(--muted); font-size: 13px }
 .mk-side { width: 292px; flex-shrink: 0; margin: 10px; background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: 16px; box-shadow: var(--shadow-panel); display: flex; flex-direction: column; align-self: stretch }
 .mk-logo { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--border-subtle) }
 .mk-cube { width: 36px; height: 36px; border-radius: 9px; background: linear-gradient(135deg, var(--primary-500), var(--primary-800)); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 18px; flex-shrink: 0 }
-.mk-bx { width: 46px; height: 25px; flex-shrink: 0; display: block }
+.mk-bx { width: 36px; height: 36px; flex-shrink: 0; display: block }
 .mk-logo-t { flex: 1; min-width: 0 }
 .mk-logo-t b { display: block; font-size: 1.0625rem; font-weight: 700; color: var(--primary-800); letter-spacing: -0.01em }
 .mk-logo-t span { display: block; font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: .08em; color: var(--fg-tertiary) }
@@ -148,7 +148,7 @@ footer { color: var(--muted); font-size: 13px }
 .mk-item { white-space: nowrap }
 .mk-item .ic { position: relative }
 .mk-side.c .mk-logo { flex-direction: column; justify-content: center; gap: 8px; padding: 10px 8px }
-.mk-side.c .mk-bx { width: 40px; height: 22px }
+.mk-side.c .mk-bx { width: 32px; height: 32px }
 .mk-side.c .mk-item { justify-content: center; gap: 0; padding: 6px 0 }
 .mk-sep { height: 1px; margin: 16px 8px 6px; background: var(--border-subtle) }
 .mk-nbdot { position: absolute; top: -1px; right: -1px; width: 9px; height: 9px; border-radius: 50%; background: var(--primary-600); border: 2px solid var(--bg-surface) }
@@ -595,7 +595,7 @@ footer { color: var(--muted); font-size: 13px }
 .cs-top { background: var(--bg-surface); border-bottom: 1px solid var(--border-default) }
 .cs-top .cs-in { display: flex; align-items: center; gap: 28px; height: 64px }
 .cs-logo { display: flex; align-items: center; gap: 10px; font-size: 1rem; white-space: nowrap }
-.cs-bx { width: 50px; height: 27px; flex-shrink: 0; display: block }
+.cs-bx { width: 34px; height: 34px; flex-shrink: 0; display: block }
 .cs-cube { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--primary-500), var(--primary-800)); color: #fff; display: grid; place-items: center; font-weight: 700 }
 .cs-nav { display: flex; gap: 4px; flex: 1 }
 .cs-nav button { background: transparent; border: 0; padding: 8px 14px; border-radius: 8px; color: var(--fg-secondary); font-size: .9375rem; font-weight: 500 }
@@ -1051,16 +1051,16 @@ zoom.addEventListener("click", () => {
   zoom.textContent = full ? "Вписать в экран" : "Во весь размер";
 });
 
-// знак Borrex (юзер 29.10 прислал образец: красный глобус) — нарисован вектором: красный эллипс, белые параллели и меридианы,
-// белый сегмент сверху слева от центра. Без id внутри — знак стоит на странице несколько раз
+// знак Borrex (юзер 29.10 прислал образец): красный шар-глобус, как карта мира — круг, меридианы изгибаются по шару,
+// параллели чуть выгнуты, белый сегмент сверху слева от центра. Без id внутри — знак стоит на странице несколько раз
 const BX_RED = "#D32F2F";
-const borrexLogo = (cls) => `<svg class="${cls}" viewBox="0 0 120 64" role="img" aria-label="Borrex" xmlns="http://www.w3.org/2000/svg">
-  <ellipse cx="60" cy="32" rx="56" ry="28" fill="${BX_RED}"/>
-  <path d="M60 4 L60 20 L38.3 20 A24 28 0 0 1 60 4 Z" fill="#fff"/>
-  <g fill="none" stroke="#fff" stroke-width="3">
-    <ellipse cx="60" cy="32" rx="49" ry="22"/>
-    <path d="M4 32 H116 M9.4 20 H110.6 M9.4 44 H110.6 M60 4 V60"/>
-    <ellipse cx="60" cy="32" rx="24" ry="28"/>
+const borrexLogo = (cls) => `<svg class="${cls}" viewBox="0 0 64 64" role="img" aria-label="Borrex" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="32" cy="32" r="30" fill="${BX_RED}"/>
+  <path d="M32 2 V19 L20.4 18.6 A13 30 0 0 1 32 2 Z" fill="#fff"/>
+  <g fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round">
+    <path d="M32 2 V62 M2.5 32 H61.5 M6 17 Q32 21 58 17 M6 47 Q32 51 58 47"/>
+    <ellipse cx="32" cy="32" rx="13" ry="30"/>
+    <ellipse cx="32" cy="32" rx="23" ry="30"/>
   </g>
 </svg>`;
 /* ===== Макет менеджера ===== */
