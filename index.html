@@ -693,6 +693,7 @@ footer { color: var(--muted); font-size: 13px }
 .mk-pplines { flex-wrap: wrap }
 .mk-topool { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px }
 .mk-topool .mk-btn { margin-left: auto }
+.mk-chk td small.mk-dech { white-space: normal; max-width: 330px; margin-top: 6px }
 .mk-why { flex-basis: 100%; display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-size: .8125rem; color: var(--warning-700) }
 .mk-why svg.lucide { width: 14px; height: 14px; flex-shrink: 0 }
 .mk-tbl td small.mk-ask { color: var(--warning-700); font-weight: 600 }
@@ -2147,9 +2148,10 @@ function stOf(o, v) {
   if (!partDone(o, "chef")) return o.ret ? ["Вернул логист №1 — проверить", "b-warning", "todo"] : ["Новая — сверить", "b-primary", "todo"];
   return ["Ждёт логиста №2", "b-slate", "lg"];
 }
-const IN_F = { chef: [["all", "Все"], ["todo", "Нужно сделать"], ["lg", "У логистов"], ["sent", "Отправлены менеджеру"]],
-  l1: [["all", "Все"], ["todo", "Нужно сделать"], ["passed", "Вернул шефу"], ["sent", "Отправлены менеджеру"]],
-  l2: [["all", "Все"], ["todo", "Нужно сделать"], ["passed", "Передал шефу"], ["sent", "Отправлены менеджеру"]] };
+// открывается «Нужно сделать» — сразу видно, что ждёт; «Все» — последним (юзер 29.10)
+const IN_F = { chef: [["todo", "Нужно сделать"], ["lg", "У логистов"], ["sent", "Отправлены менеджеру"], ["all", "Все"]],
+  l1: [["todo", "Нужно сделать"], ["passed", "Вернул шефу"], ["sent", "Отправлены менеджеру"], ["all", "Все"]],
+  l2: [["todo", "Нужно сделать"], ["passed", "Передал шефу"], ["sent", "Отправлены менеджеру"], ["all", "Все"]] };
 function inList(v) {
   chkAll();
   return ORDERS.filter((o) => (v === "l1" ? o.at === "l1" || o.ret === "l1" || o.chkBy === "l1" : (inWork(o) || sentOut(o)) && (v === "chef" || hasPart(o, "l2"))));
@@ -2157,7 +2159,7 @@ function inList(v) {
 const inF = (o, f, v) => f === "all" || stOf(o, v)[2] === f;
 const inTodo = (v) => inList(v).filter((o) => inF(o, "todo", v)).length;
 // inKeep — заявки, уже показанные в списке: не пропадают, пока с ними работают; inOpen — раскрытые под своей строкой
-Object.assign(MK, { inF: "all", inKeep: null, inOpen: {} });
+Object.assign(MK, { inF: "todo", inKeep: null, inOpen: {} });
 // отправка менеджеру: у позиций — «со склада» или срок, у заявки — когда будет готова вся
 function chkSend(o) {
   const ch = chkOf(o);
@@ -2188,7 +2190,17 @@ function inDec(o, i, ed) {
   const f = freeFor(o, i), need = qN(x);
   return `<div class="mk-seg cs-seg">${[["stock", "Со склада"], ["part", "Частично"], ["prod", "В производство"]].map(([k, l]) => {
     const off = k === "stock" ? f < need : k === "part" ? !(f > 0 && f < need) : false;
-    return `<button class="${c.dec === k ? "on" : ""}" data-mk-dec="${o.no}|${i}|${k}"${off ? ` disabled${k === "stock" ? ' title="на складе не хватает"' : ""}` : ""}>${l}</button>`; }).join("")}</div>`;
+    return `<button class="${c.dec === k ? "on" : ""}" data-mk-dec="${o.no}|${i}|${k}"${off ? ` disabled${k === "stock" ? ' title="на складе не хватает"' : ""}` : ""}>${l}</button>`; }).join("")}</div>${inDecHint(o, i)}`;
+}
+// что произойдёт с позицией — мелко под кнопками решения (юзер 29.10)
+function inDecHint(o, i) {
+  const x = o.items[i], c = chkOf(o)[i], need = qN(x), u = qU(x), v = viewer();
+  const when = v === "l2" ? "после «Готово — передать шефу»" : v === "l1" ? "когда шеф отправит заявку менеджеру," : "после «Отправить менеджеру»";
+  const t = c.dec === "stock" ? `Все ${qtyT(need, u)} отгрузим со склада.`
+    : c.dec === "part" ? `${qtyT(c.take, u)} — со склада, ${qtyT(need - c.take, u)} — в производство: ${when} уйдут в «Нужно произвести».`
+    : c.dec === "prod" ? `Все ${qtyT(need, u)} — в производство, склад не трогаем: ${when} уйдут в «Нужно произвести».`
+    : "Выберите: со склада, частично или в производство.";
+  return `<small class="mk-dech">${t}</small>`;
 }
 function inDl(o, i, ed) {
   const c = chkOf(o)[i];
@@ -2272,7 +2284,7 @@ function pgIn() {
   // заявка, с которой работаете, не пропадает, когда сменился статус, — уйдёт, когда откроете список заново
   const keep = MK.inKeep || [], rows = list.filter((o) => inF(o, MK.inF, v) || keep.includes(o.no));
   MK.inKeep = rows.map((o) => o.no);
-  return `<div class="mk-kpis">${F.slice(1).concat([F[0]]).map(([k, l]) => `<div class="mk-card mk-kpi"><span>${k === "all" ? "Всего" : l}</span><b>${cnt(k)}</b></div>`).join("")}</div>
+  return `<div class="mk-kpis">${F.map(([k, l]) => `<div class="mk-card mk-kpi"><span>${k === "all" ? "Всего" : l}</span><b>${cnt(k)}</b></div>`).join("")}</div>
     <div class="mk-sec"><h3>Заявки от менеджеров <small>· ${list.length}</small></h3></div>
     <div class="mk-chips">${F.map(([k, l]) => `<button class="mk-chip${MK.inF === k ? " on" : ""}" data-mk-inf="${k}">${l}<em>${cnt(k)}</em></button>`).join("")}${TODO("статусы")}</div>
     <div class="mk-card mk-tbl mk-inlist"><table><thead><tr><th>№ заявки</th><th>От кого</th><th>Клиент</th><th>Нужна к</th><th>Позиций</th><th>Кому</th><th>Статус</th><th></th></tr></thead><tbody>
@@ -2648,7 +2660,7 @@ function mkOpen(role, from, shop) {
   if (shop) { MK.shop = shop; MK.kPart = "a"; }
   MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cOpen = null; MK.cRow = null; MK.cCol = null; MK.cTh = null; MK.cLenR = {}; MK.cLenErr = null; MK.cSent = null; MK.cErr = ""; MK.cLogged = false; MK.cLoginErr = ""; MK.accDone = null;
   MK.role = role; MK.view = role === "kiosk" && !KSHOPS[MK.shop].orders ? "kShift" : ROLES[role].start; MK.order = null; MK.modal = null; MK.pre = null;
-  MK.filter = MK.ppFilter = MK.clFilter = "all"; MK.inF = "all"; MK.inKeep = null; MK.inOpen = {}; MK.ppTab = null; MK.ppSel = {}; MK.ppLine = {}; MK.ppDone = null; MK.clTab = "active"; MK.clQ = "";
+  MK.filter = MK.ppFilter = MK.clFilter = "all"; MK.inF = "todo"; MK.inKeep = null; MK.inOpen = {}; MK.ppTab = null; MK.ppSel = {}; MK.ppLine = {}; MK.ppDone = null; MK.clTab = "active"; MK.clQ = "";
   document.getElementById("mkTitle").textContent = "Макет · " + (role === "kiosk" ? "Киоск · " + KSHOPS[MK.shop].name : ROLES[role].label);
   overlay.setAttribute("aria-label", "Макет рабочего места: " + ROLES[role].label);
   overlay.hidden = false; document.body.style.overflow = "hidden"; mkRender(); fitMk(); document.getElementById("mkClose").focus();
