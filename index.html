@@ -1480,7 +1480,7 @@ function pgPlan() {
 function ppPool(pool, v) {
   const sel = pool.filter((p) => MK.ppSel[ppKey(p)]), n = sel.length, one = n > 0 && ppOneShop(sel), what = v === "l2" ? "профиль, термошайбы, трапеция" : "сотовый и монолитный лист";
   if (!pool.length) return `<div class="mk-card mk-stub">${ico("factory")}<b>Пока нечего производить</b>
-    <p class="mk-note">Сверьте заявку → поставьте «Частично» или «В производство» и срок → ${v === "l2" ? "«Готово — передать шефу»" : "«Отправить менеджеру»"} — позиции придут сюда.</p></div>`;
+    <p class="mk-note">Сверьте заявку → поставьте «Частично» или «В производство» и срок → ${v === "l2" ? "«Готово — передать шефу»" : "«Готово — позиции обработаны» (или «Отправить менеджеру»)"} — позиции придут сюда.</p></div>`;
   return `<div class="mk-sec"><h3>Нужно произвести <small>· ${pool.length}</small></h3><span class="mk-note">Из сверки заявок менеджеров — ${what}</span></div>
     <div class="mk-card mk-tbl dense mk-pool"><table><thead><tr><th></th><th>Продукция</th><th>Сколько</th><th>Из заявки</th><th>Срок</th><th>Цех</th></tr></thead><tbody>
       ${pool.map((p) => { const k = ppKey(p), on = !!MK.ppSel[k];
@@ -2138,7 +2138,8 @@ const decText = (c, x) => (c.dec === "stock" ? "Со склада" : c.dec === "
 // кто смотрит: шеф логистов, логист №1 (помогает по листу), логист №2; своё — лист у шефа и логиста №1, остальное у логиста №2
 const viewer = () => (MK.role === "logist1" ? "l1" : MK.role === "logist2" ? "l2" : "chef");
 const mineOf = (x, v) => (v === "l2" ? partOf(x) === "l2" : partOf(x) === "chef");
-const canEdit = (o, i, v) => inWork(o) && mineOf(o.items[i], v) && (v === "l2" ? !o.l2ok : v === "l1" ? o.at === "l1" : !o.at);
+// позицию, уже попавшую в заявку на производство, в сверке не меняют
+const canEdit = (o, i, v) => inWork(o) && mineOf(o.items[i], v) && !(o.chk && o.chk[i].pp) && (v === "l2" ? !o.l2ok : v === "l1" ? o.at === "l1" : !o.at);
 // статус заявки для того, кто смотрит: [надпись, цвет, фильтр]
 function stOf(o, v) {
   if (sentOut(o)) return ["Отправлена менеджеру", "b-success", "sent"];
@@ -2191,7 +2192,7 @@ function inStock(o, i) {
 }
 function inDec(o, i, ed) {
   const x = o.items[i], c = chkOf(o)[i];
-  if (!ed) return decText(c, x);
+  if (!ed) return decText(c, x) + (c.pp ? ` · в ${c.pp}` : "");
   const f = freeFor(o, i), need = qN(x);
   return `<div class="mk-seg cs-seg">${[["stock", "Со склада"], ["part", "Частично"], ["prod", "В производство"]].map(([k, l]) => {
     const off = k === "stock" ? f < need : k === "part" ? !(f > 0 && f < need) : false;
@@ -2200,7 +2201,7 @@ function inDec(o, i, ed) {
 // что произойдёт с позицией — мелко под кнопками решения (юзер 29.10)
 function inDecHint(o, i) {
   const x = o.items[i], c = chkOf(o)[i], need = qN(x), u = qU(x), v = viewer();
-  const when = v === "l2" ? "после «Готово — передать шефу»" : v === "l1" ? "когда шеф отправит заявку менеджеру," : "после «Отправить менеджеру»";
+  const when = v === "l2" ? "после «Готово — передать шефу»" : v === "l1" ? "когда шеф закончит заявку," : hasPart(o, "l2") && !o.l2ok && !o.at ? "после «Готово — позиции обработаны»" : "после «Отправить менеджеру»";
   const t = c.dec === "stock" ? `Все ${qtyT(need, u)} отгрузим со склада.`
     : c.dec === "part" ? `${qtyT(c.take, u)} — со склада, ${qtyT(need - c.take, u)} — в производство: ${when} уйдут в «Нужно произвести».`
     : c.dec === "prod" ? `Все ${qtyT(need, u)} — в производство, склад не трогаем: ${when} уйдут в «Нужно произвести».`
@@ -2274,7 +2275,7 @@ function inBlock(o, v) {
 }
 // что из заявки ушло в «Нужно произвести»: у шефа — после отправки менеджеру, у логиста №2 — после «Готово»
 function inToPool(o, v) {
-  if (v === "l1" || !o.chk || !(v === "l2" ? o.l2ok || sentOut(o) : sentOut(o))) return "";
+  if (v === "l1" || !o.chk || !(v === "l2" ? o.l2ok || sentOut(o) : sentOut(o) || o.chefOk)) return "";
   const its = o.items.map((x, i) => ({ o, x, i, c: o.chk[i] })).filter((p) => mineOf(p.x, v) && needDl(p.c));
   if (!its.length) return "";
   const nm = (p) => p.x.prod.toLowerCase() + (p.x.th !== "—" ? " " + p.x.th + " мм" : "") + " — " + qtyT(ppQty(p), qU(p.x)) + (p.c.pp ? " (в " + p.c.pp + ")" : "");
@@ -2302,8 +2303,8 @@ function pgIn() {
     </tbody></table></div>`;
 }
 /* --- «Нужно произвести» (юзер 29.10): сверка заявок сама заявок на производство не создаёт — позиции «Частично»
-   и «В производство» приходят сюда, когда решение окончательное (вариант Б): лист — когда шеф отправил заявку
-   менеджеру, профиль, термошайбы, трапеция — когда логист №2 нажал «Готово». Шеф (лист) и логист №2 (своё)
+   и «В производство» приходят сюда, когда каждый закончил свою часть: лист — по «Готово — позиции обработаны» шефа
+   (или при отправке менеджеру), профиль, термошайбы, трапеция — по «Готово — передать шефу» логиста №2. Шеф (лист) и логист №2 (своё)
    отмечают позиции и создают одну заявку на производство из выбранных или отдельные. Заявка — на одну линию,
    у каждой линии своя (юзер 29.10): в одну заявку — только позиции одного цеха. Создаётся черновиком (в киоски не уходит) --- */
 const SHOP_OF = [[/^Сотовый/, "Сотовый цех"], [/^Монолитный/, "Монолитный цех"], [/^Профиль/, "Профильный цех"], [/^Термошайбы/, "Термошайбы"], [/^Трапеция/, "Трапеция"]];
@@ -2316,7 +2317,7 @@ const LINES = { "Сотовый цех": nl("Сотовый, старый цех
 // позиция ждёт заявку на производство: нужно произвести, решение окончательное, ещё ни в одной заявке
 function poolOf(v) {
   return ORDERS.flatMap((o) => (o.chk ? o.items.map((x, i) => ({ o, x, i, c: o.chk[i] })) : []))
-    .filter(({ o, x, c }) => needDl(c) && !c.pp && mineOf(x, v) && (partOf(x) === "chef" ? sentOut(o) : !!o.l2ok || sentOut(o)));
+    .filter(({ o, x, c }) => needDl(c) && !c.pp && mineOf(x, v) && (partOf(x) === "chef" ? sentOut(o) || !!o.chefOk : !!o.l2ok || sentOut(o)));
 }
 const ppKey = (p) => p.o.no + "|" + p.i;
 const ppQty = (p) => (p.c.dec === "part" ? qN(p.x) - p.c.take : qN(p.x)); // «Частично» — только недостающее
