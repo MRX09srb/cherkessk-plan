@@ -150,7 +150,7 @@ footer { color: var(--muted); font-size: 13px }
 .mk-side.c .mk-cube { width: 32px; height: 32px; font-size: 16px }
 .mk-side.c .mk-item { justify-content: center; gap: 0; padding: 6px 0 }
 .mk-sep { height: 1px; margin: 16px 8px 6px; background: var(--border-subtle) }
-.mk-dot { position: absolute; top: -1px; right: -1px; width: 9px; height: 9px; border-radius: 50%; background: var(--primary-600); border: 2px solid var(--bg-surface) }
+.mk-nbdot { position: absolute; top: -1px; right: -1px; width: 9px; height: 9px; border-radius: 50%; background: var(--primary-600); border: 2px solid var(--bg-surface) }
 .mk-side.c .mk-exit { width: 32px; height: 32px; padding: 0; margin: 0 auto 10px }
 .mk-side.c .mk-exit svg.lucide { width: 14px; height: 14px }
 @media (prefers-reduced-motion: reduce) { .mk-side.anim { animation: none } }
@@ -1436,7 +1436,7 @@ function mkSide() {
   const c = MK.sideC, tip = c ? "Развернуть меню" : "Свернуть меню", anim = MK.sideAnim; MK.sideAnim = false; // плавно — только сразу после нажатия
   // свёрнутое: у пункта только значок, название — в подсказке; число ждущих — точка на значке; вместо названия группы — линия
   const item = ([id, l, ic, ro, nb]) => c
-    ? `<button class="mk-item${act === id ? " on" : ""}" data-mk-nav="${id}" title="${l}" aria-label="${l}"><span class="ic">${ico(ic)}${nb && nb() ? `<i class="mk-dot"></i>` : ""}</span></button>`
+    ? `<button class="mk-item${act === id ? " on" : ""}" data-mk-nav="${id}" title="${l}" aria-label="${l}"><span class="ic">${ico(ic)}${nb && nb() ? `<i class="mk-nbdot"></i>` : ""}</span></button>`
     : `<button class="mk-item${act === id ? " on" : ""}" data-mk-nav="${id}"><span class="ic">${ico(ic)}</span>${l}${nb && nb() ? `<em class="mk-nb">${nb()}</em>` : ""}${ro ? `<span class="mk-ro">${ico("eye")}Чтение</span>` : ""}</button>`;
   return `<aside class="mk-side${c ? " c" : ""}${anim ? " anim" : ""}">
     <div class="mk-logo"><div class="mk-cube">Ч</div>${c ? "" : `<div class="mk-logo-t"><b>Завод Черкесск</b><span>ERP</span></div>`}
