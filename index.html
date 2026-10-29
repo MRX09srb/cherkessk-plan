@@ -1146,7 +1146,7 @@ ROLES.cheflog = { label: "Шеф логистов", grp: 1, user: ["Шеф ло�
   nav: [{ items: [["chat", "Сообщения", "message-square"]] },
     { title: "Производство", items: [["cin", "Заявки от менеджеров", "inbox", false, () => inTodo("chef")], ["plan", "Заявки на производство", "factory", false, () => poolOf("chef").length], ["ships", "Заявки на отгрузку", "square-kanban"]] },
     { title: "Склад", items: [["keepers", "Кладовщики", "users"], ["stock", "Остатки готовой продукции", "boxes"]] }].concat(NAV_END),
-  titles: { cin: ["Заявки от менеджеров", "Лист сверяю я, профиль, термошайбы и трапецию — логист №2"], plan: ["Заявки на производство", "Лист — сотовый и монолитный"],
+  titles: { cin: ["Заявки от менеджеров", "Лист сверяю я, профиль, термошайбы и трапецию — логист №2"], plan: ["Заявки на производство", "Мои — лист; логиста №2 — только просмотр"],
     ships: ["Заявки на отгрузку", "Одобряю — дальше берут грузчики и кладовщики"], keepers: ["Кладовщики", ""],
     stock: ["Остатки готовой продукции", ""], chat: ["Сообщения", ""], dicts: ["Справочник", ""] } };
 const MK = { role: "manager", view: "orders", order: null, filter: "all", seg: "active", modal: null, pre: null,
@@ -1472,7 +1472,7 @@ function mkTop() {
 // заявки на производство: у шефа логистов и логиста №2 — вкладки «Нужно произвести» и «Заявки на производство»;
 // логист №1 заявок на производство не делает — только список, просмотр
 function pgPlan() {
-  const v = viewer(), ro = v === "l1", tab = ro ? "list" : MK.ppTab || "pool", pool = ro ? [] : poolOf(v), all = PP.filter((p) => p.grp === R().grp);
+  const v = viewer(), ro = v === "l1", tab = ro ? "list" : MK.ppTab || "pool", pool = ro ? [] : poolOf(v), all = PP.filter((p) => p.grp === R().grp || (v === "chef" && p.grp === 2)); // шефу — и заявки логиста №2, просмотр
   const tabs = ro ? "" : `<div class="mk-seg mk-pptabs">${[["pool", "Нужно произвести", pool.length], ["list", "Заявки на производство", all.length]].map(([k, l, n]) =>
     `<button class="${tab === k ? "on" : ""}" data-mk-pptab="${k}">${l} · ${n}</button>`).join("")}</div>`;
   return tabs + (tab === "pool" ? ppPool(pool, v) : ppList(all, ro));
@@ -1493,7 +1493,8 @@ function ppPool(pool, v) {
 }
 function ppList(all, ro) {
   const cnt = (st) => all.filter((p) => p.st === st).length;
-  const chips = [["all", "Все", all.length]].concat(PP_LINES[R().grp].map((l) => [l, l, all.filter((p) => p.line.startsWith(l)).length]));
+  const lines = viewer() === "chef" ? PP_LINES[1].concat(PP_LINES[2]) : PP_LINES[R().grp];
+  const chips = [["all", "Все", all.length]].concat(lines.map((l) => [l, l, all.filter((p) => p.line.startsWith(l)).length]));
   const rows = all.filter((p) => MK.ppFilter === "all" || p.line.startsWith(MK.ppFilter));
   return `${ro ? `<div class="mk-plashka">${ico("eye")}<b>Только просмотр.</b> Заявки на производство листа создаёт шеф логистов. ${TODO("видит ли логист №1")}</div>` : ""}
     ${MK.ppDone ? `<div class="mk-hint ok">✓ Создано черновиком: ${MK.ppDone.join(", ")}.</div>` : ""}
@@ -1508,7 +1509,7 @@ function ppList(all, ro) {
       ${TODO("номера ПП")}</div>
     <div class="mk-card mk-tbl dense"><table><thead><tr><th>№ заявки</th><th>Линия</th><th>Название заявки</th><th>Создан</th><th>Производство</th><th>Позиций</th><th>По заявке</th><th>Статус</th><th>Автор</th></tr></thead><tbody>
       ${rows.map((p) => `<tr class="click"><td class="mk-no">${p.no}</td><td>${p.line}<small>${p.sub}</small></td><td>${p.name}</td><td>${p.created}</td><td>${p.plan}</td>
-        <td>${p.pos}</td><td><span class="mk-tag">${p.order}</span></td><td>${badge(PP_ST[p.st])}</td><td>${p.author}</td></tr>`).join("")}
+        <td>${p.pos}</td><td><span class="mk-tag">${p.order}</span></td><td>${badge(PP_ST[p.st])}</td><td>${p.author}${viewer() === "chef" && p.grp === 2 ? "<small>логист №2 — только просмотр</small>" : ""}</td></tr>`).join("")}
     </tbody></table></div>`;
 }
 function pgOrders() {
