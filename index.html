@@ -317,6 +317,8 @@ footer { color: var(--muted); font-size: 13px }
 .mk-f input:focus, .mk-f textarea:focus { outline: none; border-color: var(--primary-500); box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary-500) 18%, transparent) }
 .mk-combo { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-width: 1.5px; text-align: left }
 .mk-combo span.ph { color: var(--fg-tertiary) }
+.mk-combo:disabled { opacity: .6; cursor: not-allowed }
+.mk-f-note { font-size: .75rem; color: var(--fg-tertiary) }
 .mk-combo svg.lucide { width: 14px; height: 14px; color: var(--fg-tertiary) }
 .mk-modal-f { padding: 18px 22px; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end; gap: 10px }
 .mk-btn.ghost { background: transparent; border-color: transparent; box-shadow: none; color: var(--fg-secondary) }
@@ -2614,7 +2616,7 @@ function pgClients() {
       <button type="button" class="mk-combo cl-seg" data-mk-noop><span>Все сегменты</span>${ico("chevron-down")}</button>
       <button class="mk-btn p" style="margin-left:auto" data-mk-clform="">${ico("plus")}Новый клиент</button></div>
     <div class="mk-tools">${TODO("адрес сайта для клиентов")}${TODO("как передавать пароль клиенту")}</div>
-    <div class="mk-card mk-tbl dense mk-cltbl"><table><thead><tr><th>Клиент</th><th>ИНН</th><th>Страна / Город</th><th>Сегмент</th><th>Директор / Менеджер</th><th>Активность</th>
+    <div class="mk-card mk-tbl dense mk-cltbl"><table><thead><tr><th>Клиент</th><th>ИНН</th><th>Страна / Город</th><th>Сегмент</th><th>Менеджер</th><th>Активность</th>
       <th>Контакты</th><th>Заметка</th><th>Заявок</th><th>Доступ в кабинет</th><th class="r">Действия</th></tr></thead><tbody>
       ${rows.length ? rows.map((c) => { const a = MK.access[c];
         return `<tr><td><b>${c}</b> ${badge(CL_STAT[clStatus(c)])}</td><td>${dash}</td><td>${dash}</td><td>${dash}</td><td>${mgrOfClient(c)}</td><td>${clAct(c)}</td><td>${dash}</td><td>${dash}</td>
@@ -2669,7 +2671,8 @@ function mkModal() {
         ${inp("mkfClAddr", "Адрес")}
         <div class="mk-f2">${inp("mkfClEmail", "Email")}${inp("mkfClPhone", "Телефон")}${inp("mkfClSite", "Сайт", "", "https://...")}${inp("mkfClContract", "Номер договора")}
           ${f("mkfClDate", "Дата договора", `<input type="date" id="mkfClDate">`)}${f("mkfClStatus", "Статус", combo("mkfClStatus", CL_STAT[c ? clStatus(c) : "active"][0], ""))}
-          ${inp("mkfClSeg", "Сегмент", "", "напр. оптовик / розница")}${inp("mkfClMgr", "Директор / Менеджер", MK.mgr, "Имя")}</div>
+          ${inp("mkfClSeg", "Сегмент", "", "напр. оптовик / розница")}${f("mkfClMgr", "Менеджер", `<button type="button" class="mk-combo" id="mkfClMgr" disabled><span>${c ? mgrOfClient(c) : MK.mgr}</span>${ico("chevron-down")}</button>
+            <small class="mk-f-note">Сменить менеджера клиента может только руководитель</small>`)}</div>
         ${f("mkfClNote", "Заметки", `<textarea id="mkfClNote" placeholder="Любые заметки по клиенту…"></textarea>`)}`, c ? "Сохранить" : "Создать"];
     })(),
     access: (() => {
