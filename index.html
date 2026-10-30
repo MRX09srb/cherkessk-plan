@@ -1638,10 +1638,13 @@ function ppList(all, ro) {
 // макет менеджера — от лица одного менеджера; «Смотреть как» — только в макете (в настоящей ERP — свой логин)
 Object.assign(MK, { mgr: MGRS[0] });
 const mgrSwitch = () => `<span class="mk-as-l">Только в макете — смотреть как:</span>${MGRS.map((m) => `<button type="button" class="${MK.mgr === m ? "on" : ""}" data-mk-asmgr="${m}">${m}</button>`).join("")}`;
+// фильтр «У логистов» — оба шага: ещё сверяют и «Сроки получены» (юзер 30.10); различие видно в столбце «Статус»
+const oGrp = (o) => (oKey(o) === "checked" ? "chef" : oKey(o));
+const oStCell = (o) => (oKey(o) === "checked" ? "Сроки получены · " + (o.ready ? "готова до " + o.ready : "всё со склада") : oSt(o)[0]);
 function pgOrders() {
-  const mine = ORDERS.filter(myOrder), cnt = (st) => mine.filter((o) => oKey(o) === st).length;
-  const chips = [["all", "Все", mine.length]].concat(Object.entries(O_ST).map(([k, v]) => [k, v[0], cnt(k)]));
-  const rows = mine.filter((o) => MK.filter === "all" || oKey(o) === MK.filter);
+  const mine = ORDERS.filter(myOrder), cnt = (st) => mine.filter((o) => oGrp(o) === st).length;
+  const chips = [["all", "Все", mine.length]].concat(Object.entries(O_ST).filter(([k]) => k !== "checked").map(([k, v]) => [k, v[0], cnt(k)]));
+  const rows = mine.filter((o) => MK.filter === "all" || oGrp(o) === MK.filter);
   return `<div class="mk-kpis">
       <div class="mk-card mk-kpi"><span>Всего</span><b>${mine.length}</b></div>
       <div class="mk-card mk-kpi"><span>У логистов</span><b>${cnt("chef")}</b></div>
@@ -1653,7 +1656,7 @@ function pgOrders() {
       ${TODO("статусы и номера")}</div>
     <div class="mk-card mk-tbl"><table><thead><tr><th>№ заявки</th><th>Клиент</th><th>Создана</th><th>Нужна к</th><th>Позиций</th><th>Статус</th></tr></thead><tbody>
       ${rows.map((o) => `<tr class="click" data-mk-order="${o.no}"><td class="mk-no">${o.no}</td><td>${o.client}</td><td>${o.created}</td><td>${o.need}</td>
-        <td>${o.items.length}</td><td><span class="mk-pill ${oSt(o)[1]}">${oSt(o)[0]}</span></td></tr>`).join("")}
+        <td>${o.items.length}</td><td><span class="mk-pill ${oSt(o)[1]}">${oStCell(o)}</span></td></tr>`).join("")}
     </tbody></table></div>`;
 }
 // правка заявки от клиента и своего черновика: количество, убрать позицию, «Нужна к»; добавить позицию — потом (юзер 30.10)
