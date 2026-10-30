@@ -1179,7 +1179,7 @@ const ORDERS = [
   { no: "З-2026-001", client: "Полимакс", created: "29.09.2026", need: "01.10.2026", st: "shipped", items: [
     it(1, "Монолитный лист", "5", "2050×3050", "прозрачный", "30 листов", "stock"), it(2, "Трапеция", "1", "1150×6000", "прозрачный", "40 листов", "stock")] }
 ];
-const Z_ST = { wait: ["Ждёт одобрения", "b-slate", ""], approved: ["Одобрена", "b-success", "approved"], done: ["Отгрузка подтверждена", "b-danger", "done"] };
+const Z_ST = { wait: ["Ждёт одобрения", "b-slate", ""], approved: ["Одобрена", "b-success", "approved"], done: ["Отгрузка подтверждена", "b-danger", "done"], cancelled: ["Отменена", "b-slate", ""] }; // «Отменена» — серый, как «Отменён» в образце
 // заявка на отгрузку — позиции с количеством из заказов одного клиента (этап 5а); у старых примеров — заказ целиком
 // позиция «со склада» (sp — партия на «Остатках»): товар партии, единица — шт у профиля и термошайб, иначе листы
 const spX = (p) => ({ prod: p.prod, th: p.th, size: p.size, color: p.color, qty: fmt(p.qty) + " " + (/^(Профиль|Термошайбы)/.test(p.prod) ? "шт" : "листов") });
@@ -1190,7 +1190,8 @@ const zPos = (z) => z.pos || zItems(z).length;
 const zSheets = (z) => z.sheets || fmt(zItems(z).filter((y) => /лист/.test(qU(y.x))).reduce((s, y) => s + y.qty, 0));
 const zKg = (z) => z.kg || "—"; // весов листов в справочнике пока нет — будут со справочником (юзер 30.10)
 // сколько по позиции уже в заявках на отгрузку, которые ещё не подтверждены (подтверждённые — уже отгружены)
-const zRes = (no, i) => SHIPS.filter((z) => zSt(z) !== "done").reduce((s, z) => s + zItems(z).filter((y) => y.no === no && y.i === i).reduce((a, y) => a + y.qty, 0), 0);
+const zLive = (z) => !["done", "cancelled"].includes(zSt(z)); // держит бронь: не подтверждена и не отменена
+const zRes = (no, i) => SHIPS.filter(zLive).reduce((s, z) => s + zItems(z).filter((y) => y.no === no && y.i === i).reduce((a, y) => a + y.qty, 0), 0);
 const SHIPS = [
   { n: 4, no: "ЗО-2026-004", order: "З-2026-004", client: "Уникум Дон", pos: 3, sheets: "120", kg: "1 450", date: "14.10", st: "wait", inv: null },
   { n: 3, no: "ЗО-2026-003", order: "З-2026-003", client: "Протэк", pos: 2, sheets: "25", kg: "610", date: "13.10", st: "approved", inv: null },
@@ -2498,7 +2499,7 @@ function ppMake() {
 function pgShips() {
   const chief = MK.role === "cheflog", all = chief ? SHIPS : SHIPS.filter((z) => mgrOfClient(z.client) === MK.mgr); // менеджер — только по своим заявкам
   const cnt = (st) => all.filter((z) => zSt(z) === st).length;
-  const list = all.filter((z) => MK.seg === "all" || (MK.seg === "active" ? zSt(z) !== "done" : zSt(z) === "done"));
+  const list = all.filter((z) => MK.seg === "all" || (MK.seg === "active" ? zLive(z) : !zLive(z))); // отменённые — в «Завершённых»
   const step = (ok, t) => `<span class="${ok ? "ok" : ""}">${ok ? "✓ " : ""}${t}</span>`;
   const picks = chief ? [] : pkNew(); // менеджеру — «Клиент хочет забрать» (этап 4)
   return `${MK.snDone && !chief ? `<div class="mk-hint ok">✓ Заявка на отгрузку <b>${MK.snDone}</b> создана — ждёт одобрения шефа логистов.</div>` : ""}
@@ -2524,7 +2525,7 @@ function pgShips() {
         <div style="font-weight:600">${z.client}</div>
         <div class="mk-mini"><div><span>Позиций</span><b>${zPos(z)}</b></div><div><span>Листов</span><b>${zSheets(z)}</b></div><div><span>Кг</span><b>${zKg(z)}</b></div><div><span>Отгрузка</span><b>${z.date}</b></div></div>
         <div class="mk-row"><span>По заказам</span><span class="mk-tag">${zNos(z)}</span></div>
-        <div class="mk-flow">${step(st !== "wait", "Шеф логистов одобрил")}${step(st === "done" || isLoaded(z), "Погружено")}${step(st === "done", "Машина проверена")}</div>
+        <div class="mk-flow">${step(!["wait", "cancelled"].includes(st), "Шеф логистов одобрил")}${step(st === "done" || isLoaded(z), "Погружено")}${step(st === "done", "Машина проверена")}</div>
         <div class="mk-row"><span>Инвойсы</span>${inv}</div></div>
         <div class="mk-deal-f">${foot}</div></article>`;
     }).join("")}</div>`;
@@ -2905,7 +2906,7 @@ function snCreate() {
   if (MK.snNone || bad || MK.snDateErr) return;
   const n = Math.max(...SHIPS.map((z) => z.n)) + 1, no = "ЗО-2026-" + String(n).padStart(3, "0");
   const items = sel.map((r) => (r.p ? { sp: r.p.id, qty: +num(r) } : { no: r.o.no, i: r.i, qty: +num(r) }));
-  SHIPS.unshift({ n, no, client: MK.snCl, author: MK.mgr, date: MK.snDate.split("-").reverse().slice(0, 2).join("."), st: "wait", inv: null, items, note: MK.snNote.trim() });
+  SHIPS.unshift({ n, no, client: MK.snCl, author: MK.mgr, date: MK.snDate.split("-").reverse().slice(0, 2).join("."), st: "wait", inv: null, items, note: MK.snNote.trim(), ...(MK.snPick ? { pick: MK.snPick } : {}) }); // pick — по какому запросу клиента
   const p = MK.snPick && PICKS.find((x) => x.id === MK.snPick);
   if (p) { p.st = "work"; items.forEach((it) => { const y = p.items.find((q) => q.no === it.no && q.i === it.i); if (y) { y.inZo = Math.min(y.qty, (y.inZo || 0) + it.qty); (y.zos = y.zos || []).push(no); } }); }
   Object.assign(MK, { view: "ships", seg: "active", snDone: no, snPick: null });
@@ -2922,7 +2923,7 @@ const spFifo = (x, cl) => STOCK_P.filter((p) => stSame(x, p) && (p.client === cl
 function spFree() {
   const left = {}, av = (p) => (p.id in left ? left[p.id] : stAvail(p));
   const take = (p, n) => { const t = Math.min(av(p), n); left[p.id] = av(p) - t; return n - t; };
-  SHIPS.filter((z) => zSt(z) !== "done").forEach((z) => zItems(z).forEach((y) => {
+  SHIPS.filter(zLive).forEach((z) => zItems(z).forEach((y) => {
     if (y.sp != null) take(STOCK_P[y.sp], y.qty); else spFifo(y.x, z.client).reduce((n, p) => (n > 0 ? take(p, n) : 0), y.qty); }));
   ORDERS.forEach((o) => o.items.forEach((x, i) => { const n = takeOf(o, i) - zRes(o.no, i); if (n > 0) spFifo(x, o.client).reduce((m, p) => (m > 0 ? take(p, m) : 0), n); }));
   return av;
@@ -2946,7 +2947,9 @@ function snStockTab(cl) {
     </tbody></table></div>`;
 }
 
-// --- карточка заявки на отгрузку («Открыть», юзер 30.10; как в образце): шапка, позиции по видам с «Источник», шаги — кто и когда
+// --- карточка заявки на отгрузку («Открыть», юзер 30.10; как в образце): шапка, позиции по видам с «Источник», шаги — кто и когда.
+// Шаг Б: пока «Ждёт одобрения», менеджер этого клиента может изменить (количество, убрать позицию, дата, примечание) или отменить
+// с причиной; после одобрения — только через шефа логистов (в образце правят и после выдачи, с версиями — у нас без версий)
 const ZV_KIND = (prod) => (/^Сотовый/.test(prod) ? "Сотовые листы" : /^Монолитный/.test(prod) ? "Монолитные листы" : /^Трапеция/.test(prod) ? "Трапеция" : /^Профиль/.test(prod) ? "Профиль" : "Термошайбы");
 const zvWhen = (v) => (v && v.at ? " · " + v.at : ""); // когда отмечено в макете (у примеров — без даты)
 function zvSource(y) { // откуда взято: заказ и номер позиции / партия склада
@@ -2954,26 +2957,62 @@ function zvSource(y) { // откуда взято: заказ и номер по
   const p = STOCK_P[y.sp];
   return `со склада · партия от ${p.date}${p.pp ? " · " + p.pp : ""} · ${p.client ? esc(p.client) : "общая"}`;
 }
+const zMine = (z) => MK.role === "manager" && mgrOfClient(z.client) === MK.mgr; // править и отменять — только менеджер этого клиента
+// сколько можно поставить в позицию этой заявки: доступное сейчас + то, что она уже держит
+const zMax = (z, y) => (y.sp != null ? spFree()(STOCK_P[y.sp]) : Math.max(0, rdyQ(y.o, y.x) - cShip(y.o, y.x) - zRes(y.no, y.i) - pkReq(y.no, y.i))) + y.qty;
+// запрос клиента, по которому сделана заявка: снять / вернуть её количество (при правке и отмене)
+function zPickLink(z, sign) {
+  const p = z.pick && PICKS.find((x) => x.id === z.pick); if (!p) return;
+  zItems(z).forEach((y) => { const q = p.items.find((r) => r.no === y.no && r.i === y.i); if (!q) return;
+    q.inZo = Math.max(0, Math.min(q.qty, (q.inZo || 0) + sign * y.qty));
+    q.zos = (q.zos || []).filter((n) => n !== z.no).concat(sign > 0 ? [z.no] : []); });
+  p.st = p.items.some((r) => (r.zos || []).length) ? "work" : "new";
+}
+function zvSync() { const e = MK.zEd; e.items.forEach((y, i) => { const el = document.getElementById("zeQ" + i); if (el) y.q = el.value; });
+  const d = document.getElementById("zeDate"), n = document.getElementById("zeNote"); if (d) e.date = d.value; if (n) e.note = n.value; }
+function zvSave() {
+  zvSync();
+  const e = MK.zEd, z = SHIPS.find((s) => s.no === e.no), num = (y) => String(y.q).replace(/\s/g, "");
+  e.err = {}; e.items.forEach((y, i) => { if (!/^\d+$/.test(num(y)) || +num(y) < 1) e.err[i] = "Укажите количество"; else if (+num(y) > y.max) e.err[i] = "Можно не больше " + pkU(y.x, y.max); });
+  e.dateErr = !e.date ? "Укажите дату" : e.date < "2026-10-12" ? "Дата не может быть в прошлом" : null;
+  if (Object.keys(e.err).length || e.dateErr) return;
+  zPickLink(z, -1);
+  z.items = e.items.map((y) => (y.sp != null ? { sp: y.sp, qty: +num(y) } : { no: y.no, i: y.i, qty: +num(y) }));
+  z.date = e.date.split("-").reverse().slice(0, 2).join("."); z.note = e.note.trim(); z.edited = TODAY;
+  delete z.pos; delete z.sheets; delete z.kg; // у примера — пересчитать по позициям
+  zPickLink(z, 1); MK.zEd = null;
+}
+function zvEdit(z) { MK.zEd = { no: z.no, items: zItems(z).map((y) => Object.assign({}, y, { q: String(y.qty), max: zMax(z, y) })),
+  date: "2026-" + z.date.split(".")[1] + "-" + z.date.split(".")[0], note: z.note || "", err: {}, dateErr: null }; }
 function pgZo() {
-  const z = SHIPS.find((s) => s.no === MK.zo), st = zSt(z), its = zItems(z), areas = zAreas(z);
+  const z = SHIPS.find((s) => s.no === MK.zo), st = zSt(z), ed = MK.zEd && MK.zEd.no === z.no ? MK.zEd : null, its = ed ? ed.items : zItems(z), areas = zAreas(z);
   const step = (ok, t, who) => `<li class="${ok ? "ok" : ""}">${ok ? ico("check") : "<i></i>"}<span>${t}${ok && who ? `<small>${who}</small>` : ""}</span></li>`;
-  const loadedAll = st === "done" || isLoaded(z);
-  const kinds = [...new Set(its.map((y) => ZV_KIND(y.x.prod)))];
-  return `<div class="mk-tools"><button class="mk-btn" data-mk-nav="ships">${ico("arrow-left")}Назад</button></div>
+  const loadedAll = st === "done" || isLoaded(z), kinds = [...new Set(its.map((y) => ZV_KIND(y.x.prod)))], mine = zMine(z) && st === "wait";
+  const tools = ed ? `<button class="mk-btn" data-mk-zecancel>Отмена</button><button class="mk-btn p" data-mk-zesave>${ico("check")}Сохранить изменения</button>`
+    : mine ? `<button class="mk-btn" data-mk-zedit="${z.no}">${ico("pencil")}Изменить</button><button class="mk-btn" data-mk-modal="zcancel" data-mk-pre="${z.no}">${ico("ban")}Отменить заявку</button>` : "";
+  const qty = (y, i) => !ed ? `<b>${pkU(y.x, y.qty)}</b>` : `<input class="mk-n${ed.err[i] ? " err" : ""}" id="zeQ${i}" inputmode="numeric" value="${esc(y.q)}" aria-label="Количество, позиция ${i + 1}"> ${qU(y.x)}<small>можно до ${pkU(y.x, y.max)}</small>${ed.err[i] ? `<div class="mk-err">${ed.err[i]}</div>` : ""}`;
+  return `<div class="mk-tools"><button class="mk-btn" data-mk-nav="ships">${ico("arrow-left")}Назад</button>${tools}</div>
+    ${st === "cancelled" ? `<div class="mk-hint">Заявка отменена ${z.cancelAt}. Причина: «${esc(z.cancelWhy)}». Листы освобождены.</div>` : ""}
+    ${zMine(z) && ["approved", "done"].includes(st) ? `<div class="mk-why">${ico("info")}Заявка одобрена — изменения только через шефа логистов</div>` : ""}
+    ${z.edited && !ed ? `<div class="mk-hint ok">✓ Изменено менеджером ${z.edited}</div>` : ""}
     <div class="mk-card mk-head">
       <div><span>Заявка на отгрузку</span><b class="mk-no">ЗО № ${z.n} · ${z.no}</b></div><div><span>Клиент</span><b>${esc(z.client)}</b></div>
-      <div><span>Статус</span><b>${badge(Z_ST[st])}</b></div><div><span>Дата отгрузки</span><b>${z.date}</b></div>
-      <div><span>Позиций</span><b>${zPos(z)}</b></div><div><span>Всего листов</span><b>${zSheets(z)}</b></div><div><span>Кг</span><b>${zKg(z)}</b></div>
+      <div><span>Статус</span><b>${badge(Z_ST[st])}</b></div>
+      <div><span>Дата отгрузки</span><b>${ed ? `<input type="date" id="zeDate" value="${ed.date}"${ed.dateErr ? ' class="err"' : ""} aria-label="Дата отгрузки">${ed.dateErr ? `<div class="mk-err">${ed.dateErr}</div>` : ""}` : z.date}</b></div>
+      <div><span>Позиций</span><b>${its.length}</b></div><div><span>Всего листов</span><b>${ed ? "—" : zSheets(z)}</b></div><div><span>Кг</span><b>${zKg(z)}</b></div>
       <div><span>Автор</span><b>${z.author || mgrOfClient(z.client)}</b></div></div>
-    ${z.note ? `<div class="mk-hint">Примечание: ${esc(z.note)}</div>` : ""}
-    <ul class="mk-zsteps">${step(st !== "wait", "Шеф логистов одобрил", "Шеф логистов" + zvWhen(MK.approved[z.no]))}
+    ${ed ? `<div class="mk-f"><label for="zeNote">Примечание</label><input id="zeNote" value="${esc(ed.note)}"></div>` : z.note ? `<div class="mk-hint">Примечание: ${esc(z.note)}</div>` : ""}
+    ${st === "cancelled" ? "" : `<ul class="mk-zsteps">${step(!["wait", "cancelled"].includes(st), "Шеф логистов одобрил", "Шеф логистов" + zvWhen(MK.approved[z.no]))}
       ${step(loadedAll, "Погружено", areas.map((a) => "кладовщики: " + AREAS[a].toLowerCase() + zvWhen(MK.loadedA[z.no + "|" + a])).join("; "))}
-      ${step(st === "done", "Машина проверена", "Проверяющий" + zvWhen(MK.confirmed[z.no]))}</ul>
+      ${step(st === "done", "Машина проверена", "Проверяющий" + zvWhen(MK.confirmed[z.no]))}</ul>`}
     ${kinds.map((k) => { const rs = its.filter((y) => ZV_KIND(y.x.prod) === k);
       return `<div class="mk-sec"><h3>${k} <small>· ${rs.length}</small></h3></div>
-      <div class="mk-card mk-tbl dense"><table><thead><tr><th>№</th><th>Продукция</th><th>Толщ., мм</th><th>Размер, мм</th><th>Цвет</th><th>Кол-во</th><th>Источник</th></tr></thead><tbody>
-      ${rs.map((y) => `<tr><td>${its.indexOf(y) + 1}</td><td>${y.x.prod}</td><td>${y.x.th}</td><td>${y.x.size}</td><td>${y.x.color}</td><td><b>${pkU(y.x, y.qty)}</b></td><td>${zvSource(y)}</td></tr>`).join("")}
-      </tbody></table></div>`; }).join("")}`;
+      <div class="mk-card mk-tbl dense"><table><thead><tr><th>№</th><th>Продукция</th><th>Толщ., мм</th><th>Размер, мм</th><th>Цвет</th><th>Кол-во</th><th>Источник</th>${ed ? "<th></th>" : ""}</tr></thead><tbody>
+      ${rs.map((y) => { const i = its.indexOf(y);
+        return `<tr><td>${i + 1}</td><td>${y.x.prod}</td><td>${y.x.th}</td><td>${y.x.size}</td><td>${y.x.color}</td><td>${qty(y, i)}</td><td>${zvSource(y)}</td>
+        ${ed ? `<td><button class="mk-btn sm" data-mk-zedel="${i}"${its.length < 2 ? " disabled" : ""}>${ico("x")}Убрать</button></td>` : ""}</tr>`; }).join("")}
+      </tbody></table></div>`; }).join("")}
+    ${ed && its.length < 2 ? `<div class="mk-why">${ico("info")}Последнюю позицию убрать нельзя — чтобы отказаться от всей заявки, отмените правку и нажмите «Отменить заявку»</div>` : ""}`;
 }
 // менеджер: «Клиенты» — как в образце: цифры, вкладки по статусу, поиск, сегмент, таблица, окно клиента; плюс доступ в кабинет.
 // Данные компаний (ИНН, город, контакты, сегмент, заметка) — «-», пока юзер не пришлёт: за настоящие компании не выдумываем
@@ -3044,6 +3083,8 @@ function mkModal() {
       ${f("mkfNeed", "Нужна к", `<input type="date" id="mkfNeed" value="2026-10-24">`)}
       ${f("mkfNote", "Примечание (необязательно)", `<textarea id="mkfNote"></textarea>`)}
       <div class="mk-hint">Заявка будет создана как <b>черновик</b>. Позиции добавьте в карточке заявки.</div>`, "Создать заявку"],
+    zcancel: MK.modal !== "zcancel" ? null : ["Отменить заявку на отгрузку " + MK.pre, `<div class="mk-hint">ⓘ Листы освободятся — их снова можно будет взять в другую заявку на отгрузку.</div>
+      ${f("mkfZcWhy", "Причина *", `<textarea id="mkfZcWhy"${MK.zcErr ? ' class="err"' : ""} placeholder="Напишите, почему отменяете"></textarea>${MK.zcErr ? `<div class="mk-err">${MK.zcErr}</div>` : ""}`)}`, "Да, отменить заявку", 'data-mk-zcancelok="1"'],
     orecall: MK.modal !== "orecall" ? null : ["Отозвать заявку " + MK.pre, `<div>Заявка пропадёт у логистов и вернётся к вам. Их решения по ней (склад / производство, сроки) сбросятся.</div>`, "Отозвать", 'data-mk-orecall="1"'],
     orej: MK.modal !== "orej" ? null : ["Отклонить заявку " + MK.pre, `<div class="mk-hint">ⓘ Клиент увидит отказ и причину на сайте в «Мои заказы».</div>
       ${f("mkfRejWhy", "Причина *", `<textarea id="mkfRejWhy"${MK.rejErr ? ' class="err"' : ""} placeholder="Напишите, почему отклоняете"></textarea>${MK.rejErr ? `<div class="mk-err">${MK.rejErr}</div>` : ""}`)}`, "Отклонить", 'data-mk-orej="1"'],
@@ -3051,11 +3092,12 @@ function mkModal() {
       ${f("mkfShip", "Заявка на отгрузку", combo("mkfShip", "ЗО-2026-002 · МВ-Строй · ✓ подтверждена", ""))}
       ${f("mkfNo", "Номер", `<input id="mkfNo" value="2026/002">`)}
       ${f("mkfDocDate", "Дата документа", `<input type="date" id="mkfDocDate" value="2026-10-12">`)}`, "Создать"],
-    pp: ["Новая заявка на производство", `<div class="mk-hint">ⓘ Линии: ${MK.role === "cheflog"
+    // считается, только когда открыто: MK.pre бывает и номером заявки на отгрузку
+    pp: MK.modal !== "pp" ? null : ["Новая заявка на производство", `<div class="mk-hint">ⓘ Линии: ${MK.role === "cheflog"
         ? "сотовый — старый цех 1, 2, 3, 4; новый цех 2, 6, 7 · монолитный — масляная, синяя"
         : "профиль — 1–5 · термошайбы — 2 линии · трапеция — старая, новая"}.</div>
       ${f("mkfLine", "Линия", combo("mkfLine", "", "Выберите линию…"))}
-      ${f("mkfPpName", "Название заявки", combo("mkfPpName", MK.pre ? ORDERS.find((o) => o.no === MK.pre).client : "", "Клиент или свой текст"))}
+      ${f("mkfPpName", "Название заявки", combo("mkfPpName", MK.pre ? (ORDERS.find((o) => o.no === MK.pre) || {}).client || "" : "", "Клиент или свой текст"))}
       ${f("mkfPpDate", "Плановая дата производства", `<input type="date" id="mkfPpDate" value="2026-10-17">`)}
       <div class="mk-hint">Заявка будет создана как <b>черновик</b>. Позиции добавьте в карточке заявки.</div>`, "+ Создать"],
     pin: ["Вход в смену", `<div style="text-align:center"><div class="mk-muted" style="font-size:13px;text-transform:uppercase;letter-spacing:.06em">Вход в смену</div>
@@ -3118,7 +3160,7 @@ let lastHot = null;
 function mkOpen(role, from, shop) {
   lastHot = from;
   if (shop) { MK.shop = shop; MK.kPart = "a"; }
-  MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cOpen = null; MK.cOrd = {}; MK.cPick = false; MK.cpSent = false; MK.snDone = null; MK.cRow = null; MK.cCol = null; MK.cTh = null; MK.cLenR = {}; MK.cLenErr = null; MK.cSent = null; MK.cErr = ""; MK.cLogged = false; MK.cLoginErr = ""; MK.accDone = MK.clNew = MK.clErr = MK.oEd = MK.rejErr = null; MK.clDraft = "";
+  MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cOpen = null; MK.cOrd = {}; MK.cPick = false; MK.cpSent = false; MK.snDone = null; MK.cRow = null; MK.cCol = null; MK.cTh = null; MK.cLenR = {}; MK.cLenErr = null; MK.cSent = null; MK.cErr = ""; MK.cLogged = false; MK.cLoginErr = ""; MK.accDone = MK.clNew = MK.clErr = MK.oEd = MK.rejErr = MK.zEd = MK.zcErr = null; MK.clDraft = "";
   MK.role = role; MK.view = role === "kiosk" && !KSHOPS[MK.shop].orders ? "kShift" : ROLES[role].start; MK.order = null; MK.modal = null; MK.pre = null;
   MK.mgr = MGRS[0]; MK.filter = MK.ppFilter = MK.clFilter = "all"; MK.inF = "todo"; MK.inKeep = null; MK.inOpen = {}; MK.ppTab = null; MK.ppLineOf = {}; MK.ppDate = {}; MK.ppDone = null; MK.clTab = "active"; MK.clQ = "";
   document.getElementById("mkTitle").textContent = "Макет · " + (role === "kiosk" ? "Киоск · " + KSHOPS[MK.shop].name : ROLES[role].label);
@@ -3142,17 +3184,26 @@ document.querySelectorAll(".hot[data-role]").forEach((g) => {
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-asmgr],[data-mk-clsave],[data-mk-oedit],[data-mk-oecancel],[data-mk-oedel],[data-mk-oesave],[data-mk-orej],[data-mk-orecall],[data-mk-cord],[data-mk-clpart],[data-mk-clpwhat],[data-mk-clupd],[data-mk-cpick],[data-mk-cpoff],[data-mk-cpsel],[data-mk-cpsend],[data-mk-cpcancel],[data-mk-shipnew],[data-mk-sncl],[data-mk-snsel],[data-mk-sncreate],[data-mk-sntab],[data-mk-snst],[data-mk-snall],[data-mk-zopen],[data-mk-topool],[data-mk-pptab],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-asmgr],[data-mk-clsave],[data-mk-oedit],[data-mk-oecancel],[data-mk-oedel],[data-mk-oesave],[data-mk-orej],[data-mk-orecall],[data-mk-cord],[data-mk-clpart],[data-mk-clpwhat],[data-mk-clupd],[data-mk-cpick],[data-mk-cpoff],[data-mk-cpsel],[data-mk-cpsend],[data-mk-cpcancel],[data-mk-shipnew],[data-mk-sncl],[data-mk-snsel],[data-mk-sncreate],[data-mk-sntab],[data-mk-snst],[data-mk-snall],[data-mk-zopen],[data-mk-zedit],[data-mk-zecancel],[data-mk-zedel],[data-mk-zesave],[data-mk-zcancelok],[data-mk-topool],[data-mk-pptab],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
     if (t.classList.contains("mk-back") && e.target !== t) return; // клик внутри окна — не закрывать
     MK.modal = null; MK.pre = null; mkRender(); return;
   }
-  if (d.mkModal) { MK.modal = d.mkModal; MK.pre = d.mkPre || null; MK.rejErr = null; }
-  else if (d.mkNav) { MK.view = d.mkNav; MK.order = null; MK.oEd = null; MK.cPick = false; MK.inKeep = null; MK.inOpen = {}; }
+  if (d.mkModal) { MK.modal = d.mkModal; MK.pre = d.mkPre || null; MK.rejErr = MK.zcErr = null; }
+  else if (d.mkNav) { MK.view = d.mkNav; MK.order = null; MK.oEd = null; MK.zEd = null; MK.cPick = false; MK.inKeep = null; MK.inOpen = {}; }
   else if (d.mkOrder) { MK.view = "order"; MK.order = d.mkOrder; MK.oEd = null; }
-  else if (d.mkZopen) { MK.view = "zo"; MK.zo = d.mkZopen; } // карточка заявки на отгрузку
+  else if (d.mkZopen) { MK.view = "zo"; MK.zo = d.mkZopen; MK.zEd = null; } // карточка заявки на отгрузку
+  else if (d.mkZedit) zvEdit(SHIPS.find((s) => s.no === d.mkZedit)); // изменить — пока «Ждёт одобрения»
+  else if (t.hasAttribute("data-mk-zecancel")) MK.zEd = null;
+  else if (t.hasAttribute("data-mk-zedel")) { zvSync(); MK.zEd.items.splice(+d.mkZedel, 1); MK.zEd.err = {}; }
+  else if (t.hasAttribute("data-mk-zesave")) zvSave();
+  else if (t.hasAttribute("data-mk-zcancelok")) { // отменить — только с причиной; бронь освобождается, запрос клиента снова ждёт менеджера
+    const why = ((document.getElementById("mkfZcWhy") || {}).value || "").trim(), z = SHIPS.find((s) => s.no === MK.pre);
+    MK.zcErr = why ? null : "Укажите причину";
+    if (why) { zPickLink(z, -1); Object.assign(z, { st: "cancelled", cancelWhy: why, cancelAt: TODAY }); MK.modal = null; MK.pre = null; }
+  }
   else if (d.mkApprove) MK.approved[d.mkApprove] = { at: TODAY }; // отметки шагов — с датой (видно в карточке ЗО)
   else if (d.mkArea) { MK.area = d.mkArea; MK.stTab = null; }
   else if (d.mkSttab) MK.stTab = d.mkSttab;
