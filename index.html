@@ -1192,7 +1192,11 @@ const ORDERS = [
   { no: "З-2026-001", client: "Полимакс", created: "29.09.2026", need: "01.10.2026", st: "shipped", items: [
     it(1, "Монолитный лист", "5", "2050×3050", "прозрачный", "30 листов", "stock"), it(2, "Трапеция", "1", "1150×6000", "прозрачный", "40 листов", "stock")] }
 ];
-const Z_ST = { wait: ["Ждёт одобрения", "b-slate", ""], approved: ["Одобрена", "b-success", "approved"], done: ["Отгрузка подтверждена", "b-danger", "done"], cancelled: ["Отменена", "b-slate", ""] }; // «Отменена» — серый, как «Отменён» в образце
+// статусы заявки на отгрузку — один набор у всех ролей (юзер 30.10), по шагам завода; в образце: Черновик → Выдан → Отгружен; Отменён
+const Z_ST = { wait: ["Ждёт одобрения", "b-slate", ""], approved: ["Одобрена", "b-success", "approved"], loading: ["В погрузке", "b-warning", "approved"],
+  loaded: ["Погружено — ждёт проверки", "b-primary", "approved"], done: ["Отгружено", "b-danger", "done"], cancelled: ["Отменена", "b-slate", ""] };
+// что показать: одобренная — по погрузке (взяли в работу или начали грузить → «В погрузке», все участки → «Погружено — ждёт проверки»)
+const zShow = (z) => { const s = zSt(z); return s !== "approved" ? s : isLoaded(z) ? "loaded" : MK.taken[z.no] || zAreas(z).some((a) => MK.loadedA[z.no + "|" + a]) ? "loading" : "approved"; };
 // заявка на отгрузку — позиции с количеством из заказов одного клиента (этап 5а); у старых примеров — заказ целиком
 // позиция «со склада» (sp — партия на «Остатках»): товар партии, единица — шт у профиля и термошайб, иначе листы
 const spX = (p) => ({ prod: p.prod, th: p.th, size: p.size, color: p.color, qty: fmt(p.qty) + " " + (/^(Профиль|Термошайбы)/.test(p.prod) ? "шт" : "листов") });
@@ -1284,8 +1288,8 @@ ROLES.checker = { label: "Проверяющий отгрузку", user: ["Пр
   nav: [NAV_CHAT, { title: "Склад", items: [["check", "Проверка машин", "clipboard-check"]] }].concat(NAV_END),
   titles: { check: ["Проверка машин", "Погруженные машины — пересчёт и сверка"], chat: ["Сообщения", ""], dicts: ["Справочник", ""] } };
 // состояние машины глазами склада
-const LD_ST = { wait: ["Ждёт взятия в работу", "b-slate"], loading: ["В погрузке", "b-warning"], loaded: ["Погружено — ждёт проверки", "b-primary"], done: ["Отгрузка подтверждена", "b-danger"] };
-const ldSt = (z) => zSt(z) === "done" ? "done" : isLoaded(z) ? "loaded" : MK.taken[z.no] ? "loading" : "wait";
+const LD_ST = { wait: Z_ST.approved, loading: Z_ST.loading, loaded: Z_ST.loaded, done: Z_ST.done }; // тот же набор, что у менеджера и шефа логистов
+const ldSt = (z) => { const s = zShow(z); return s === "approved" ? "wait" : s; }; // «wait» — одобрена, ещё не взяли
 function pgLShips() {
   const all = SHIPS.filter((z) => ["approved", "done"].includes(zSt(z)));
   const list = all.filter((z) => MK.seg === "all" || (MK.seg === "active" ? ldSt(z) !== "done" : ldSt(z) === "done"));
@@ -1306,7 +1310,7 @@ function pgLShips() {
       <div class="mk-card mk-kpi"><span>Ждут взятия</span><b>${cnt("wait")}</b></div>
       <div class="mk-card mk-kpi"><span>В погрузке</span><b>${cnt("loading")}</b></div>
       <div class="mk-card mk-kpi"><span>Ждут проверки</span><b>${cnt("loaded")}</b></div>
-      <div class="mk-card mk-kpi"><span>Подтверждены</span><b>${cnt("done")}</b></div></div>
+      <div class="mk-card mk-kpi"><span>Отгружено</span><b>${cnt("done")}</b></div></div>
     <div class="mk-sec"><h3>Отгрузки <small>· ${all.length}</small></h3>
       <div class="mk-tools">${TODO("«Взять в работу» и статусы")}<div class="mk-seg">${[["active", "Активные"], ["done", "Завершённые"], ["all", "Все"]].map(([k, l]) =>
         `<button class="${MK.seg === k ? "on" : ""}" data-mk-seg="${k}">${l}</button>`).join("")}</div></div></div>
@@ -2520,15 +2524,15 @@ function pgShips() {
     <div class="mk-kpis">
       <div class="mk-card mk-kpi"><span>Всего</span><b>${all.length}</b></div>
       <div class="mk-card mk-kpi"><span>Ждут одобрения</span><b>${cnt("wait")}</b></div>
-      <div class="mk-card mk-kpi"><span>Одобрены</span><b>${cnt("approved")}</b></div>
-      <div class="mk-card mk-kpi"><span>Подтверждены</span><b>${cnt("done")}</b></div></div>
+      <div class="mk-card mk-kpi"><span>В работе</span><b>${all.filter((z) => ["approved", "loading", "loaded"].includes(zShow(z))).length}</b></div>
+      <div class="mk-card mk-kpi"><span>Отгружено</span><b>${cnt("done")}</b></div></div>
     <div class="mk-sec"><h3>Заявки на отгрузку <small>· ${all.length}</small></h3>
-      <div class="mk-tools">${TODO("статусы")}<div class="mk-seg">${[["active", "Активные"], ["done", "Завершённые"], ["all", "Все"]].map(([k, l]) =>
+      <div class="mk-tools"><div class="mk-seg">${[["active", "Активные"], ["done", "Завершённые"], ["all", "Все"]].map(([k, l]) =>
         `<button class="${MK.seg === k ? "on" : ""}" data-mk-seg="${k}">${l}</button>`).join("")}</div>
         ${chief ? "" : `<button class="mk-btn p" data-mk-shipnew>${ico("plus")}Заявка на отгрузку</button>`}</div></div>
     ${chief ? `<p class="mk-note">После «Одобрить» заявку видят и берут в работу те, у кого есть доступ: шеф или бригадир грузчиков и кладовщики.</p>` : ""}
     <div class="mk-deals zo">${list.map((z) => {
-      const st = zSt(z), s = Z_ST[st];
+      const st = zSt(z), s = Z_ST[zShow(z)]; // показ — по погрузке, логика — по zSt
       const inv = z.inv ? `<span class="mk-tag">ИН ${z.inv}</span>` : st === "done" ? `<span class="mk-badge b-warning"><i></i>ждёт инвойса</span>` : `<span class="mk-muted">—</span>`;
       const foot = chief && st === "wait"
         ? `<button class="mk-btn sm" data-mk-zopen="${z.no}">${ico("eye")}Открыть</button><button class="mk-btn g sm" data-mk-approve="${z.no}">${ico("check")}Одобрить</button>`
@@ -3011,7 +3015,7 @@ function pgZo() {
     ${z.edited && !ed ? `<div class="mk-hint ok">✓ Изменено менеджером ${z.edited}</div>` : ""}
     <div class="mk-card mk-head">
       <div><span>Заявка на отгрузку</span><b class="mk-no">ЗО № ${z.n} · ${z.no}</b></div><div><span>Клиент</span><b>${esc(z.client)}</b></div>
-      <div><span>Статус</span><b>${badge(Z_ST[st])}</b></div>
+      <div><span>Статус</span><b>${badge(Z_ST[zShow(z)])}</b></div>
       <div><span>Дата отгрузки</span><b>${ed ? `<input type="date" id="zeDate" value="${ed.date}"${ed.dateErr ? ' class="err"' : ""} aria-label="Дата отгрузки">${ed.dateErr ? `<div class="mk-err">${ed.dateErr}</div>` : ""}` : z.date}</b></div>
       <div><span>Позиций</span><b>${its.length}</b></div><div><span>Всего листов</span><b>${ed ? "—" : zSheets(z)}</b></div><div><span>Кг</span><b>${zKg(z)}</b></div>
       <div><span>Автор</span><b>${z.author || mgrOfClient(z.client)}</b></div></div>
@@ -3038,7 +3042,7 @@ function zPrintBody(z) {
   const tot = [["листов", "Всего листов"], ["шт", "Всего, шт"]].filter(([u]) => sum(u)).map(([u, l]) => `<div><span>${l}</span><b>${fmt(sum(u))}</b></div>`).join("");
   return `<div class="zp-h">${borrexLogo("zp-logo")}<div class="zp-t"><b>Borrex</b><span>Заявка на отгрузку</span></div><div class="zp-no">ЗО № ${z.n}<small>${z.no}</small></div></div>
     <div class="zp-meta"><div><span>Клиент</span><b>${esc(z.client)}</b></div><div><span>Дата отгрузки</span><b>${z.date}</b></div>
-      <div><span>Статус</span><b>${Z_ST[zSt(z)][0]}</b></div><div><span>Автор</span><b>${z.author || mgrOfClient(z.client)}</b></div><div><span>Позиций</span><b>${its.length}</b></div></div>
+      <div><span>Статус</span><b>${Z_ST[zShow(z)][0]}</b></div><div><span>Автор</span><b>${z.author || mgrOfClient(z.client)}</b></div><div><span>Позиций</span><b>${its.length}</b></div></div>
     ${z.note ? `<p class="zp-note">Примечание: ${esc(z.note)}</p>` : ""}
     ${kinds.map((k) => `<h4>${k}</h4><table><thead><tr><th>№</th><th>Продукция</th><th>Толщ., мм</th><th>Размер, мм</th><th>Цвет</th><th>Кол-во</th><th>Источник</th></tr></thead><tbody>
       ${its.filter((y) => ZV_KIND(y.x.prod) === k).map((y) => `<tr><td>${its.indexOf(y) + 1}</td><td>${y.x.prod}</td><td>${y.x.th}</td><td>${y.x.size}</td><td>${y.x.color}</td><td>${pkU(y.x, y.qty)}</td><td>${zvSource(y).replace(/<[^>]*>/g, "")}</td></tr>`).join("")}
