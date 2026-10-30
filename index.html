@@ -1639,6 +1639,14 @@ function oeSave() {
   if (o.from === "client") o.edited = "12.10.2026";
   MK.oEd = null;
 }
+// отозвать у логистов: только «У логистов» и пока нет заявки на производство; их решения (склад / производство, сроки) сбрасываются
+const oHasPP = (o) => !!(o.chk && o.chk.some((c) => c && c.pp));
+function oRecall(no) {
+  const o = ord(no); if (oKey(o) !== "chef" || oHasPP(o)) return;
+  ["chk", "at", "ret", "chefOk", "l2ok", "chkBy", "ready", "sentAt"].forEach((k) => delete o[k]);
+  o.items.forEach((x) => { x.st = "wait"; delete x.dl; delete x.from; });
+  o.st = o.from === "client" ? "client" : "draft"; o.recalled = "12.10.2026";
+}
 function pgOrder() {
   const o = ORDERS.find((x) => x.no === MK.order), ed = MK.oEd && MK.oEd.no === o.no ? MK.oEd : null, items = ed ? ed.items : o.items, fromCl = o.st === "client";
   const qty = (x, i) => !ed ? x.qty : `<input class="mk-n${ed.err[i] ? " err" : ""}" id="oeQ${i}" inputmode="numeric" value="${esc(x.q)}" aria-label="Количество, позиция ${i + 1}"> ${qU(x)}${ed.err[i] ? `<div class="mk-err">${OE_ERR.q}</div>` : ""}`;
@@ -1650,9 +1658,12 @@ function pgOrder() {
     : o.st === "draft"
     ? `<button class="mk-btn" data-mk-oedit="${o.no}">${ico("pencil")}Редактировать</button><button class="mk-btn p" data-mk-tochef="${o.no}">${ico("send")}Отправить шефу логистов</button>`
     : ["ready", "partial"].includes(oKey(o)) ? `<button class="mk-btn">${ico("printer")}Печать</button><button class="mk-btn p" data-mk-shipnew="order|${o.no}">${ico("truck")}Создать заявку на отгрузку</button>`
+    : oKey(o) === "chef" ? `<button class="mk-btn">${ico("printer")}Печать</button><button class="mk-btn" data-mk-modal="orecall" data-mk-pre="${o.no}"${oHasPP(o) ? " disabled" : ""}>${ico("undo-2")}Отозвать</button>`
     : `<button class="mk-btn">${ico("printer")}Печать</button>`;
   const need = !ed ? o.need : `<input type="date" id="oeNeed" value="${ed.need}"${ed.needErr ? ' class="err"' : ""} aria-label="Нужна к">${ed.needErr ? `<div class="mk-err">${OE_ERR[ed.needErr]}</div>` : ""}`;
   return `<div class="mk-tools"><button class="mk-btn" data-mk-back>${ico("arrow-left")}Назад</button>${tools}</div>
+    ${oKey(o) === "chef" && oHasPP(o) ? `<div class="mk-why">${ico("info")}Логисты уже создали заявку на производство — изменения только через шефа логистов</div>` : ""}
+    ${o.recalled && ["client", "draft"].includes(o.st) && !ed ? `<div class="mk-hint">Заявка отозвана у логистов ${o.recalled} — поправьте и отправьте снова.</div>` : ""}
     ${o.from === "client" ? `<div class="mk-hint">ⓘ Заявка пришла из личного кабинета клиента ${o.created}.${o.note ? " Комментарий клиента: «" + esc(o.note) + "»" : ""}</div>` : ""}
     ${o.st === "rejected" ? `<div class="mk-hint">Заявка отклонена ${o.rejAt}. Причина: «${esc(o.rejWhy)}». Клиент видит отказ на сайте.</div>` : ""}
     ${o.edited && !ed ? `<div class="mk-hint ok">✓ Изменено менеджером ${o.edited}</div>` : ""}
@@ -2917,6 +2928,7 @@ function mkModal() {
       ${f("mkfNeed", "Нужна к", `<input type="date" id="mkfNeed" value="2026-10-24">`)}
       ${f("mkfNote", "Примечание (необязательно)", `<textarea id="mkfNote"></textarea>`)}
       <div class="mk-hint">Заявка будет создана как <b>черновик</b>. Позиции добавьте в карточке заявки.</div>`, "Создать заявку"],
+    orecall: MK.modal !== "orecall" ? null : ["Отозвать заявку " + MK.pre, `<div>Заявка пропадёт у логистов и вернётся к вам. Их решения по ней (склад / производство, сроки) сбросятся.</div>`, "Отозвать", 'data-mk-orecall="1"'],
     orej: MK.modal !== "orej" ? null : ["Отклонить заявку " + MK.pre, `<div class="mk-hint">ⓘ Клиент увидит отказ и причину на сайте в «Мои заказы».</div>
       ${f("mkfRejWhy", "Причина *", `<textarea id="mkfRejWhy"${MK.rejErr ? ' class="err"' : ""} placeholder="Напишите, почему отклоняете"></textarea>${MK.rejErr ? `<div class="mk-err">${MK.rejErr}</div>` : ""}`)}`, "Отклонить", 'data-mk-orej="1"'],
     inv: ["Инвойс по машине", `<div class="mk-hint">ⓘ Создаётся только по отгрузке, которую подтвердил проверяющий.</div>
@@ -3014,7 +3026,7 @@ document.querySelectorAll(".hot[data-role]").forEach((g) => {
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-asmgr],[data-mk-clsave],[data-mk-oedit],[data-mk-oecancel],[data-mk-oedel],[data-mk-oesave],[data-mk-orej],[data-mk-cord],[data-mk-clpart],[data-mk-clpwhat],[data-mk-clupd],[data-mk-cpick],[data-mk-cpoff],[data-mk-cpsel],[data-mk-cpsend],[data-mk-cpcancel],[data-mk-shipnew],[data-mk-sncl],[data-mk-snsel],[data-mk-sncreate],[data-mk-topool],[data-mk-pptab],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-asmgr],[data-mk-clsave],[data-mk-oedit],[data-mk-oecancel],[data-mk-oedel],[data-mk-oesave],[data-mk-orej],[data-mk-orecall],[data-mk-cord],[data-mk-clpart],[data-mk-clpwhat],[data-mk-clupd],[data-mk-cpick],[data-mk-cpoff],[data-mk-cpsel],[data-mk-cpsend],[data-mk-cpcancel],[data-mk-shipnew],[data-mk-sncl],[data-mk-snsel],[data-mk-sncreate],[data-mk-topool],[data-mk-pptab],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
@@ -3092,6 +3104,7 @@ overlay.addEventListener("click", (e) => {
   else if (t.hasAttribute("data-mk-oecancel")) MK.oEd = null;
   else if (t.hasAttribute("data-mk-oedel")) { oeSync(); MK.oEd.items.splice(+d.mkOedel, 1); MK.oEd.err = {}; }
   else if (t.hasAttribute("data-mk-oesave")) oeSave();
+  else if (t.hasAttribute("data-mk-orecall")) { oRecall(MK.pre); MK.modal = null; MK.pre = null; } // отозвать у логистов
   else if (t.hasAttribute("data-mk-orej")) { // отклонить — только с причиной; клиент видит отказ и причину
     const why = ((document.getElementById("mkfRejWhy") || {}).value || "").trim(), o = ord(MK.pre);
     MK.rejErr = why ? null : "Укажите причину";
