@@ -1121,10 +1121,14 @@ const SEC_NOTE = {
 };
 const O_ST = {
   client: ["От клиента", "b-primary"], draft: ["Черновик", "b-slate"], chef: ["У логистов", "b-primary"], checked: ["Сроки получены", "b-primary"], prod: ["В производстве", "b-warning"],
-  ready: ["Готово к отгрузке", "b-success"], shipped: ["Отгружено", "b-danger"], rejected: ["Отклонена", "b-slate"] // серый — как «Отмена» в образце
+  ready: ["Готово к отгрузке", "b-success"], partial: ["Частично отгружено", "b-warning"], shipped: ["Отгружено", "b-danger"], rejected: ["Отклонена", "b-slate"] // серый — как «Отмена» в образце
 };
 // менеджер работает с шефом логистов; пока заявка не ушла в производство, у менеджера она «У логистов» (как шеф делит её со своими логистами — его дело)
-const oKey = (o) => (o.st === "logist" ? "chef" : o.st);
+// отгружено по позиции: у старых отгруженных примеров — всё; иначе — что подтвердил проверяющий (этап 5б)
+const oShipped = (o, x) => (o.st === "shipped" ? qN(x) : x.shipped || 0);
+// статус для показа: по отгруженному — «Частично отгружено» / «Отгружено»; o.st остаётся для логики логистов
+const oKey = (o) => { const sh = o.items.map((x) => oShipped(o, x));
+  return o.items.length && o.items.every((x, i) => sh[i] >= qN(x)) ? "shipped" : sh.some((n) => n > 0) ? "partial" : o.st === "logist" ? "chef" : o.st; };
 const oSt = (o) => O_ST[oKey(o)];
 const I_ST = { wait: ["У логистов", "b-slate"], stock: ["Есть на складе", "b-success"], prod: ["В производстве", "b-warning"] };
 const iSt = (x) => (x.dl ? [x.from ? `Со склада ${fmt(x.from)} + ${fmt(qN(x) - x.from)} до ${x.dl}` : `Производство · до ${x.dl}`, "b-warning"] : I_ST[x.st]);
@@ -1638,14 +1642,14 @@ function oeSave() {
 function pgOrder() {
   const o = ORDERS.find((x) => x.no === MK.order), ed = MK.oEd && MK.oEd.no === o.no ? MK.oEd : null, items = ed ? ed.items : o.items, fromCl = o.st === "client";
   const qty = (x, i) => !ed ? x.qty : `<input class="mk-n${ed.err[i] ? " err" : ""}" id="oeQ${i}" inputmode="numeric" value="${esc(x.q)}" aria-label="Количество, позиция ${i + 1}"> ${qU(x)}${ed.err[i] ? `<div class="mk-err">${OE_ERR.q}</div>` : ""}`;
-  const body = items.map((x, i) => `<tr><td>${i + 1}</td><td>${x.prod}</td><td>${x.th}</td><td>${x.size}</td><td>${x.color}</td><td>${qty(x, i)}</td><td class="mk-muted">—</td>
+  const body = items.map((x, i) => `<tr><td>${i + 1}</td><td>${x.prod}</td><td>${x.th}</td><td>${x.size}</td><td>${x.color}</td><td>${qty(x, i)}</td><td>${pkU(x, oShipped(o, x))}</td><td>${pkU(x, qN(x) - oShipped(o, x))}</td><td class="mk-muted">—</td>
     <td>${ed ? `<button class="mk-btn sm" data-mk-oedel="${i}"${items.length < 2 ? " disabled" : ""}>${ico("x")}Убрать</button>` : badge(iSt(x))}</td></tr>`).join("");
   const tools = ed ? `<button class="mk-btn" data-mk-oecancel>Отмена</button><button class="mk-btn p" data-mk-oesave>${ico("check")}Сохранить изменения</button>`
     : fromCl ? `<button class="mk-btn">${ico("printer")}Печать</button><button class="mk-btn" data-mk-oedit="${o.no}">${ico("pencil")}Изменить</button>
       <button class="mk-btn" data-mk-modal="orej" data-mk-pre="${o.no}">${ico("ban")}Отклонить</button><button class="mk-btn p" data-mk-tochef="${o.no}">${ico("send")}Передать шефу логистов</button>`
     : o.st === "draft"
     ? `<button class="mk-btn" data-mk-oedit="${o.no}">${ico("pencil")}Редактировать</button><button class="mk-btn p" data-mk-tochef="${o.no}">${ico("send")}Отправить шефу логистов</button>`
-    : o.st === "ready" ? `<button class="mk-btn">${ico("printer")}Печать</button><button class="mk-btn p" data-mk-shipnew="order|${o.no}">${ico("truck")}Создать заявку на отгрузку</button>`
+    : ["ready", "partial"].includes(oKey(o)) ? `<button class="mk-btn">${ico("printer")}Печать</button><button class="mk-btn p" data-mk-shipnew="order|${o.no}">${ico("truck")}Создать заявку на отгрузку</button>`
     : `<button class="mk-btn">${ico("printer")}Печать</button>`;
   const need = !ed ? o.need : `<input type="date" id="oeNeed" value="${ed.need}"${ed.needErr ? ' class="err"' : ""} aria-label="Нужна к">${ed.needErr ? `<div class="mk-err">${OE_ERR[ed.needErr]}</div>` : ""}`;
   return `<div class="mk-tools"><button class="mk-btn" data-mk-back>${ico("arrow-left")}Назад</button>${tools}</div>
@@ -1660,7 +1664,7 @@ function pgOrder() {
       <div><span>Позиций</span><b>${items.length}</b></div><div><span>Создана</span><b>${o.created}</b></div>
       <div><span>Нужна к</span><b>${need}</b></div>${o.st === "checked" ? `<div><span>Будет готова</span><b>${o.ready ? "до " + o.ready : "всё со склада"}</b></div>` : ""}</div>
     <div class="mk-sec"><h3>Позиции заявки <small>· ${items.length}</small></h3>${TODO("поля позиции и статусы позиций")}</div>
-    <div class="mk-card mk-tbl dense"><table><thead><tr><th>№</th><th>Продукция</th><th>Толщ., мм</th><th>Размер, мм</th><th>Цвет</th><th>Кол-во</th><th>Примечание</th><th>${ed ? "" : "Что с позицией"}</th></tr></thead>
+    <div class="mk-card mk-tbl dense"><table><thead><tr><th>№</th><th>Продукция</th><th>Толщ., мм</th><th>Размер, мм</th><th>Цвет</th><th>Кол-во</th><th>Отгружено</th><th>Осталось</th><th>Примечание</th><th>${ed ? "" : "Что с позицией"}</th></tr></thead>
       <tbody>${body}</tbody></table></div>
     ${ed && items.length < 2 ? `<div class="mk-why">${ico("info")}Последнюю позицию убрать нельзя${fromCl ? " — чтобы отказать клиенту, отмените правку и нажмите «Отклонить»" : ""}</div>` : ""}`;
 }
@@ -2640,13 +2644,13 @@ function pgCart() {
 }
 // статусы для клиента (юзер 30.10): внутренние слова логистов клиенту не показываем; цвета — как у менеджера
 const C_ST = { client: ["Отправлен менеджеру", "b-primary"], chef: ["Принят в работу", "b-primary"], prod: ["В производстве", "b-warning"],
-  ready: ["Готов к отгрузке", "b-success"], shipped: ["Отгружен", "b-danger"], rejected: ["Отклонён", "b-slate"] };
+  ready: ["Готов к отгрузке", "b-success"], partial: ["Частично отгружен", "b-warning"], shipped: ["Отгружен", "b-danger"], rejected: ["Отклонён", "b-slate"] };
 const cSt = (o) => (oKey(o) === "checked" ? ["Подтверждён · " + (o.ready ? "будет готов до " + o.ready : "всё есть на складе"), "b-primary"] : C_ST[oKey(o)]);
 // позиция для клиента: заказано / отгружено / осталось (отгружено пока по целому заказу — частичная отгрузка на этапе 5)
-const cShip = (o, x) => (o.st === "shipped" ? qN(x) : x.shipped || 0);
+const cShip = (o, x) => oShipped(o, x); // что подтвердил проверяющий (этап 5б)
 function cItSt(o, x) {
   if (o.st === "rejected") return null;
-  if (o.st === "shipped") return ["Отгружено", "b-danger"];
+  if (cShip(o, x) >= qN(x)) return ["Отгружено", "b-danger"];
   if (o.st === "ready") return ["Готово", "b-success"];
   if (x.dl) return [x.from ? `${fmt(x.from)} готово, ${fmt(qN(x) - x.from)} — до ${x.dl}` : "В производстве · до " + x.dl, "b-warning"];
   return x.st === "stock" && o.st !== "chef" && o.st !== "logist" && o.st !== "client" ? ["Готово", "b-success"] : x.st === "prod" ? ["В производстве", "b-warning"] : ["Проверяем наличие", "b-slate"];
@@ -2821,6 +2825,13 @@ function pgShipNew() {
       <div class="mk-f"><label for="snNote">Примечание (необязательно)</label><input id="snNote" value="${esc(MK.snNote)}"></div>
       <span class="sp"></span><button class="mk-btn" data-mk-nav="ships">Отмена</button><button class="mk-btn p" data-mk-sncreate>${ico("truck")}Создать заявку на отгрузку</button></div>
     ${MK.snNone ? `<div class="mk-err">Отметьте, что отгружать</div>` : ""}`}`;
+}
+// проверяющий подтвердил машину (этап 5б): по позициям отгрузки растёт «отгружено»; запрос клиента закрывается, когда всё из него уехало
+function zConfirm(no) {
+  if (MK.confirmed[no]) return;
+  zItems(SHIPS.find((s) => s.no === no)).forEach((y) => { if (y.o.st !== "shipped") y.x.shipped = (y.x.shipped || 0) + y.qty; });
+  MK.confirmed[no] = true; delete MK.chkDiff[no];
+  PICKS.filter((p) => p.st === "work" && p.items.every((y) => pkRem(y) <= 0 && (y.zos || []).every((n) => zSt(SHIPS.find((s) => s.no === n)) === "done"))).forEach((p) => { p.st = "done"; });
 }
 function snCreate() {
   snSync();
@@ -3022,7 +3033,7 @@ overlay.addEventListener("click", (e) => {
   else if (d.mkLoad) MK.loadedA[d.mkLoad] = true;
   else if (d.mkTake) MK.taken[d.mkTake] = true;
   else if (d.mkSheet) MK.sheetOk[d.mkSheet] = !MK.sheetOk[d.mkSheet];
-  else if (d.mkConfirm) { MK.confirmed[d.mkConfirm] = true; delete MK.chkDiff[d.mkConfirm]; }
+  else if (d.mkConfirm) zConfirm(d.mkConfirm); // подтверждена — пересчёт отгруженного (этап 5б)
   else if (d.mkCdiff) MK.chkDiff[d.mkCdiff] = true;
   else if (d.mkPick) { MK.modal = "pin"; MK.pinFor = d.mkPick; MK.pinErr = ""; }
   else if (t.hasAttribute("data-mk-pinok")) {
