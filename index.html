@@ -1760,6 +1760,13 @@ function kPicker() {
     <p class="mk-note">Три смены по 12 часов — у каждой свой ${KS().who.toLowerCase()}. ${TODO("кто входит: бригадир или оператор, кто ещё")}</p>`;
 }
 const kItems = (p) => PPI[p.no] || [];
+// первый ввод выпуска по заявке (как в образце): ПП «Выдано» → «В процессе»; её заказы со сроками — «В производстве».
+// Готовым произведённое не становится — листы придут на склад со сводкой кладовщика
+function kStart(no) {
+  const p = PP.find((x) => x.no === no); if (!p) return;
+  if (p.st === "issued") p.st = "inprog";
+  kItems(p).forEach((x) => { const o = x.order && ord(x.order); if (o && o.st === "checked") o.st = "prod"; });
+}
 const kMade = (p, i) => kItems(p)[i].other + (MK.kSaved[p.no + ":" + i] || 0);
 const kAllDone = (p) => kItems(p).length && kItems(p).every((_, i) => MK.kDone[p.no + ":" + i]);
 const kOrderSt = (p) => kAllDone(p) ? ["Готово, ждёт подтверждения", "b-primary"] : PP_ST[p.st];
@@ -3284,7 +3291,7 @@ overlay.addEventListener("click", (e) => {
   else if (d.mkKorder) { MK.view = "kOrder"; MK.order = d.mkKorder; }
   else if (d.mkKconfirm) {
     const inp = t.parentElement.querySelector("input"), v = inp ? inp.value : "";
-    if (v !== "") { MK.kSaved[d.mkKconfirm] = Number(v); delete MK.vals["q|" + d.mkKconfirm]; }
+    if (v !== "") { MK.kSaved[d.mkKconfirm] = Number(v); delete MK.vals["q|" + d.mkKconfirm]; if (Number(v) > 0) kStart(d.mkKconfirm.split(":")[0]); }
   }
   else if (d.mkKdone) { MK.modal = "kdone"; MK.kdoneKey = d.mkKdone; }
   else if (t.hasAttribute("data-mk-kdoneok")) { MK.kDone[MK.kdoneKey] = true; MK.modal = null; }
