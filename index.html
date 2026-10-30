@@ -333,6 +333,8 @@ footer { color: var(--muted); font-size: 13px }
 .mk-snt tr.off td { color: var(--fg-tertiary) }
 .mk-snt tr.on td { background: var(--bg-sunken) }
 .mk-snt input[type=checkbox] { width: 18px; height: 18px; margin: 0 }
+.mk-snt tr.grp td { background: var(--bg-sunken); font-size: .8125rem }
+.mk-sntabs { margin-top: 4px }
 .mk-snbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; padding: 14px 0 }
 .mk-snbar .sp { flex: 1 }
 .mk-snbar .mk-f { min-width: 200px }
@@ -1168,8 +1170,11 @@ const ORDERS = [
 ];
 const Z_ST = { wait: ["Ждёт одобрения", "b-slate", ""], approved: ["Одобрена", "b-success", "approved"], done: ["Отгрузка подтверждена", "b-danger", "done"] };
 // заявка на отгрузку — позиции с количеством из заказов одного клиента (этап 5а); у старых примеров — заказ целиком
-const zItems = (z) => (z.items || ord(z.order).items.map((x, i) => ({ no: z.order, i, qty: qN(x) }))).map((y) => ({ no: y.no, i: y.i, qty: y.qty, o: ord(y.no), x: ord(y.no).items[y.i] }));
-const zNos = (z) => [...new Set(zItems(z).map((y) => y.no))].join(", ");
+// позиция «со склада» (sp — партия на «Остатках»): товар партии, единица — шт у профиля и термошайб, иначе листы
+const spX = (p) => ({ prod: p.prod, th: p.th, size: p.size, color: p.color, qty: fmt(p.qty) + " " + (/^(Профиль|Термошайбы)/.test(p.prod) ? "шт" : "листов") });
+const zItems = (z) => (z.items || ord(z.order).items.map((x, i) => ({ no: z.order, i, qty: qN(x) }))).map((y) => (y.sp != null
+  ? { sp: y.sp, no: null, i: null, qty: y.qty, o: null, x: spX(STOCK_P[y.sp]) } : { no: y.no, i: y.i, qty: y.qty, o: ord(y.no), x: ord(y.no).items[y.i] }));
+const zNos = (z) => [...new Set(zItems(z).map((y) => y.no || "со склада"))].join(", ");
 const zPos = (z) => z.pos || zItems(z).length;
 const zSheets = (z) => z.sheets || fmt(zItems(z).filter((y) => /лист/.test(qU(y.x))).reduce((s, y) => s + y.qty, 0));
 const zKg = (z) => z.kg || "—"; // весов листов в справочнике пока нет — будут со справочником (юзер 30.10)
@@ -2787,6 +2792,7 @@ function pkCard(p) {
 // --- частичная отгрузка, этап 5а (юзер 30.10): новая заявка на отгрузку — позиции с количеством из принятых заказов одного клиента.
 // В отгрузку — только готовое. Из запроса клиента: готовое и дата подставляются, неготовое остаётся в запросе ждать производства,
 // запрос — «в работе у менеджера» (клиент отменить уже не может). Вручную — менеджер выбирает клиента и позиции сам.
+// Две вкладки, как пикер в образце (юзер 30.10): «По заявкам клиентов» (частично и «Весь заказ») и «Остатки готовой продукции» (ship-stock.js).
 Object.assign(MK, { snCl: null, snPick: null, snSel: {}, snErr: {}, snNone: false, snDate: "", snDateErr: null, snNote: "", snDone: null });
 // можно отгрузить: готовое минус отгруженное, минус уже в заявках на отгрузку, минус запросы клиента (кроме того, по которому создаём)
 const snAvail = (o, x, i) => Math.max(0, rdyQ(o, x) - cShip(o, x) - zRes(o.no, i) - pkReq(o.no, i, MK.snPick));
@@ -2802,79 +2808,130 @@ function snRows(cl) {
 }
 function snOpen(arg) {
   const [kind, v] = arg.split("|");
-  Object.assign(MK, { view: "shipnew", order: null, snCl: null, snPick: null, snSel: {}, snErr: {}, snNone: false, snDate: "", snDateErr: null, snNote: "", snDone: null });
+  Object.assign(MK, { view: "shipnew", order: null, snCl: null, snPick: null, snSel: {}, snErr: {}, snNone: false, snDate: "", snDateErr: null, snNote: "", snDone: null, snTab: "orders", snSt: "sot", snQ: "" });
   if (kind === "order") { const o = ord(v); MK.snCl = o.client; o.items.forEach((x, i) => { const a = snAvail(o, x, i); if (a) MK.snSel[o.no + "|" + i] = String(a); }); }
   if (kind === "pick") {
     const p = PICKS.find((x) => x.id === +v); MK.snPick = p.id; MK.snCl = p.client; MK.snDate = p.when.split(".").reverse().join("-");
     p.items.forEach((y) => { const o = ord(y.no), a = Math.min(y.qty - (y.inZo || 0), snAvail(o, o.items[y.i], y.i)); if (a > 0) MK.snSel[y.no + "|" + y.i] = String(a); });
   }
 }
-function snSync() { // набранное — из полей, чтобы галочки и «Создать» не теряли его
+function snSync() { // набранное — из полей, чтобы галочки, вкладки и «Создать» не теряли его
   document.querySelectorAll("[data-snq]").forEach((el) => { if (el.dataset.snq in MK.snSel) MK.snSel[el.dataset.snq] = el.value; });
   const d = document.getElementById("snDate"), n = document.getElementById("snNote");
   if (d) MK.snDate = d.value; if (n) MK.snNote = n.value;
 }
+// «Весь заказ»: отметить все готовые позиции заказа полностью / снять, если уже отмечены все
+function snAll(no) {
+  const rs = snRows(MK.snCl).filter((r) => r.o.no === no && r.av), all = rs.every((r) => r.k in MK.snSel);
+  rs.forEach((r) => { if (all) { delete MK.snSel[r.k]; delete MK.snErr[r.k]; } else if (!(r.k in MK.snSel)) MK.snSel[r.k] = String(r.av); });
+}
+function snOrdersTab(rows) {
+  const nos = [...new Set(rows.map((r) => r.o.no))];
+  return `<div class="mk-card mk-tbl dense mk-snt"><table><thead><tr><th></th><th>Заказ</th><th>Продукция</th><th>Цвет</th><th>Толщ., мм</th><th>Размер, мм</th><th>Осталось</th><th>Готово к отгрузке</th><th>Отгрузить</th></tr></thead><tbody>
+    ${nos.length ? nos.map((no) => { const rs = rows.filter((r) => r.o.no === no), can = rs.filter((r) => r.av), full = can.length && can.every((r) => r.k in MK.snSel);
+      return `<tr class="grp"><td><input type="checkbox" data-mk-snall="${no}"${full ? " checked" : ""}${can.length ? "" : " disabled"} aria-label="Весь заказ ${no}"></td><td colspan="8"><b class="mk-no">${no}</b> · Весь заказ${can.length ? "" : ` <span class="mk-muted">— готового нет</span>`}</td></tr>`
+        + rs.map((r) => { const on = r.k in MK.snSel, er = MK.snErr[r.k];
+          return `<tr class="${on ? "on" : ""}${r.av ? "" : " off"}"><td><input type="checkbox" data-mk-snsel="${r.k}" data-av="${r.av}"${on ? " checked" : ""}${r.av ? "" : " disabled"} aria-label="Отгрузить: ${r.o.no}, позиция ${r.i + 1}"></td>
+            <td class="mk-no">${r.o.no}</td><td>${r.x.prod}</td><td>${r.x.color}</td><td>${r.x.th}</td><td>${r.x.size}</td><td>${pkU(r.x, r.left)}</td>
+            <td>${r.av ? pkU(r.x, r.av) : `<span class="mk-muted">${r.why}</span>`}</td>
+            <td>${on ? `<input class="mk-n${er ? " err" : ""}" data-snq="${r.k}" inputmode="numeric" value="${esc(MK.snSel[r.k])}" aria-label="Отгрузить: ${r.o.no}, позиция ${r.i + 1}"> ${qU(r.x)}${er ? `<div class="mk-err">${er}</div>` : ""}` : ""}</td></tr>`; }).join(""); }).join("")
+      : `<tr><td colspan="9" class="mk-muted">У клиента нет принятых заказов, которые можно отгрузить.</td></tr>`}
+    </tbody></table></div>`;
+}
 function pgShipNew() {
   const p = MK.snPick ? PICKS.find((x) => x.id === MK.snPick) : null;
-  const cls = p ? [] : clAll().filter((c) => mgrOfClient(c) === MK.mgr && snRows(c).length);
-  const rows = MK.snCl ? snRows(MK.snCl) : [], sel = rows.filter((r) => r.k in MK.snSel), nOrd = new Set(sel.map((r) => r.o.no)).size;
-  const table = `<div class="mk-card mk-tbl dense mk-snt"><table><thead><tr><th></th><th>Заказ</th><th>Продукция</th><th>Цвет</th><th>Толщ., мм</th><th>Размер, мм</th><th>Осталось</th><th>Готово к отгрузке</th><th>Отгрузить</th></tr></thead><tbody>
-    ${rows.map((r) => { const on = r.k in MK.snSel, er = MK.snErr[r.k];
-      return `<tr class="${on ? "on" : ""}${r.av ? "" : " off"}"><td><input type="checkbox" data-mk-snsel="${r.k}" data-av="${r.av}"${on ? " checked" : ""}${r.av ? "" : " disabled"} aria-label="Отгрузить: ${r.o.no}, позиция ${r.i + 1}"></td>
-        <td class="mk-no">${r.o.no}</td><td>${r.x.prod}</td><td>${r.x.color}</td><td>${r.x.th}</td><td>${r.x.size}</td><td>${pkU(r.x, r.left)}</td>
-        <td>${r.av ? pkU(r.x, r.av) : `<span class="mk-muted">${r.why}</span>`}</td>
-        <td>${on ? `<input class="mk-n${er ? " err" : ""}" data-snq="${r.k}" inputmode="numeric" value="${esc(MK.snSel[r.k])}" aria-label="Отгрузить: ${r.o.no}, позиция ${r.i + 1}"> ${qU(r.x)}${er ? `<div class="mk-err">${er}</div>` : ""}` : ""}</td></tr>`; }).join("")}
-    </tbody></table></div>`;
+  const cls = p ? [] : clAll().filter((c) => mgrOfClient(c) === MK.mgr); // все свои клиенты — и без заказов (со склада)
+  const rows = MK.snCl ? snRows(MK.snCl) : [], srows = MK.snCl ? snStockRows(MK.snCl) : [];
+  const sel = rows.filter((r) => r.k in MK.snSel), ssel = srows.filter((r) => r.k in MK.snSel), nOrd = new Set(sel.map((r) => r.o.no)).size;
+  const picked = !sel.length && !ssel.length ? "ничего" : !ssel.length ? nPos(sel.length) + " из " + pl(nOrd, "заказа", "заказов", "заказов")
+    : !sel.length ? nPos(ssel.length) + " со склада" : nPos(sel.length + ssel.length) + " — " + sel.length + " из " + pl(nOrd, "заказа", "заказов", "заказов") + ", " + ssel.length + " со склада";
+  const tab = (k, l, n) => `<button class="mk-stp${MK.snTab === k ? " on" : ""}" data-mk-sntab="${k}">${ico(k === "orders" ? "clipboard-list" : "boxes")}<span>${l}</span><em>${n}</em></button>`;
   return `<div class="mk-tools"><button class="mk-btn" data-mk-nav="ships">${ico("arrow-left")}Назад</button></div>
     <div class="mk-hint">ⓘ В отгрузку — только готовое. Шеф логистов одобрит, кладовщики и грузчики погрузят, проверяющий сверит машину.</div>
     ${p ? `<div class="mk-hint">ⓘ По запросу клиента от ${p.date} · забрать ${p.when}. Готовое подставлено; неготовое останется в запросе ждать производства.</div>` : ""}
     <div class="mk-sec"><h3>Клиент</h3></div>
     <div class="mk-chips">${p ? `<button class="mk-chip on">${esc(p.client)}</button>`
-      : cls.length ? cls.map((c) => `<button class="mk-chip${MK.snCl === c ? " on" : ""}" data-mk-sncl="${esc(c)}">${esc(c)}<em>${snRows(c).filter((r) => r.av).length}</em></button>`).join("")
-      : `<span class="mk-muted">У ваших клиентов нет принятых заказов, которые можно отгрузить.</span>`}</div>
-    ${!MK.snCl ? `<p class="mk-note">Выберите клиента — появятся его позиции.</p>` : `${table}
-    <div class="mk-snbar"><b>Выбрано: ${sel.length ? nPos(sel.length) + " из " + pl(nOrd, "заказа", "заказов", "заказов") : "ничего"}</b>
+      : cls.map((c) => `<button class="mk-chip${MK.snCl === c ? " on" : ""}" data-mk-sncl="${esc(c)}">${esc(c)}<em>${snRows(c).filter((r) => r.av).length}</em></button>`).join("")}</div>
+    ${!MK.snCl ? `<p class="mk-note">Выберите клиента — появятся его заказы и остатки на складе.</p>` : `
+    <div class="mk-sttabs mk-sntabs">${tab("orders", "По заявкам клиентов", sel.length)}${tab("stock", "Остатки готовой продукции", ssel.length)}</div>
+    ${MK.snTab === "stock" ? snStockTab(MK.snCl) : snOrdersTab(rows)}
+    <div class="mk-snbar"><b>Выбрано: ${picked}</b>
       <div class="mk-f"><label for="snDate">Дата отгрузки</label><input type="date" id="snDate" value="${MK.snDate}"${MK.snDateErr ? ' class="err"' : ""}>${MK.snDateErr ? `<div class="mk-err">${MK.snDateErr}</div>` : ""}</div>
       <div class="mk-f"><label for="snNote">Примечание (необязательно)</label><input id="snNote" value="${esc(MK.snNote)}"></div>
       <span class="sp"></span><button class="mk-btn" data-mk-nav="ships">Отмена</button><button class="mk-btn p" data-mk-sncreate>${ico("truck")}Создать заявку на отгрузку</button></div>
     ${MK.snNone ? `<div class="mk-err">Отметьте, что отгружать</div>` : ""}`}`;
 }
-// проверяющий подтвердил машину (этап 5б): по позициям отгрузки растёт «отгружено»; запрос клиента закрывается, когда всё из него уехало
-// откуда со склада: партии того же товара — сначала этого клиента, потом общие (без пометки), от старых к новым (как в образце);
-// чужие партии сами не берутся; short — чего не хватает (тогда подтвердить нельзя: недогруз запрещён, как в образце)
+// откуда со склада при подтверждении: позиция заказа — партии того же товара, сначала этого клиента, потом общие, от старых к новым
+// (spFifo, как в образце; чужие сами не берутся — юзер «а»); позиция «со склада» — ровно выбранная партия.
+// short — чего не хватает: тогда подтвердить нельзя (недогруз запрещён, как в образце)
 const stSame = (x, p) => x.prod === p.prod && p.th === x.th && x.size.startsWith(p.size) && p.color === x.color;
 function zAlloc(z) {
   const left = {}, plan = [], short = [];
+  const take = (p, need) => { const av = p.id in left ? left[p.id] : stAvail(p), t = Math.min(av, need); if (t > 0) { plan.push({ p, qty: t }); left[p.id] = av - t; } return need - t; };
   zItems(z).forEach((y) => {
-    let need = y.qty;
-    STOCK_P.filter((p) => stSame(y.x, p) && (p.client === z.client || !p.client))
-      .sort((a, b) => (a.client === z.client ? 0 : 1) - (b.client === z.client ? 0 : 1) || stNum(a.date) - stNum(b.date))
-      .forEach((p) => { const av = p.id in left ? left[p.id] : stAvail(p), t = Math.min(av, need); if (t > 0) { plan.push({ p, qty: t }); left[p.id] = av - t; need -= t; } });
+    const need = y.sp != null ? take(STOCK_P[y.sp], y.qty) : spFifo(y.x, z.client).reduce((n, p) => (n > 0 ? take(p, n) : 0), y.qty);
     if (need > 0) short.push({ x: y.x, need });
   });
   return { plan, short };
 }
+// проверяющий подтвердил машину (этап 5б): списание со склада; по позициям заказов растёт «отгружено»; запрос клиента закрывается, когда всё уехало
 function zConfirm(no) {
   const z = SHIPS.find((s) => s.no === no), al = zAlloc(z);
   if (MK.confirmed[no] || al.short.length) return;
   al.plan.forEach((a) => a.p.out.push([a.qty, TODAY.slice(0, 5), no, null])); // на «Остатках» — строка отгрузки у партии
-  zItems(z).forEach((y) => { if (y.o.st !== "shipped") y.x.shipped = (y.x.shipped || 0) + y.qty; });
+  zItems(z).forEach((y) => { if (y.o && y.o.st !== "shipped") y.x.shipped = (y.x.shipped || 0) + y.qty; });
   MK.confirmed[no] = true; delete MK.chkDiff[no];
   PICKS.filter((p) => p.st === "work" && p.items.every((y) => pkRem(y) <= 0 && (y.zos || []).every((n) => zSt(SHIPS.find((s) => s.no === n)) === "done"))).forEach((p) => { p.st = "done"; });
 }
 function snCreate() {
   snSync();
-  const rows = snRows(MK.snCl), sel = rows.filter((r) => r.k in MK.snSel), num = (r) => String(MK.snSel[r.k]).replace(/\s/g, "");
+  const rows = snRows(MK.snCl).concat(snStockRows(MK.snCl)), sel = rows.filter((r) => r.k in MK.snSel), num = (r) => String(MK.snSel[r.k]).replace(/\s/g, "");
   MK.snErr = {}; MK.snNone = !sel.length;
   sel.forEach((r) => { if (!/^\d+$/.test(num(r)) || +num(r) < 1) MK.snErr[r.k] = "Укажите количество"; else if (+num(r) > r.av) MK.snErr[r.k] = "Можно не больше " + pkU(r.x, r.av); });
   MK.snDateErr = !MK.snDate ? "Укажите дату" : MK.snDate < "2026-10-12" ? "Дата не может быть в прошлом" : null; // «сегодня» макета — 12.10.2026
-  if (MK.snNone || Object.keys(MK.snErr).length || MK.snDateErr) return;
+  const bad = sel.find((r) => MK.snErr[r.k]); if (bad) MK.snTab = bad.p ? "stock" : "orders"; // ошибка на другой вкладке — открыть её
+  if (MK.snNone || bad || MK.snDateErr) return;
   const n = Math.max(...SHIPS.map((z) => z.n)) + 1, no = "ЗО-2026-" + String(n).padStart(3, "0");
-  const items = sel.map((r) => ({ no: r.o.no, i: r.i, qty: +num(r) }));
+  const items = sel.map((r) => (r.p ? { sp: r.p.id, qty: +num(r) } : { no: r.o.no, i: r.i, qty: +num(r) }));
   SHIPS.unshift({ n, no, client: MK.snCl, date: MK.snDate.split("-").reverse().slice(0, 2).join("."), st: "wait", inv: null, items, note: MK.snNote.trim() });
   const p = MK.snPick && PICKS.find((x) => x.id === MK.snPick);
   if (p) { p.st = "work"; items.forEach((it) => { const y = p.items.find((q) => q.no === it.no && q.i === it.i); if (y) { y.inZo = Math.min(y.qty, (y.inZo || 0) + it.qty); (y.zos = y.zos || []).push(no); } }); }
   Object.assign(MK, { view: "ships", seg: "active", snDone: no, snPick: null });
+}
+
+// --- новая заявка на отгрузку, вкладка «Остатки готовой продукции» (юзер 30.10, как пикер в образце): партии склада —
+// только общие и этого клиента (юзер: вариант «а»); «Свободно» — с учётом брони; галочка и «Сколько», не больше свободного.
+Object.assign(MK, { snTab: "orders", snSt: "sot", snQ: "" });
+// партии того же товара для клиента: сначала его, потом общие (без пометки), от старых к новым — как при списании (zAlloc)
+const spFifo = (x, cl) => STOCK_P.filter((p) => stSame(x, p) && (p.client === cl || !p.client))
+  .sort((a, b) => (a.client === cl ? 0 : 1) - (b.client === cl ? 0 : 1) || stNum(a.date) - stNum(b.date));
+// свободно по партиям: остаток минус то, что возьмут неподтверждённые заявки на отгрузку, минус то, что логисты держат
+// «со склада» под заказы и что ещё не в заявке на отгрузку (раскладка — тем же порядком, что при списании)
+function spFree() {
+  const left = {}, av = (p) => (p.id in left ? left[p.id] : stAvail(p));
+  const take = (p, n) => { const t = Math.min(av(p), n); left[p.id] = av(p) - t; return n - t; };
+  SHIPS.filter((z) => zSt(z) !== "done").forEach((z) => zItems(z).forEach((y) => {
+    if (y.sp != null) take(STOCK_P[y.sp], y.qty); else spFifo(y.x, z.client).reduce((n, p) => (n > 0 ? take(p, n) : 0), y.qty); }));
+  ORDERS.forEach((o) => o.items.forEach((x, i) => { const n = takeOf(o, i) - zRes(o.no, i); if (n > 0) spFifo(x, o.client).reduce((m, p) => (m > 0 ? take(p, m) : 0), n); }));
+  return av;
+}
+function snStockRows(cl) {
+  const free = spFree();
+  return STOCK_P.filter((p) => (!p.client || p.client === cl) && stAvail(p) > 0).map((p) => ({ p, x: spX(p), k: "st|" + p.id, av: Math.max(0, free(p)) }));
+}
+function snStockTab(cl) {
+  const all = snStockRows(cl), q = MK.snQ.trim().toLowerCase(), rows = all.filter((r) => r.p.c === MK.snSt && stMatch(r.p, q));
+  const n = (k) => all.filter((r) => r.p.c === k && stMatch(r.p, q)).length;
+  return `<div class="mk-tools"><div class="mk-sts">${ico("search")}<input id="snQ" data-mk-snq value="${esc(MK.snQ)}" placeholder="Поиск: толщина, цвет, ПП, клиент" aria-label="Поиск по остаткам"></div></div>
+    <div class="mk-sttabs">${ST_TABS.map(([k, l]) => `<button class="mk-stp${MK.snSt === k ? " on" : ""}" data-mk-snst="${k}">${ico("layers")}<span>${l}</span><em>${n(k)}</em></button>`).join("")}</div>
+    <div class="mk-card mk-tbl dense mk-snt"><table><thead><tr><th></th><th>Продукция</th><th>Толщ., мм</th><th>Размер, мм</th><th>Цвет</th><th>Клиент</th><th>ПП</th><th>Приход</th><th>Остаток</th><th>Свободно</th><th>Отгрузить</th></tr></thead><tbody>
+    ${rows.length ? rows.map((r) => { const on = r.k in MK.snSel, er = MK.snErr[r.k];
+      return `<tr class="${on ? "on" : ""}${r.av ? "" : " off"}"><td><input type="checkbox" data-mk-snsel="${r.k}" data-av="${r.av}"${on ? " checked" : ""}${r.av ? "" : " disabled"} aria-label="Отгрузить со склада: ${r.p.prod} ${r.p.th} мм, приход ${r.p.date}"></td>
+        <td>${r.p.prod}</td><td>${r.p.th}</td><td>${r.p.size}</td><td>${r.p.color}</td><td>${r.p.client ? esc(r.p.client) : `<span class="mk-muted">общий</span>`}</td><td>${r.p.pp || "—"}</td><td>${r.p.date}</td>
+        <td>${pkU(r.x, stAvail(r.p))}</td><td>${r.av ? pkU(r.x, r.av) : `<span class="mk-muted">занято</span>`}</td>
+        <td>${on ? `<input class="mk-n${er ? " err" : ""}" data-snq="${r.k}" inputmode="numeric" value="${esc(MK.snSel[r.k])}" aria-label="Сколько со склада"> ${qU(r.x)}${er ? `<div class="mk-err">${er}</div>` : ""}` : ""}</td></tr>`; }).join("")
+      : `<tr><td colspan="11" class="mk-muted">${q ? "Ничего не найдено — попробуйте другой запрос" : "В этом виде свободных остатков нет."}</td></tr>`}
+    </tbody></table></div>`;
 }
 // менеджер: «Клиенты» — как в образце: цифры, вкладки по статусу, поиск, сегмент, таблица, окно клиента; плюс доступ в кабинет.
 // Данные компаний (ИНН, город, контакты, сегмент, заметка) — «-», пока юзер не пришлёт: за настоящие компании не выдумываем
@@ -3043,7 +3100,7 @@ document.querySelectorAll(".hot[data-role]").forEach((g) => {
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-asmgr],[data-mk-clsave],[data-mk-oedit],[data-mk-oecancel],[data-mk-oedel],[data-mk-oesave],[data-mk-orej],[data-mk-orecall],[data-mk-cord],[data-mk-clpart],[data-mk-clpwhat],[data-mk-clupd],[data-mk-cpick],[data-mk-cpoff],[data-mk-cpsel],[data-mk-cpsend],[data-mk-cpcancel],[data-mk-shipnew],[data-mk-sncl],[data-mk-snsel],[data-mk-sncreate],[data-mk-topool],[data-mk-pptab],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-asmgr],[data-mk-clsave],[data-mk-oedit],[data-mk-oecancel],[data-mk-oedel],[data-mk-oesave],[data-mk-orej],[data-mk-orecall],[data-mk-cord],[data-mk-clpart],[data-mk-clpwhat],[data-mk-clupd],[data-mk-cpick],[data-mk-cpoff],[data-mk-cpsel],[data-mk-cpsend],[data-mk-cpcancel],[data-mk-shipnew],[data-mk-sncl],[data-mk-snsel],[data-mk-sncreate],[data-mk-sntab],[data-mk-snst],[data-mk-snall],[data-mk-topool],[data-mk-pptab],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
@@ -3154,6 +3211,9 @@ overlay.addEventListener("click", (e) => {
   else if (d.mkSncl) { snSync(); Object.assign(MK, { snCl: d.mkSncl, snSel: {}, snErr: {}, snNone: false }); }
   else if (d.mkSnsel) { snSync(); if (t.checked) MK.snSel[d.mkSnsel] = d.av; else { delete MK.snSel[d.mkSnsel]; delete MK.snErr[d.mkSnsel]; } MK.snNone = false; }
   else if (t.hasAttribute("data-mk-sncreate")) snCreate();
+  else if (d.mkSntab) { snSync(); MK.snTab = d.mkSntab; } // вкладки: по заявкам клиентов / остатки готовой продукции
+  else if (d.mkSnst) { snSync(); MK.snSt = d.mkSnst; }
+  else if (d.mkSnall) { snSync(); snAll(d.mkSnall); MK.snNone = false; } // «Весь заказ»
   else if (d.mkCpcancel) { const k = PICKS.findIndex((p) => p.id === +d.mkCpcancel && p.st === "new"); if (k >= 0) PICKS.splice(k, 1); MK.cpSent = false; } // отменить — пока менеджер не взял в работу
   else if (d.mkCord) MK.cOrd[d.mkCord] = !MK.cOrd[d.mkCord]; // заказ клиента: раскрыть / свернуть состав
   else if (d.mkCltab) MK.clTab = d.mkCltab;
@@ -3198,12 +3258,12 @@ overlay.addEventListener("change", (e) => {
 });
 // поиск в архиве и в остатках: фильтр на каждую букву, курсор остаётся в поле
 overlay.addEventListener("input", (e) => {
-  const has = (a) => e.target.hasAttribute && e.target.hasAttribute(a), arc = has("data-mk-arcq"), st = has("data-mk-stq"), cl = has("data-mk-clq");
-  if (!arc && !st && !cl) return;
+  const has = (a) => e.target.hasAttribute && e.target.hasAttribute(a), arc = has("data-mk-arcq"), st = has("data-mk-stq"), cl = has("data-mk-clq"), sn = has("data-mk-snq");
+  if (!arc && !st && !cl && !sn) return;
   const pos = e.target.selectionStart;
-  if (arc) MK.arcQ = e.target.value; else if (st) MK.stQ = e.target.value; else MK.clQ = e.target.value;
+  if (sn) { snSync(); MK.snQ = e.target.value; } else if (arc) MK.arcQ = e.target.value; else if (st) MK.stQ = e.target.value; else MK.clQ = e.target.value;
   mkRender();
-  const el = document.getElementById(arc ? "arcQ" : st ? "stQ" : "clQ");
+  const el = document.getElementById(sn ? "snQ" : arc ? "arcQ" : st ? "stQ" : "clQ");
   if (el) { el.focus(); el.setSelectionRange(pos, pos); }
 });
 overlay.addEventListener("keydown", (e) => {
