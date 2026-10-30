@@ -338,6 +338,7 @@ footer { color: var(--muted); font-size: 13px }
 .mk-snt tr.on td { background: var(--bg-sunken) }
 .mk-snt input[type=checkbox] { width: 18px; height: 18px; margin: 0 }
 .mk-snt tr.grp td { background: var(--bg-sunken); font-size: .8125rem }
+.mk-ppiss { margin-top: 6px; display: flex }
 .mk-sntabs { margin-top: 4px }
 /* карточка заявки на отгрузку: шаги — кто и когда */
 .mk-zsteps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 24px }
@@ -1613,6 +1614,8 @@ function ppPool(pool, v) {
       <button class="mk-btn p" data-mk-ppcreate${groups.length ? "" : ' disabled title="Выберите линию у позиций"'}>${ico("factory")}Создать заявки на производство (${groups.length})</button>
       ${groups.length ? "" : `<div class="mk-why">${ico("hourglass")}Выберите линию у позиций.</div>`}</div></div>`;
 }
+// выдать в цех может автор: шеф логистов — лист (группа 1), логист №2 — профиль, термошайбы, трапецию (группа 2)
+const ppMine = (p) => (viewer() === "chef" ? p.grp === 1 : viewer() === "l2" ? p.grp === 2 : false);
 function ppList(all, ro) {
   const cnt = (st) => all.filter((p) => p.st === st).length;
   const lines = viewer() === "chef" ? PP_LINES[1].concat(PP_LINES[2]) : PP_LINES[R().grp];
@@ -1621,6 +1624,7 @@ function ppList(all, ro) {
   const rows = all.filter((p) => MK.ppFilter === "all" || onLine(p, MK.ppFilter));
   return `${ro ? `<div class="mk-plashka">${ico("eye")}<b>Только просмотр.</b> Заявки на производство листа создаёт шеф логистов. ${TODO("видит ли логист №1")}</div>` : ""}
     ${MK.ppDone ? `<div class="mk-hint ok">✓ Создано черновиком: ${MK.ppDone.join(", ")}.</div>` : ""}
+    ${MK.ppIssued ? `<div class="mk-hint ok">✓ ${MK.ppIssued} выдана на производство — она в киоске цеха «${KSHOPS[PP.find((p) => p.no === MK.ppIssued).shop].name}».</div>` : ""}
     <div class="mk-kpis">
       <div class="mk-card mk-kpi"><span>В процессе</span><b>${cnt("inprog")}</b></div>
       <div class="mk-card mk-kpi"><span>Выдано на производство</span><b>${cnt("issued")}</b></div>
@@ -1632,7 +1636,7 @@ function ppList(all, ro) {
       ${TODO("номера ПП")}</div>
     <div class="mk-card mk-tbl dense"><table><thead><tr><th>№ заявки</th><th>Линия</th><th>Название заявки</th><th>Создан</th><th>Производство</th><th>Позиций</th><th>По заявке</th><th>Статус</th><th>Автор</th></tr></thead><tbody>
       ${rows.map((p) => `<tr class="click"><td class="mk-no">${p.no}</td><td>${p.line}<small>${p.sub}</small></td><td>${p.name}</td><td>${p.created}</td><td>${p.plan}</td>
-        <td>${p.pos}</td><td><span class="mk-tag">${p.order}</span></td><td>${badge(PP_ST[p.st])}</td><td>${p.author}${viewer() === "chef" && p.grp === 2 ? "<small>логист №2 — только просмотр</small>" : ""}</td></tr>`).join("")}
+        <td>${p.pos}</td><td><span class="mk-tag">${p.order}</span></td><td>${badge(PP_ST[p.st])}${p.st === "draft" && ppMine(p) ? `<button class="mk-btn p sm mk-ppiss" data-mk-ppissue="${p.no}">${ico("send")}Выдать на производство</button>` : ""}</td><td>${p.author}${viewer() === "chef" && p.grp === 2 ? "<small>логист №2 — только просмотр</small>" : ""}</td></tr>`).join("")}
     </tbody></table></div>`;
 }
 // макет менеджера — от лица одного менеджера; «Смотреть как» — только в макете (в настоящей ERP — свой логин)
@@ -1797,7 +1801,7 @@ function pgKOrder() {
     return `<div class="mk-card mk-oprow${fin ? " fin" : ""}">${left1}
       <div class="mk-opno"><span>№</span><b>${i + 1}</b></div>
       <div class="mk-opc"><span>Клиент</span><b>${x.client}</b><small>${x.date}</small></div>
-      <div class="mk-opc"><span>${x.prod} · размер · толщина</span><b>${x.size}${x.th !== "—" ? ` · ${x.th} мм` : ""}</b></div>
+      <div class="mk-opc"><span>${x.prod} · размер · толщина${x.color ? " · цвет" : ""}</span><b>${x.size}${x.th !== "—" ? ` · ${x.th} мм` : ""}${x.color ? " · " + x.color : ""}</b></div>
       <div class="mk-opplan"><span>План</span><b>${x.plan} ${x.unit}</b></div>${right}</div>`;
   }).join("");
   return `<div class="mk-tools"><button class="mk-btn" data-mk-back>${ico("arrow-left")}Назад</button><span style="margin-left:auto"></span><button class="mk-btn">${ico("printer")}Печать</button></div>
@@ -2511,6 +2515,9 @@ function ppMake() {
     const no = "ПП-2026-" + String(Math.max(...PP.map((p) => +p.no.slice(8))) + 1).padStart(3, "0");
     PP.unshift({ no, grp: v === "l2" ? 2 : 1, shop: g.shop, line: g.line, sub: g.sub, name: [...new Set(g.its.map((p) => p.o.client))].join(", "), created: TODAY,
       plan: g.date.split("-").reverse().join("."), pos: g.its.length, st: "draft", author: v === "l2" ? "Логист №2" : "Шеф логистов", order: [...new Set(g.its.map((p) => p.o.no))].join(", ") });
+    // позиции для киоска: заказ, клиент, товар с цветом, сколько произвести (при «частично» — без взятого со склада), нужна к — срок логиста
+    PPI[no] = g.its.map((p) => ({ client: p.o.client, order: p.o.no, i: p.i, date: p.c.dl + ".2026", prod: p.x.prod, th: p.x.th, size: p.x.size, color: p.x.color,
+      plan: p.c.dec === "part" ? qN(p.x) - p.c.take : qN(p.x), unit: qU(p.x), other: 0 }));
     g.its.forEach((p) => { p.c.pp = no; delete MK.ppLineOf[ppKey(p)]; });
     delete MK.ppDate[g.k];
     return no;
@@ -3235,7 +3242,7 @@ document.querySelectorAll(".hot[data-role]").forEach((g) => {
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-asmgr],[data-mk-clsave],[data-mk-oedit],[data-mk-oecancel],[data-mk-oedel],[data-mk-oesave],[data-mk-orej],[data-mk-orecall],[data-mk-cord],[data-mk-clpart],[data-mk-clpwhat],[data-mk-clupd],[data-mk-cpick],[data-mk-cpoff],[data-mk-cpsel],[data-mk-cpsend],[data-mk-cpcancel],[data-mk-shipnew],[data-mk-sncl],[data-mk-snsel],[data-mk-sncreate],[data-mk-sntab],[data-mk-snst],[data-mk-snall],[data-mk-zopen],[data-mk-zedit],[data-mk-zecancel],[data-mk-zedel],[data-mk-zesave],[data-mk-zcancelok],[data-mk-zprintgo],[data-mk-topool],[data-mk-pptab],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-asmgr],[data-mk-clsave],[data-mk-oedit],[data-mk-oecancel],[data-mk-oedel],[data-mk-oesave],[data-mk-orej],[data-mk-orecall],[data-mk-cord],[data-mk-clpart],[data-mk-clpwhat],[data-mk-clupd],[data-mk-cpick],[data-mk-cpoff],[data-mk-cpsel],[data-mk-cpsend],[data-mk-cpcancel],[data-mk-shipnew],[data-mk-sncl],[data-mk-snsel],[data-mk-sncreate],[data-mk-sntab],[data-mk-snst],[data-mk-snall],[data-mk-zopen],[data-mk-zedit],[data-mk-zecancel],[data-mk-zedel],[data-mk-zesave],[data-mk-zcancelok],[data-mk-zprintgo],[data-mk-ppissue],[data-mk-topool],[data-mk-pptab],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
@@ -3243,14 +3250,15 @@ overlay.addEventListener("click", (e) => {
     MK.modal = null; MK.pre = null; mkRender(); return;
   }
   if (d.mkModal) { MK.modal = d.mkModal; MK.pre = d.mkPre || null; MK.rejErr = MK.zcErr = null; }
-  else if (d.mkNav) { MK.view = d.mkNav; MK.order = null; MK.oEd = null; MK.zEd = null; MK.cPick = false; MK.inKeep = null; MK.inOpen = {}; }
+  else if (d.mkNav) { MK.view = d.mkNav; MK.order = null; MK.oEd = null; MK.zEd = null; MK.ppIssued = null; MK.cPick = false; MK.inKeep = null; MK.inOpen = {}; }
   else if (d.mkOrder) { MK.view = "order"; MK.order = d.mkOrder; MK.oEd = null; }
   else if (d.mkZopen) { MK.view = "zo"; MK.zo = d.mkZopen; MK.zEd = null; } // карточка заявки на отгрузку
   else if (d.mkZedit) zvEdit(SHIPS.find((s) => s.no === d.mkZedit)); // изменить — пока «Ждёт одобрения»
   else if (t.hasAttribute("data-mk-zecancel")) MK.zEd = null;
   else if (t.hasAttribute("data-mk-zedel")) { zvSync(); MK.zEd.items.splice(+d.mkZedel, 1); MK.zEd.err = {}; }
   else if (t.hasAttribute("data-mk-zesave")) zvSave();
-  else if (t.hasAttribute("data-mk-zprintgo")) zPrintGo(MK.pre); // печать листа заявки на отгрузку
+  else if (t.hasAttribute("data-mk-zprintgo")) zPrintGo(MK.pre);
+  else if (d.mkPpissue) { const p = PP.find((x) => x.no === d.mkPpissue); if (p && p.st === "draft") { p.st = "issued"; MK.ppIssued = p.no; MK.ppDone = null; } } // в киоск цеха // печать листа заявки на отгрузку
   else if (t.hasAttribute("data-mk-zcancelok")) { // отменить — только с причиной; бронь освобождается, запрос клиента снова ждёт менеджера
     const why = ((document.getElementById("mkfZcWhy") || {}).value || "").trim(), z = SHIPS.find((s) => s.no === MK.pre);
     MK.zcErr = why ? null : "Укажите причину";
