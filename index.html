@@ -241,6 +241,10 @@ footer { color: var(--muted); font-size: 13px }
 .mk-deals.compact .mk-mini { grid-template-columns: repeat(2, 1fr) }
 .mk-deals.compact .mk-deal-h { flex-direction: column; align-items: flex-start; gap: 6px }
 .mk-deals.compact .mk-deal-f { flex-wrap: wrap }
+/* карточки заявок на отгрузку — как в образце: 340–440 px, в ряд; цифры в 4 колонки; кнопки внизу на всю ширину, поровну */
+.mk-deals.zo { grid-template-columns: repeat(auto-fill, minmax(340px, 440px)) }
+.mk-deals.zo .mk-deal-f > .mk-btn { flex: 1; justify-content: center }
+@media (max-width: 400px) { .mk-deals.zo { grid-template-columns: 1fr } }
 .mk-deal { overflow: hidden; display: flex; flex-direction: column; transition: transform 150ms }
 .mk-deal:hover { transform: translateY(-1px) }
 .mk-deal.approved { border: 2px solid var(--success-500); box-shadow: 0 0 0 4px var(--success-50), var(--shadow-panel) }
@@ -1287,7 +1291,7 @@ function pgLShips() {
         `<button class="${MK.seg === k ? "on" : ""}" data-mk-seg="${k}">${l}</button>`).join("")}</div></div></div>
     <p class="mk-note">Здесь заявки, которые одобрил шеф логистов. Возьмите в работу — грузчики и кладовщики грузят; когда все участки отметят «Погружено», машина уходит проверяющему.</p>
     ${cnt("wait") ? "" : `<p class="mk-note mk-muted">В примере: одобрите ЗО-2026-004 в макете шефа логистов — она появится здесь с кнопкой «Взять в работу».</p>`}
-    ${list.length ? `<div class="mk-deals${list.length >= 3 ? " compact" : ""}" style="grid-template-columns:repeat(${list.length}, minmax(0, 1fr))">${cards}</div>`
+    ${list.length ? `<div class="mk-deals zo">${cards}</div>`
       : `<div class="mk-card mk-stub">${ico("truck")}<b>Здесь пусто</b></div>`}`;
 }
 function pgNoAccess() {
@@ -1398,7 +1402,7 @@ function pgLoading() {
   return `${areaSwitch()}
     <div class="mk-sec"><h3>Одобренные отгрузки <small>· ${list.length}</small></h3>${TODO("кто нажимает «Погружено»")}</div>
     <p class="mk-note">Здесь появляются заявки на отгрузку после того, как их одобрил шеф логистов. Грузите вместе с грузчиками.</p>
-    ${list.length ? `<div class="mk-deals${list.length >= 3 ? " compact" : ""}" style="grid-template-columns:repeat(${list.length}, minmax(0, 1fr))">${cards}</div>`
+    ${list.length ? `<div class="mk-deals zo">${cards}</div>`
       : `<div class="mk-card mk-stub">${ico("truck")}<b>Нет одобренных отгрузок</b></div>`}`;
 }
 /* --- остатки готовой продукции: одна страница для всех, у кого есть пункт меню; логисты смотрят, шеф логистов и кладовщики правят --- */
@@ -2501,7 +2505,7 @@ function pgShips() {
         `<button class="${MK.seg === k ? "on" : ""}" data-mk-seg="${k}">${l}</button>`).join("")}</div>
         ${chief ? "" : `<button class="mk-btn p" data-mk-shipnew>${ico("plus")}Заявка на отгрузку</button>`}</div></div>
     ${chief ? `<p class="mk-note">После «Одобрить» заявку видят и берут в работу те, у кого есть доступ: шеф или бригадир грузчиков и кладовщики.</p>` : ""}
-    <div class="mk-deals${list.length >= 3 ? " compact" : ""}" style="grid-template-columns:repeat(${list.length || 1}, minmax(0, 1fr))">${list.map((z) => {
+    <div class="mk-deals zo">${list.map((z) => {
       const st = zSt(z), s = Z_ST[st];
       const inv = z.inv ? `<span class="mk-tag">ИН ${z.inv}</span>` : st === "done" ? `<span class="mk-badge b-warning"><i></i>ждёт инвойса</span>` : `<span class="mk-muted">—</span>`;
       const foot = chief && st === "wait"
