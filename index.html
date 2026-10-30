@@ -330,6 +330,12 @@ footer { color: var(--muted); font-size: 13px }
 .mk-pk-h span { font-size: .8125rem; color: var(--fg-secondary) }
 .mk-pk-f { display: flex; flex-wrap: wrap; gap: 6px 12px; justify-content: flex-end; align-items: center }
 .mk-pk-f .mk-why { flex-basis: auto }
+.mk-snt tr.off td { color: var(--fg-tertiary) }
+.mk-snt tr.on td { background: var(--bg-sunken) }
+.mk-snt input[type=checkbox] { width: 18px; height: 18px; margin: 0 }
+.mk-snbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; padding: 14px 0 }
+.mk-snbar .sp { flex: 1 }
+.mk-snbar .mk-f { min-width: 200px }
 .mk-f input.err, .mk-f textarea.err, .mk-head input.err { border-color: var(--danger-600) }
 .mk-tbl input.mk-n { width: 80px; padding: 4px 8px; font-size: .875rem; text-align: left }
 .mk-head input[type=date] { padding: 4px 8px; font: inherit; font-size: .875rem; color: var(--fg-primary); background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: 6px }
@@ -1157,6 +1163,14 @@ const ORDERS = [
     it(1, "Монолитный лист", "5", "2050×3050", "прозрачный", "30 листов", "stock"), it(2, "Трапеция", "1", "1150×6000", "прозрачный", "40 листов", "stock")] }
 ];
 const Z_ST = { wait: ["Ждёт одобрения", "b-slate", ""], approved: ["Одобрена", "b-success", "approved"], done: ["Отгрузка подтверждена", "b-danger", "done"] };
+// заявка на отгрузку — позиции с количеством из заказов одного клиента (этап 5а); у старых примеров — заказ целиком
+const zItems = (z) => (z.items || ord(z.order).items.map((x, i) => ({ no: z.order, i, qty: qN(x) }))).map((y) => ({ no: y.no, i: y.i, qty: y.qty, o: ord(y.no), x: ord(y.no).items[y.i] }));
+const zNos = (z) => [...new Set(zItems(z).map((y) => y.no))].join(", ");
+const zPos = (z) => z.pos || zItems(z).length;
+const zSheets = (z) => z.sheets || fmt(zItems(z).filter((y) => /лист/.test(qU(y.x))).reduce((s, y) => s + y.qty, 0));
+const zKg = (z) => z.kg || "—"; // весов листов в справочнике пока нет — будут со справочником (юзер 30.10)
+// сколько по позиции уже в заявках на отгрузку, которые ещё не подтверждены (подтверждённые — уже отгружены)
+const zRes = (no, i) => SHIPS.filter((z) => zSt(z) !== "done").reduce((s, z) => s + zItems(z).filter((y) => y.no === no && y.i === i).reduce((a, y) => a + y.qty, 0), 0);
 const SHIPS = [
   { n: 4, no: "ЗО-2026-004", order: "З-2026-004", client: "Уникум Дон", pos: 3, sheets: "120", kg: "1 450", date: "14.10", st: "wait", inv: null },
   { n: 3, no: "ЗО-2026-003", order: "З-2026-003", client: "Протэк", pos: 2, sheets: "25", kg: "610", date: "13.10", st: "approved", inv: null },
@@ -1194,7 +1208,7 @@ const ROLES = {
     nav: [{ items: [["chat", "Сообщения", "message-square"]] },
       { title: "Производство", items: [["clients", "Клиенты", "users"], ["orders", "Мои заявки", "clipboard-list"], ["ships", "Заявки на отгрузку", "square-kanban", false, () => pkNew().length]] },
       { title: "Администрация", items: [["invoices", "Инвойсы", "stamp"]] }].concat(NAV_END),
-    titles: { orders: ["Мои заявки", "Заявки шефу логистов и что с ними"], ships: ["Заявки на отгрузку", "Создаю, когда всё по заявке готово"],
+    titles: { orders: ["Мои заявки", "Заявки шефу логистов и что с ними"], shipnew: ["Новая заявка на отгрузку", "Только готовое — из запроса клиента или вручную"], ships: ["Заявки на отгрузку", "Создаю, когда всё по заявке готово"],
       invoices: ["Инвойсы", ""], chat: ["Сообщения", ""], clients: ["Клиенты", "Мои клиенты и доступ в личный кабинет"], dicts: ["Справочник", ""] } },
   logist1: { label: "Логист №1", grp: 1, user: ["Логист №1 (пример)", "Логист · сотовый и монолитный лист", "Л1"], start: "inbox", back: "inbox",
     nav: [{ items: [["chat", "Сообщения", "message-square"]] },
@@ -1222,8 +1236,7 @@ const zSt = (z) => {
   return s === "approved" && MK.confirmed[z.no] ? "done" : s;
 };
 // участки, которые грузят машину (позиции без участка — термошайбы — не учитываем: кто их грузит, не обсуждали)
-const zOrder = (z) => ORDERS.find((o) => o.no === z.order);
-const zAreas = (z) => [...new Set(zOrder(z).items.map((x) => areaOf(x.prod)).filter(Boolean))];
+const zAreas = (z) => [...new Set(zItems(z).map((y) => areaOf(y.x.prod)).filter(Boolean))]; // по позициям отгрузки (этап 5а)
 const isLoaded = (z) => zAreas(z).every((a) => MK.loadedA[z.no + "|" + a]);
 
 /* --- шеф/бригадир грузчиков, грузчики, проверяющий отгрузку --- */
@@ -1244,14 +1257,14 @@ function pgLShips() {
   const list = all.filter((z) => MK.seg === "all" || (MK.seg === "active" ? ldSt(z) !== "done" : ldSt(z) === "done"));
   const cnt = (k) => all.filter((z) => ldSt(z) === k).length;
   const cards = list.map((z) => {
-    const st = ldSt(z), o = zOrder(z), noArea = o.items.filter((x) => !areaOf(x.prod)).length;
+    const st = ldSt(z), noArea = zItems(z).filter((y) => !areaOf(y.x.prod)).length;
     const areas = zAreas(z).map((a) => `<div class="mk-row"><span>${AREAS[a].split(" ")[0]}</span>${MK.loadedA[z.no + "|" + a] || st === "done"
       ? badge(["кладовщики: погружено", "b-success"]) : badge(["кладовщики: ждём", "b-slate"])}</div>`).join("");
     const foot = st === "wait" ? `<button class="mk-btn p sm" data-mk-take="${z.no}">${ico("hand")}Взять в работу</button>` : `<button class="mk-btn sm">${ico("printer")}Печать</button>`;
     return `<article class="mk-card mk-deal ${st === "done" ? "done" : st === "wait" ? "" : "approved"}"><div class="mk-deal-b">
-      <div class="mk-deal-h"><div><b>ЗО № ${z.n}</b><small>${z.no} · по ${z.order}</small></div>${badge(LD_ST[st])}</div>
+      <div class="mk-deal-h"><div><b>ЗО № ${z.n}</b><small>${z.no} · по ${zNos(z)}</small></div>${badge(LD_ST[st])}</div>
       <div style="font-weight:600">${z.client} · отгрузка ${z.date}</div>
-      <div class="mk-mini"><div><span>Позиций</span><b>${z.pos}</b></div><div><span>Листов</span><b>${z.sheets}</b></div><div><span>Кг</span><b>${z.kg}</b></div><div><span>Отгрузка</span><b>${z.date}</b></div></div>
+      <div class="mk-mini"><div><span>Позиций</span><b>${zPos(z)}</b></div><div><span>Листов</span><b>${zSheets(z)}</b></div><div><span>Кг</span><b>${zKg(z)}</b></div><div><span>Отгрузка</span><b>${z.date}</b></div></div>
       ${areas}${noArea ? `<div class="mk-row"><span>Ещё</span>термошайбы — кто грузит, не обсуждали</div>` : ""}</div>
       <div class="mk-deal-f">${foot}</div></article>`;
   }).join("");
@@ -1277,22 +1290,22 @@ function pgCheck() {
   const ready = SHIPS.filter((z) => ldSt(z) === "loaded"), done = SHIPS.filter((z) => ldSt(z) === "done");
   const show = MK.filter === "done" ? done : ready;
   const card = (z) => {
-    const o = zOrder(z), st = ldSt(z), fin = st === "done";
-    const rows = o.items.map((x, i) => {
-      const need = parseInt(x.qty, 10), k = z.no + ":" + i, got = MK.counted[k];
+    const its = zItems(z), st = ldSt(z), fin = st === "done"; // «по заявке» — количество в этой отгрузке
+    const rows = its.map((y, i) => {
+      const x = y.x, need = y.qty, k = z.no + ":" + i, got = MK.counted[k];
       const ok = got === undefined || got === "" ? null : Number(got) === need;
-      return `<tr><td>${i + 1}</td><td>${x.prod}</td><td>${x.th}</td><td>${x.size}</td><td>${x.color}</td><td><b>${x.qty}</b></td>
+      return `<tr><td>${i + 1}</td><td>${x.prod}</td><td>${x.th}</td><td>${x.size}</td><td>${x.color}</td><td><b>${pkU(x, need)}</b></td>
         <td>${fin ? `<b>${got ?? need}</b>` : `<input type="number" min="0" inputmode="numeric" id="cnt-${z.n}-${i}" data-mk-count="${k}" value="${got ?? ""}" style="width:90px;padding:5px 8px;border:1px solid var(--border-default);border-radius:6px;background:var(--bg-surface);color:var(--fg-primary);font:inherit">`}</td>
         <td>${fin || ok === true ? badge(["совпадает", "b-success"]) : ok === false ? badge(["не совпадает", "b-danger"]) : `<span class="mk-muted">—</span>`}</td></tr>`;
     }).join("");
-    const allOk = o.items.every((x, i) => Number(MK.counted[z.no + ":" + i]) === parseInt(x.qty, 10) && MK.counted[z.no + ":" + i] !== "");
+    const allOk = its.every((y, i) => Number(MK.counted[z.no + ":" + i]) === y.qty && MK.counted[z.no + ":" + i] !== "");
     const canConfirm = allOk && MK.sheetOk[z.no];
     const foot = fin ? badge(LD_ST.done)
       : `<label style="display:inline-flex;align-items:center;gap:8px;margin-right:auto;font-size:.875rem;cursor:pointer"><input type="checkbox" id="sheet-${z.n}" data-mk-sheet="${z.no}" ${MK.sheetOk[z.no] ? "checked" : ""}>Сверено с отгрузочным листом</label>
         ${MK.chkDiff[z.no] ? `${badge(["Расхождение", "b-danger"])} ${TODO("что дальше")}` : `<button class="mk-btn sm" data-mk-cdiff="${z.no}">Расхождение</button>`}
         <button class="mk-btn g sm" data-mk-confirm="${z.no}" ${canConfirm ? "" : "disabled"}>${ico("check")}Подтвердить отгрузку</button>`;
     return `<article class="mk-card mk-deal ${fin ? "done" : "approved"}"><div class="mk-deal-b">
-      <div class="mk-deal-h"><div><b>ЗО № ${z.n}</b><small>${z.no} · по ${z.order}</small></div>${badge(LD_ST[st])}</div>
+      <div class="mk-deal-h"><div><b>ЗО № ${z.n}</b><small>${z.no} · по ${zNos(z)}</small></div>${badge(LD_ST[st])}</div>
       <div style="font-weight:600">${z.client} · отгрузка ${z.date}</div>
       <div class="mk-card mk-tbl dense" style="box-shadow:none"><table><thead><tr><th>№</th><th>Продукция</th><th>Толщ.</th><th>Размер</th><th>Цвет</th><th>По заявке</th><th>Посчитано</th><th>Сверка</th></tr></thead>
         <tbody>${rows}</tbody></table></div></div>
@@ -1360,16 +1373,16 @@ function pgAccept() {
 function pgLoading() {
   const list = SHIPS.filter((z) => zSt(z) === "approved");
   const cards = list.map((z) => {
-    const o = ORDERS.find((x) => x.no === z.order);
-    const mine = o.items.filter((x) => areaOf(x.prod) === MK.area), other = o.items.length - mine.length;
+    const its = zItems(z); // только позиции этой отгрузки и их количество (этап 5а)
+    const mine = its.filter((y) => areaOf(y.x.prod) === MK.area), other = its.length - mine.length;
     const done = MK.loadedA[z.no + "|" + MK.area];
     return `<article class="mk-card mk-deal ${done ? "" : "approved"}"><div class="mk-deal-b">
-      <div class="mk-deal-h"><div><b>ЗО № ${z.n}</b><small>${z.no} · по ${z.order}</small></div>${done ? badge(["Погружено", "b-success"]) : badge(Z_ST.approved)}</div>
+      <div class="mk-deal-h"><div><b>ЗО № ${z.n}</b><small>${z.no} · по ${zNos(z)}</small></div>${done ? badge(["Погружено", "b-success"]) : badge(Z_ST.approved)}</div>
       <div style="font-weight:600">${z.client} · отгрузка ${z.date}</div>
       ${mine.length ? `<div class="mk-card mk-tbl dense" style="box-shadow:none"><table><thead><tr><th>Продукция</th><th>Толщ.</th><th>Размер</th><th>Цвет</th><th>Кол-во</th></tr></thead><tbody>
-        ${mine.map((x) => `<tr><td>${x.prod}</td><td>${x.th}</td><td>${x.size}</td><td>${x.color}</td><td><b>${x.qty}</b></td></tr>`).join("")}</tbody></table></div>`
+        ${mine.map((y) => `<tr><td>${y.x.prod}</td><td>${y.x.th}</td><td>${y.x.size}</td><td>${y.x.color}</td><td><b>${pkU(y.x, y.qty)}</b></td></tr>`).join("")}</tbody></table></div>`
         : `<p class="mk-note">Позиций вашего участка в этой машине нет.</p>`}
-      ${other ? `<div class="mk-row"><span>Ещё в машине</span>${other} поз. — другой участок${o.items.some((x) => !areaOf(x.prod)) ? " и термошайбы (кто их грузит — не обсуждали)" : ""}</div>` : ""}</div>
+      ${other ? `<div class="mk-row"><span>Ещё в машине</span>${other} поз. — другой участок${its.some((y) => !areaOf(y.x.prod)) ? " и термошайбы (кто их грузит — не обсуждали)" : ""}</div>` : ""}</div>
       <div class="mk-deal-f">${done ? `<button class="mk-btn sm">${ico("printer")}Печать</button>` : `<button class="mk-btn g sm" data-mk-load="${z.no}|${MK.area}">${ico("check")}Погружено</button>`}</div></article>`;
   }).join("");
   return `${areaSwitch()}
@@ -1514,7 +1527,7 @@ const SIDE_KEY = "chk.sidebar.collapsed";
 MK.sideC = (() => { try { return localStorage.getItem(SIDE_KEY) === "1"; } catch (e) { return false; } })();
 MK.sideAnim = false;
 function mkSide() {
-  const act = MK.view === "order" ? "orders" : MK.view === "kOrder" ? "kOrders" : docNav() || MK.view;
+  const act = MK.view === "order" ? "orders" : MK.view === "shipnew" ? "ships" : MK.view === "kOrder" ? "kOrders" : docNav() || MK.view;
   const c = MK.sideC, tip = c ? "Развернуть меню" : "Свернуть меню", anim = MK.sideAnim; MK.sideAnim = false; // плавно — только сразу после нажатия
   // свёрнутое: у пункта только значок, название — в подсказке; число ждущих — точка на значке; вместо названия группы — линия
   const item = ([id, l, ic, ro, nb]) => c
@@ -1632,7 +1645,7 @@ function pgOrder() {
       <button class="mk-btn" data-mk-modal="orej" data-mk-pre="${o.no}">${ico("ban")}Отклонить</button><button class="mk-btn p" data-mk-tochef="${o.no}">${ico("send")}Передать шефу логистов</button>`
     : o.st === "draft"
     ? `<button class="mk-btn" data-mk-oedit="${o.no}">${ico("pencil")}Редактировать</button><button class="mk-btn p" data-mk-tochef="${o.no}">${ico("send")}Отправить шефу логистов</button>`
-    : o.st === "ready" ? `<button class="mk-btn">${ico("printer")}Печать</button><button class="mk-btn p" data-mk-modal="ship" data-mk-pre="${o.no}">${ico("truck")}Создать заявку на отгрузку</button>`
+    : o.st === "ready" ? `<button class="mk-btn">${ico("printer")}Печать</button><button class="mk-btn p" data-mk-shipnew="order|${o.no}">${ico("truck")}Создать заявку на отгрузку</button>`
     : `<button class="mk-btn">${ico("printer")}Печать</button>`;
   const need = !ed ? o.need : `<input type="date" id="oeNeed" value="${ed.need}"${ed.needErr ? ' class="err"' : ""} aria-label="Нужна к">${ed.needErr ? `<div class="mk-err">${OE_ERR[ed.needErr]}</div>` : ""}`;
   return `<div class="mk-tools"><button class="mk-btn" data-mk-back>${ico("arrow-left")}Назад</button>${tools}</div>
@@ -2454,7 +2467,8 @@ function pgShips() {
   const list = all.filter((z) => MK.seg === "all" || (MK.seg === "active" ? zSt(z) !== "done" : zSt(z) === "done"));
   const step = (ok, t) => `<span class="${ok ? "ok" : ""}">${ok ? "✓ " : ""}${t}</span>`;
   const picks = chief ? [] : pkNew(); // менеджеру — «Клиент хочет забрать» (этап 4)
-  return `${picks.length ? `<div class="mk-sec"><h3>Клиент хочет забрать <small>· ${picks.length}</small></h3></div>${picks.map(pkCard).join("")}` : ""}
+  return `${MK.snDone && !chief ? `<div class="mk-hint ok">✓ Заявка на отгрузку <b>${MK.snDone}</b> создана — ждёт одобрения шефа логистов.</div>` : ""}
+    ${picks.length ? `<div class="mk-sec"><h3>Клиент хочет забрать <small>· ${picks.length}</small></h3></div>${picks.map(pkCard).join("")}` : ""}
     <div class="mk-kpis">
       <div class="mk-card mk-kpi"><span>Всего</span><b>${all.length}</b></div>
       <div class="mk-card mk-kpi"><span>Ждут одобрения</span><b>${cnt("wait")}</b></div>
@@ -2463,7 +2477,7 @@ function pgShips() {
     <div class="mk-sec"><h3>Заявки на отгрузку <small>· ${all.length}</small></h3>
       <div class="mk-tools">${TODO("статусы")}<div class="mk-seg">${[["active", "Активные"], ["done", "Завершённые"], ["all", "Все"]].map(([k, l]) =>
         `<button class="${MK.seg === k ? "on" : ""}" data-mk-seg="${k}">${l}</button>`).join("")}</div>
-        ${chief ? "" : `<button class="mk-btn p" data-mk-modal="ship">${ico("plus")}Заявка на отгрузку</button>`}</div></div>
+        ${chief ? "" : `<button class="mk-btn p" data-mk-shipnew>${ico("plus")}Заявка на отгрузку</button>`}</div></div>
     ${chief ? `<p class="mk-note">После «Одобрить» заявку видят и берут в работу те, у кого есть доступ: шеф или бригадир грузчиков и кладовщики.</p>` : ""}
     <div class="mk-deals${list.length >= 3 ? " compact" : ""}" style="grid-template-columns:repeat(${list.length || 1}, minmax(0, 1fr))">${list.map((z) => {
       const st = zSt(z), s = Z_ST[st];
@@ -2474,8 +2488,8 @@ function pgShips() {
       return `<article class="mk-card mk-deal ${s[2]}"><div class="mk-deal-b">
         <div class="mk-deal-h"><div><b>ЗО № ${z.n}</b><small>${z.no}</small></div>${badge(s)}</div>
         <div style="font-weight:600">${z.client}</div>
-        <div class="mk-mini"><div><span>Позиций</span><b>${z.pos}</b></div><div><span>Листов</span><b>${z.sheets}</b></div><div><span>Кг</span><b>${z.kg}</b></div><div><span>Отгрузка</span><b>${z.date}</b></div></div>
-        <div class="mk-row"><span>По заявке</span><span class="mk-tag">${z.order}</span></div>
+        <div class="mk-mini"><div><span>Позиций</span><b>${zPos(z)}</b></div><div><span>Листов</span><b>${zSheets(z)}</b></div><div><span>Кг</span><b>${zKg(z)}</b></div><div><span>Отгрузка</span><b>${z.date}</b></div></div>
+        <div class="mk-row"><span>По заказам</span><span class="mk-tag">${zNos(z)}</span></div>
         <div class="mk-flow">${step(st !== "wait", "Шеф логистов одобрил")}${step(st === "done" || isLoaded(z), "Погружено")}${step(st === "done", "Машина проверена")}</div>
         <div class="mk-row"><span>Инвойсы</span>${inv}</div></div>
         <div class="mk-deal-f">${foot}</div></article>`;
@@ -2678,18 +2692,20 @@ function rdyQ(o, x) {
   if (o.st !== "checked" && o.st !== "prod") return 0;
   return x.dl ? x.from || 0 : x.st === "stock" ? qN(x) : 0;
 }
-const pkReq = (no, i) => PICKS.filter((p) => p.st === "new").reduce((s, p) => s + p.items.filter((y) => y.no === no && y.i === i).reduce((a, y) => a + y.qty, 0), 0);
-const pkLeft = (o, x, i) => qN(x) - cShip(o, x) - pkReq(o.no, i);
-const pkAvail = (o, x, i, what) => Math.max(0, what === "any" ? pkLeft(o, x, i) : Math.min(pkLeft(o, x, i), rdyQ(o, x) - cShip(o, x) - pkReq(o.no, i)));
-const pkNew = () => PICKS.filter((p) => p.st === "new" && mgrOfClient(p.client) === MK.mgr); // менеджеру — запросы его клиентов
+// в запросах клиентов и ещё не в заявке на отгрузку (skip — запрос, по которому сейчас создают заявку)
+const pkReq = (no, i, skip) => PICKS.filter((p) => p.st !== "done" && p.id !== skip).reduce((s, p) => s + p.items.filter((y) => y.no === no && y.i === i).reduce((a, y) => a + y.qty - (y.inZo || 0), 0), 0);
+const pkLeft = (o, x, i) => qN(x) - cShip(o, x) - pkReq(o.no, i) - zRes(o.no, i);
+const pkAvail = (o, x, i, what) => Math.max(0, what === "any" ? pkLeft(o, x, i) : Math.min(pkLeft(o, x, i), rdyQ(o, x) - cShip(o, x) - pkReq(o.no, i) - zRes(o.no, i)));
+const pkRem = (y) => y.qty - (y.inZo || 0);
+const pkNew = () => PICKS.filter((p) => p.st !== "done" && mgrOfClient(p.client) === MK.mgr && p.items.some((y) => pkRem(y) > 0)); // менеджеру — запросы его клиентов, где не всё в заявках на отгрузку
 const pkU = (x, n) => fmt(n) + " " + qU(x);
 // строки режима: позиции принятых заказов клиента, где ещё что-то осталось забрать
 function cpRows() {
   const what = MK.cPart[C_NAME].what, out = [];
   ORDERS.filter((o) => o.client === C_NAME && PK_TAKEN.includes(o.st)).forEach((o) => o.items.forEach((x, i) => {
     if (qN(x) - cShip(o, x) <= 0) return;
-    const av = pkAvail(o, x, i, what), notReady = rdyQ(o, x) - cShip(o, x) - pkReq(o.no, i) < Math.max(1, av), dl = x.dl ? " · до " + x.dl : "";
-    const why = av ? "" : pkLeft(o, x, i) <= 0 ? "уже в запросе" : "ещё не готово" + dl;
+    const av = pkAvail(o, x, i, what), notReady = rdyQ(o, x) - cShip(o, x) - pkReq(o.no, i) - zRes(o.no, i) < Math.max(1, av), dl = x.dl ? " · до " + x.dl : "";
+    const why = av ? "" : pkLeft(o, x, i) <= 0 ? (pkReq(o.no, i) ? "уже в запросе" : "уже в отгрузке") : "ещё не готово" + dl;
     out.push({ o, x, i, k: o.no + "|" + i, av, why, later: av && what === "any" && notReady ? "заберёте, когда будет готово" + dl : "" });
   }));
   return out;
@@ -2729,22 +2745,96 @@ function cpSend() {
 }
 // «Мои заказы» у клиента: кнопка режима и его запросы (пока ждут менеджера — можно отменить)
 function cpBlock() {
-  const p = MK.cPart[C_NAME], mine = PICKS.filter((x) => x.client === C_NAME && x.st === "new");
+  const p = MK.cPart[C_NAME], mine = PICKS.filter((x) => x.client === C_NAME && x.st !== "done");
   return `${MK.cpSent ? `<div class="mk-hint ok">✓ Запрос на отгрузку отправлен менеджеру.</div>` : ""}
-    ${mine.map((x) => `<div class="cs-req"><div><b>Ваш запрос на отгрузку от ${x.date}: ${nPos(x.items.length)} · забрать ${x.when}</b> — ждёт менеджера
-      <ul>${x.items.map((y) => { const o = ord(y.no), it = o.items[y.i]; return `<li>${y.no} · ${it.prod} ${it.th} мм · ${it.color} — ${pkU(it, y.qty)}</li>`; }).join("")}</ul></div>
-      <button class="mk-btn sm" data-mk-cpcancel="${x.id}">${ico("x")}Отменить запрос</button></div>`).join("")}
+    ${mine.map((x) => `<div class="cs-req"><div><b>Ваш запрос на отгрузку от ${x.date}: ${nPos(x.items.length)} · забрать ${x.when}</b> — ${x.st === "new" ? "ждёт менеджера" : "в работе у менеджера"}
+      <ul>${x.items.map((y) => { const o = ord(y.no), it = o.items[y.i]; return `<li>${y.no} · ${it.prod} ${it.th} мм · ${it.color} — ${pkU(it, y.qty)}${y.inZo ? " · в заявке на отгрузку" + (y.inZo < y.qty ? " " + pkU(it, y.inZo) : "") : ""}</li>`; }).join("")}</ul></div>
+      ${x.st === "new" ? `<button class="mk-btn sm" data-mk-cpcancel="${x.id}">${ico("x")}Отменить запрос</button>` : ""}</div>`).join("")}
     ${p && p.on ? `<div class="mk-tools"><button class="mk-btn p" data-mk-cpick>${ico("list-checks")}Выбрать к отгрузке</button></div>` : ""}`;
 }
 // менеджер, «Заявки на отгрузку»: «Клиент хочет забрать»
 function pkCard(p) {
-  return `<div class="mk-card mk-pk"><div class="mk-pk-h"><b>${esc(p.client)}</b><span>запрос от ${p.date} · забрать <b>${p.when}</b></span></div>
+  const st = (y) => { const o = ord(y.no), x = o.items[y.i], rem = pkRem(y), r = rdyQ(o, x) - cShip(o, x) - zRes(o.no, y.i) - pkReq(o.no, y.i, p.id), dl = x.dl ? " до " + x.dl : "";
+    return { r: rem > 0 ? Math.min(rem, Math.max(0, r)) : 0, b: rem <= 0 ? ["В заявке на отгрузку", "b-primary"] : r >= rem ? ["Готово", "b-success"]
+      : r > 0 ? [`Готово ${fmt(r)}, остальное ждёт производства${dl}`, "b-warning"] : ["Ждёт производства" + dl, "b-warning"] }; };
+  const can = p.items.some((y) => st(y).r > 0);
+  return `<div class="mk-card mk-pk"><div class="mk-pk-h"><b>${esc(p.client)}</b><span>запрос от ${p.date} · забрать <b>${p.when}</b>${p.st === "work" ? " · в работе" : ""}</span></div>
     <div class="mk-tbl dense"><table><thead><tr><th>Заказ</th><th>Продукция</th><th>Цвет</th><th>Толщ., мм</th><th>Размер, мм</th><th>Забрать</th><th>Готовность</th></tr></thead><tbody>
-    ${p.items.map((y) => { const o = ord(y.no), x = o.items[y.i], r = rdyQ(o, x) - cShip(o, x);
-      return `<tr><td class="mk-no">${y.no}</td><td>${x.prod}</td><td>${x.color}</td><td>${x.th}</td><td>${x.size}</td><td>${pkU(x, y.qty)}</td>
-        <td>${badge(r >= y.qty ? ["Готово", "b-success"] : ["Ждёт производства" + (x.dl ? " до " + x.dl : ""), "b-warning"])}</td></tr>`; }).join("")}
+    ${p.items.map((y) => { const x = ord(y.no).items[y.i];
+      return `<tr><td class="mk-no">${y.no}</td><td>${x.prod}</td><td>${x.color}</td><td>${x.th}</td><td>${x.size}</td><td>${pkU(x, y.qty)}</td><td>${badge(st(y).b)}</td></tr>`; }).join("")}
     </tbody></table></div>
-    <div class="mk-pk-f"><button class="mk-btn p" disabled>${ico("truck")}Создать заявку на отгрузку</button><div class="mk-why">${ico("info")}Появится на этапе 5</div></div></div>`;
+    <div class="mk-pk-f">${can ? `<button class="mk-btn p" data-mk-shipnew="pick|${p.id}">${ico("truck")}Создать заявку на отгрузку</button>`
+      : `<button class="mk-btn p" disabled>${ico("truck")}Создать заявку на отгрузку</button><div class="mk-why">${ico("info")}Готового пока нет — позиции ждут производства</div>`}</div></div>`;
+}
+
+// --- частичная отгрузка, этап 5а (юзер 30.10): новая заявка на отгрузку — позиции с количеством из принятых заказов одного клиента.
+// В отгрузку — только готовое. Из запроса клиента: готовое и дата подставляются, неготовое остаётся в запросе ждать производства,
+// запрос — «в работе у менеджера» (клиент отменить уже не может). Вручную — менеджер выбирает клиента и позиции сам.
+Object.assign(MK, { snCl: null, snPick: null, snSel: {}, snErr: {}, snNone: false, snDate: "", snDateErr: null, snNote: "", snDone: null });
+// можно отгрузить: готовое минус отгруженное, минус уже в заявках на отгрузку, минус запросы клиента (кроме того, по которому создаём)
+const snAvail = (o, x, i) => Math.max(0, rdyQ(o, x) - cShip(o, x) - zRes(o.no, i) - pkReq(o.no, i, MK.snPick));
+function snRows(cl) {
+  const out = [];
+  ORDERS.filter((o) => o.client === cl && PK_TAKEN.includes(o.st)).forEach((o) => o.items.forEach((x, i) => {
+    const left = qN(x) - cShip(o, x); if (left <= 0) return;
+    const av = snAvail(o, x, i), rdy = rdyQ(o, x) - cShip(o, x), dl = x.dl ? " · до " + x.dl : "";
+    const why = av ? "" : rdy <= 0 ? "ещё не готово" + dl : zRes(o.no, i) >= rdy ? "уже в отгрузке" : "в запросе клиента";
+    out.push({ o, x, i, k: o.no + "|" + i, av, why, left });
+  }));
+  return out;
+}
+function snOpen(arg) {
+  const [kind, v] = arg.split("|");
+  Object.assign(MK, { view: "shipnew", order: null, snCl: null, snPick: null, snSel: {}, snErr: {}, snNone: false, snDate: "", snDateErr: null, snNote: "", snDone: null });
+  if (kind === "order") { const o = ord(v); MK.snCl = o.client; o.items.forEach((x, i) => { const a = snAvail(o, x, i); if (a) MK.snSel[o.no + "|" + i] = String(a); }); }
+  if (kind === "pick") {
+    const p = PICKS.find((x) => x.id === +v); MK.snPick = p.id; MK.snCl = p.client; MK.snDate = p.when.split(".").reverse().join("-");
+    p.items.forEach((y) => { const o = ord(y.no), a = Math.min(y.qty - (y.inZo || 0), snAvail(o, o.items[y.i], y.i)); if (a > 0) MK.snSel[y.no + "|" + y.i] = String(a); });
+  }
+}
+function snSync() { // набранное — из полей, чтобы галочки и «Создать» не теряли его
+  document.querySelectorAll("[data-snq]").forEach((el) => { if (el.dataset.snq in MK.snSel) MK.snSel[el.dataset.snq] = el.value; });
+  const d = document.getElementById("snDate"), n = document.getElementById("snNote");
+  if (d) MK.snDate = d.value; if (n) MK.snNote = n.value;
+}
+function pgShipNew() {
+  const p = MK.snPick ? PICKS.find((x) => x.id === MK.snPick) : null;
+  const cls = p ? [] : clAll().filter((c) => mgrOfClient(c) === MK.mgr && snRows(c).length);
+  const rows = MK.snCl ? snRows(MK.snCl) : [], sel = rows.filter((r) => r.k in MK.snSel), nOrd = new Set(sel.map((r) => r.o.no)).size;
+  const table = `<div class="mk-card mk-tbl dense mk-snt"><table><thead><tr><th></th><th>Заказ</th><th>Продукция</th><th>Цвет</th><th>Толщ., мм</th><th>Размер, мм</th><th>Осталось</th><th>Готово к отгрузке</th><th>Отгрузить</th></tr></thead><tbody>
+    ${rows.map((r) => { const on = r.k in MK.snSel, er = MK.snErr[r.k];
+      return `<tr class="${on ? "on" : ""}${r.av ? "" : " off"}"><td><input type="checkbox" data-mk-snsel="${r.k}" data-av="${r.av}"${on ? " checked" : ""}${r.av ? "" : " disabled"} aria-label="Отгрузить: ${r.o.no}, позиция ${r.i + 1}"></td>
+        <td class="mk-no">${r.o.no}</td><td>${r.x.prod}</td><td>${r.x.color}</td><td>${r.x.th}</td><td>${r.x.size}</td><td>${pkU(r.x, r.left)}</td>
+        <td>${r.av ? pkU(r.x, r.av) : `<span class="mk-muted">${r.why}</span>`}</td>
+        <td>${on ? `<input class="mk-n${er ? " err" : ""}" data-snq="${r.k}" inputmode="numeric" value="${esc(MK.snSel[r.k])}" aria-label="Отгрузить: ${r.o.no}, позиция ${r.i + 1}"> ${qU(r.x)}${er ? `<div class="mk-err">${er}</div>` : ""}` : ""}</td></tr>`; }).join("")}
+    </tbody></table></div>`;
+  return `<div class="mk-tools"><button class="mk-btn" data-mk-nav="ships">${ico("arrow-left")}Назад</button></div>
+    <div class="mk-hint">ⓘ В отгрузку — только готовое. Шеф логистов одобрит, кладовщики и грузчики погрузят, проверяющий сверит машину.</div>
+    ${p ? `<div class="mk-hint">ⓘ По запросу клиента от ${p.date} · забрать ${p.when}. Готовое подставлено; неготовое останется в запросе ждать производства.</div>` : ""}
+    <div class="mk-sec"><h3>Клиент</h3></div>
+    <div class="mk-chips">${p ? `<button class="mk-chip on">${esc(p.client)}</button>`
+      : cls.length ? cls.map((c) => `<button class="mk-chip${MK.snCl === c ? " on" : ""}" data-mk-sncl="${esc(c)}">${esc(c)}<em>${snRows(c).filter((r) => r.av).length}</em></button>`).join("")
+      : `<span class="mk-muted">У ваших клиентов нет принятых заказов, которые можно отгрузить.</span>`}</div>
+    ${!MK.snCl ? `<p class="mk-note">Выберите клиента — появятся его позиции.</p>` : `${table}
+    <div class="mk-snbar"><b>Выбрано: ${sel.length ? nPos(sel.length) + " из " + pl(nOrd, "заказа", "заказов", "заказов") : "ничего"}</b>
+      <div class="mk-f"><label for="snDate">Дата отгрузки</label><input type="date" id="snDate" value="${MK.snDate}"${MK.snDateErr ? ' class="err"' : ""}>${MK.snDateErr ? `<div class="mk-err">${MK.snDateErr}</div>` : ""}</div>
+      <div class="mk-f"><label for="snNote">Примечание (необязательно)</label><input id="snNote" value="${esc(MK.snNote)}"></div>
+      <span class="sp"></span><button class="mk-btn" data-mk-nav="ships">Отмена</button><button class="mk-btn p" data-mk-sncreate>${ico("truck")}Создать заявку на отгрузку</button></div>
+    ${MK.snNone ? `<div class="mk-err">Отметьте, что отгружать</div>` : ""}`}`;
+}
+function snCreate() {
+  snSync();
+  const rows = snRows(MK.snCl), sel = rows.filter((r) => r.k in MK.snSel), num = (r) => String(MK.snSel[r.k]).replace(/\s/g, "");
+  MK.snErr = {}; MK.snNone = !sel.length;
+  sel.forEach((r) => { if (!/^\d+$/.test(num(r)) || +num(r) < 1) MK.snErr[r.k] = "Укажите количество"; else if (+num(r) > r.av) MK.snErr[r.k] = "Можно не больше " + pkU(r.x, r.av); });
+  MK.snDateErr = !MK.snDate ? "Укажите дату" : MK.snDate < "2026-10-12" ? "Дата не может быть в прошлом" : null; // «сегодня» макета — 12.10.2026
+  if (MK.snNone || Object.keys(MK.snErr).length || MK.snDateErr) return;
+  const n = Math.max(...SHIPS.map((z) => z.n)) + 1, no = "ЗО-2026-" + String(n).padStart(3, "0");
+  const items = sel.map((r) => ({ no: r.o.no, i: r.i, qty: +num(r) }));
+  SHIPS.unshift({ n, no, client: MK.snCl, date: MK.snDate.split("-").reverse().slice(0, 2).join("."), st: "wait", inv: null, items, note: MK.snNote.trim() });
+  const p = MK.snPick && PICKS.find((x) => x.id === MK.snPick);
+  if (p) { p.st = "work"; items.forEach((it) => { const y = p.items.find((q) => q.no === it.no && q.i === it.i); if (y) { y.inZo = Math.min(y.qty, (y.inZo || 0) + it.qty); (y.zos = y.zos || []).push(no); } }); }
+  Object.assign(MK, { view: "ships", seg: "active", snDone: no, snPick: null });
 }
 // менеджер: «Клиенты» — как в образце: цифры, вкладки по статусу, поиск, сегмент, таблица, окно клиента; плюс доступ в кабинет.
 // Данные компаний (ИНН, город, контакты, сегмент, заметка) — «-», пока юзер не пришлёт: за настоящие компании не выдумываем
@@ -2816,10 +2906,6 @@ function mkModal() {
       ${f("mkfNeed", "Нужна к", `<input type="date" id="mkfNeed" value="2026-10-24">`)}
       ${f("mkfNote", "Примечание (необязательно)", `<textarea id="mkfNote"></textarea>`)}
       <div class="mk-hint">Заявка будет создана как <b>черновик</b>. Позиции добавьте в карточке заявки.</div>`, "Создать заявку"],
-    ship: ["Новая заявка на отгрузку", `<div class="mk-hint">ⓘ Шеф логистов одобрит, грузчики и кладовщики погрузят, проверяющий сверит машину.</div>
-      ${f("mkfOrder", "Заявка", combo("mkfOrder", MK.pre ? `${MK.pre} · ${ORDERS.find((o) => o.no === MK.pre).client} · готово к отгрузке` : "", "Выберите готовую заявку…"))}
-      ${f("mkfDate", "Дата отгрузки", `<input type="date" id="mkfDate" value="2026-10-14">`)}
-      ${f("mkfShipNote", "Примечание (необязательно)", `<textarea id="mkfShipNote"></textarea>`)}`, "Создать заявку"],
     orej: MK.modal !== "orej" ? null : ["Отклонить заявку " + MK.pre, `<div class="mk-hint">ⓘ Клиент увидит отказ и причину на сайте в «Мои заказы».</div>
       ${f("mkfRejWhy", "Причина *", `<textarea id="mkfRejWhy"${MK.rejErr ? ' class="err"' : ""} placeholder="Напишите, почему отклоняете"></textarea>${MK.rejErr ? `<div class="mk-err">${MK.rejErr}</div>` : ""}`)}`, "Отклонить", 'data-mk-orej="1"'],
     inv: ["Инвойс по машине", `<div class="mk-hint">ⓘ Создаётся только по отгрузке, которую подтвердил проверяющий.</div>
@@ -2873,7 +2959,7 @@ function mkModal() {
     <div class="mk-modal-f"><button class="mk-btn" data-mk-close-modal>Отмена</button><button class="mk-btn p" ${M[3] || "data-mk-close-modal"}>${M[2]}</button></div></div></div>`;
 }
 function mkRender() {
-  const pages = MK.role === "manager" ? { orders: pgOrders, order: pgOrder, ships: pgShips, invoices: pgInvoices, clients: pgClients }
+  const pages = MK.role === "manager" ? { orders: pgOrders, order: pgOrder, ships: pgShips, shipnew: pgShipNew, invoices: pgInvoices, clients: pgClients }
     : MK.role === "cheflog" ? { cin: pgIn, plan: pgPlan, ships: pgShips, stock: pgStock }
     : MK.role === "kiosk" ? { kOrders: pgKOrders, kOrder: pgKOrder, kShift: pgKShift }
     : MK.role === "loaderchief" ? { lships: pgLShips } : MK.role === "loaders" ? { noaccess: pgNoAccess } : MK.role === "checker" ? { check: pgCheck }
@@ -2893,7 +2979,7 @@ let lastHot = null;
 function mkOpen(role, from, shop) {
   lastHot = from;
   if (shop) { MK.shop = shop; MK.kPart = "a"; }
-  MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cOpen = null; MK.cOrd = {}; MK.cPick = false; MK.cpSent = false; MK.cRow = null; MK.cCol = null; MK.cTh = null; MK.cLenR = {}; MK.cLenErr = null; MK.cSent = null; MK.cErr = ""; MK.cLogged = false; MK.cLoginErr = ""; MK.accDone = MK.clNew = MK.clErr = MK.oEd = MK.rejErr = null; MK.clDraft = "";
+  MK.stTab = null; MK.stQ = ""; MK.stG = {}; MK.stOpen = {}; MK.cOpen = null; MK.cOrd = {}; MK.cPick = false; MK.cpSent = false; MK.snDone = null; MK.cRow = null; MK.cCol = null; MK.cTh = null; MK.cLenR = {}; MK.cLenErr = null; MK.cSent = null; MK.cErr = ""; MK.cLogged = false; MK.cLoginErr = ""; MK.accDone = MK.clNew = MK.clErr = MK.oEd = MK.rejErr = null; MK.clDraft = "";
   MK.role = role; MK.view = role === "kiosk" && !KSHOPS[MK.shop].orders ? "kShift" : ROLES[role].start; MK.order = null; MK.modal = null; MK.pre = null;
   MK.mgr = MGRS[0]; MK.filter = MK.ppFilter = MK.clFilter = "all"; MK.inF = "todo"; MK.inKeep = null; MK.inOpen = {}; MK.ppTab = null; MK.ppLineOf = {}; MK.ppDate = {}; MK.ppDone = null; MK.clTab = "active"; MK.clQ = "";
   document.getElementById("mkTitle").textContent = "Макет · " + (role === "kiosk" ? "Киоск · " + KSHOPS[MK.shop].name : ROLES[role].label);
@@ -2917,7 +3003,7 @@ document.querySelectorAll(".hot[data-role]").forEach((g) => {
 });
 document.getElementById("mkClose").addEventListener("click", mkClose);
 overlay.addEventListener("click", (e) => {
-  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-asmgr],[data-mk-clsave],[data-mk-oedit],[data-mk-oecancel],[data-mk-oedel],[data-mk-oesave],[data-mk-orej],[data-mk-cord],[data-mk-clpart],[data-mk-clpwhat],[data-mk-clupd],[data-mk-cpick],[data-mk-cpoff],[data-mk-cpsel],[data-mk-cpsend],[data-mk-cpcancel],[data-mk-topool],[data-mk-pptab],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
+  const t = e.target.closest("[data-mk-side],[data-mk-nav],[data-mk-order],[data-mk-approve],[data-mk-area],[data-mk-acc],[data-mk-load],[data-mk-take],[data-mk-sheet],[data-mk-confirm],[data-mk-cdiff],[data-mk-pick],[data-mk-pinok],[data-mk-kchange],[data-mk-korder],[data-mk-kconfirm],[data-mk-kdone],[data-mk-kdoneok],[data-mk-kundo],[data-mk-team],[data-mk-ksave],[data-mk-kpart],[data-mk-doc],[data-mk-newdoc],[data-mk-docback],[data-mk-dsave],[data-mk-dtab],[data-mk-ssver],[data-mk-ssline],[data-mk-ssall],[data-mk-sttab],[data-mk-stg],[data-mk-stopen],[data-mk-ccat],[data-mk-crow],[data-mk-ccol],[data-mk-clen],[data-mk-cth],[data-mk-cadd],[data-mk-cdel],[data-mk-csend],[data-mk-tochef],[data-mk-inf],[data-mk-dec],[data-mk-dl],[data-mk-assign],[data-mk-chksend],[data-mk-l1ret],[data-mk-l2ok],[data-mk-chefok],[data-mk-inopen],[data-mk-asmgr],[data-mk-clsave],[data-mk-oedit],[data-mk-oecancel],[data-mk-oedel],[data-mk-oesave],[data-mk-orej],[data-mk-cord],[data-mk-clpart],[data-mk-clpwhat],[data-mk-clupd],[data-mk-cpick],[data-mk-cpoff],[data-mk-cpsel],[data-mk-cpsend],[data-mk-cpcancel],[data-mk-shipnew],[data-mk-sncl],[data-mk-snsel],[data-mk-sncreate],[data-mk-topool],[data-mk-pptab],[data-mk-ppline],[data-mk-ppcreate],[data-mk-clogin],[data-mk-clogout],[data-mk-cacc],[data-mk-cltab],[data-mk-clform],[data-mk-cgive],[data-mk-arcm],[data-mk-arct],[data-mk-noop],[data-mk-back],[data-mk-filter],[data-mk-ppfilter],[data-mk-seg],[data-mk-modal],[data-mk-close-modal]");
   if (!t || t.disabled) return;
   const d = t.dataset;
   if (t.hasAttribute("data-mk-close-modal")) {
@@ -3023,6 +3109,10 @@ overlay.addEventListener("click", (e) => {
   else if (t.hasAttribute("data-mk-cpoff")) MK.cPick = false;
   else if (d.mkCpsel) { cpSync(); if (t.checked) MK.cpSel[d.mkCpsel] = d.av; else { delete MK.cpSel[d.mkCpsel]; delete MK.cpErr[d.mkCpsel]; } MK.cpNone = false; }
   else if (t.hasAttribute("data-mk-cpsend")) cpSend();
+  else if (t.hasAttribute("data-mk-shipnew")) snOpen(d.mkShipnew || ""); // новая заявка на отгрузку: вручную / по заказу / по запросу клиента
+  else if (d.mkSncl) { snSync(); Object.assign(MK, { snCl: d.mkSncl, snSel: {}, snErr: {}, snNone: false }); }
+  else if (d.mkSnsel) { snSync(); if (t.checked) MK.snSel[d.mkSnsel] = d.av; else { delete MK.snSel[d.mkSnsel]; delete MK.snErr[d.mkSnsel]; } MK.snNone = false; }
+  else if (t.hasAttribute("data-mk-sncreate")) snCreate();
   else if (d.mkCpcancel) { const k = PICKS.findIndex((p) => p.id === +d.mkCpcancel && p.st === "new"); if (k >= 0) PICKS.splice(k, 1); MK.cpSent = false; } // отменить — пока менеджер не взял в работу
   else if (d.mkCord) MK.cOrd[d.mkCord] = !MK.cOrd[d.mkCord]; // заказ клиента: раскрыть / свернуть состав
   else if (d.mkCltab) MK.clTab = d.mkCltab;
