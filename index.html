@@ -1303,11 +1303,12 @@ function pgCheck() {
         <td>${fin || ok === true ? badge(["совпадает", "b-success"]) : ok === false ? badge(["не совпадает", "b-danger"]) : `<span class="mk-muted">—</span>`}</td></tr>`;
     }).join("");
     const allOk = its.every((y, i) => Number(MK.counted[z.no + ":" + i]) === y.qty && MK.counted[z.no + ":" + i] !== "");
-    const canConfirm = allOk && MK.sheetOk[z.no];
+    const short = fin ? [] : zAlloc(z).short, canConfirm = allOk && MK.sheetOk[z.no] && !short.length; // недогруз запрещён
     const foot = fin ? badge(LD_ST.done)
       : `<label style="display:inline-flex;align-items:center;gap:8px;margin-right:auto;font-size:.875rem;cursor:pointer"><input type="checkbox" id="sheet-${z.n}" data-mk-sheet="${z.no}" ${MK.sheetOk[z.no] ? "checked" : ""}>Сверено с отгрузочным листом</label>
         ${MK.chkDiff[z.no] ? `${badge(["Расхождение", "b-danger"])} ${TODO("что дальше")}` : `<button class="mk-btn sm" data-mk-cdiff="${z.no}">Расхождение</button>`}
-        <button class="mk-btn g sm" data-mk-confirm="${z.no}" ${canConfirm ? "" : "disabled"}>${ico("check")}Подтвердить отгрузку</button>`;
+        <button class="mk-btn g sm" data-mk-confirm="${z.no}" ${canConfirm ? "" : "disabled"}>${ico("check")}Подтвердить отгрузку</button>
+        ${short.length ? `<div class="mk-why">${ico("info")}На складе не хватает: ${short.map((s) => s.x.prod + " " + s.x.th + " мм — " + pkU(s.x, s.need)).join("; ")}</div>` : ""}`;
     return `<article class="mk-card mk-deal ${fin ? "done" : "approved"}"><div class="mk-deal-b">
       <div class="mk-deal-h"><div><b>ЗО № ${z.n}</b><small>${z.no} · по ${zNos(z)}</small></div>${badge(LD_ST[st])}</div>
       <div style="font-weight:600">${z.client} · отгрузка ${z.date}</div>
@@ -2239,7 +2240,8 @@ const onStock = (x) => STOCK_P.filter((p) => x.prod === p.prod && p.th === x.th 
 const sameP = (x, y) => x.prod === y.prod && x.th === y.th && x.size === y.size && x.color === y.color;
 const posOf = (f) => ORDERS.flatMap((p) => p.items.map((y, j) => ({ p, y, j }))).filter(f);
 // сколько склада взяла позиция: «Со склада» — всё количество, «Частично» — сколько было свободно
-const takeOf = (p, j) => { const c = p.chk && p.chk[j]; return !c ? 0 : c.dec === "stock" ? qN(p.items[j]) : c.dec === "part" ? c.take : 0; };
+// держат со склада под заказ — только неотгруженное: отгруженное уже списано с партий (иначе вычлось бы дважды)
+const takeOf = (p, j) => { const c = p.chk && p.chk[j], t = !c ? 0 : c.dec === "stock" ? qN(p.items[j]) : c.dec === "part" ? c.take : 0; return Math.max(0, t - (p.items[j].shipped || 0)); };
 const takers = (o, i) => posOf(({ p, y, j }) => !(p === o && j === i) && sameP(o.items[i], y) && takeOf(p, j) > 0);
 const freeFor = (o, i) => onStock(o.items[i]) - takers(o, i).reduce((s, { p, j }) => s + takeOf(p, j), 0);
 // продукция нужна нескольким заявкам в работе, и свободного (без уже отправленных менеджеру) на всех не хватает
@@ -2838,9 +2840,25 @@ function pgShipNew() {
     ${MK.snNone ? `<div class="mk-err">Отметьте, что отгружать</div>` : ""}`}`;
 }
 // проверяющий подтвердил машину (этап 5б): по позициям отгрузки растёт «отгружено»; запрос клиента закрывается, когда всё из него уехало
+// откуда со склада: партии того же товара — сначала этого клиента, потом общие (без пометки), от старых к новым (как в образце);
+// чужие партии сами не берутся; short — чего не хватает (тогда подтвердить нельзя: недогруз запрещён, как в образце)
+const stSame = (x, p) => x.prod === p.prod && p.th === x.th && x.size.startsWith(p.size) && p.color === x.color;
+function zAlloc(z) {
+  const left = {}, plan = [], short = [];
+  zItems(z).forEach((y) => {
+    let need = y.qty;
+    STOCK_P.filter((p) => stSame(y.x, p) && (p.client === z.client || !p.client))
+      .sort((a, b) => (a.client === z.client ? 0 : 1) - (b.client === z.client ? 0 : 1) || stNum(a.date) - stNum(b.date))
+      .forEach((p) => { const av = p.id in left ? left[p.id] : stAvail(p), t = Math.min(av, need); if (t > 0) { plan.push({ p, qty: t }); left[p.id] = av - t; need -= t; } });
+    if (need > 0) short.push({ x: y.x, need });
+  });
+  return { plan, short };
+}
 function zConfirm(no) {
-  if (MK.confirmed[no]) return;
-  zItems(SHIPS.find((s) => s.no === no)).forEach((y) => { if (y.o.st !== "shipped") y.x.shipped = (y.x.shipped || 0) + y.qty; });
+  const z = SHIPS.find((s) => s.no === no), al = zAlloc(z);
+  if (MK.confirmed[no] || al.short.length) return;
+  al.plan.forEach((a) => a.p.out.push([a.qty, TODAY.slice(0, 5), no, null])); // на «Остатках» — строка отгрузки у партии
+  zItems(z).forEach((y) => { if (y.o.st !== "shipped") y.x.shipped = (y.x.shipped || 0) + y.qty; });
   MK.confirmed[no] = true; delete MK.chkDiff[no];
   PICKS.filter((p) => p.st === "work" && p.items.every((y) => pkRem(y) <= 0 && (y.zos || []).every((n) => zSt(SHIPS.find((s) => s.no === n)) === "done"))).forEach((p) => { p.st = "done"; });
 }
